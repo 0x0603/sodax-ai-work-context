@@ -19,16 +19,19 @@ sodax/
 ## Layout
 
 ```
+INDEX.md                     ← repo map and search recipes
 AGENTS.md                    ← canonical agent instructions
 CLAUDE.md                    ← symlink → AGENTS.md
 bootstrap.sh                 ← run once per machine to link workspace instructions
 .claude/skills/sodax-relink/ ← `/sodax-relink` skill: re-run bootstrap on demand
+scripts/                     ← small helpers and templates
 projects/sodax-backend/      ← backend repo context
 projects/sodax-frontend/     ← frontend repo context
 projects/sodax-sdks/         ← SDK repo context
 projects/intents-whitelabel/ ← whitelabel repo context
+knowledge/                   ← reusable distilled knowledge
 decisions/                   ← cross-cutting ADRs
-plans/                       ← cross-cutting implementation plans
+plans/                       ← cross-repo initiative plans
 research/                    ← spikes, comparisons, exploration notes
 ```
 

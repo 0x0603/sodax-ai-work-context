@@ -1,8 +1,12 @@
 # Plans
 
-Cross-cutting implementation plans / roadmaps that span more than one repo.
-Repo-scoped plans live under `projects/<repo>/` instead.
+Cross-repo implementation plans / roadmaps that span more than one GitHub issue
+or more than one repo.
 
-- One file per plan: `kebab-title.md`.
-- Keep a short status line at the top (Active / Done / Parked) and a date.
+Issue-scoped plans live in `projects/<repo>/issues/<issue>/plan.md`; do not
+create a separate plan here for normal issue work.
+
+- One file per initiative: `kebab-title.md`.
+- Keep frontmatter with `type: plan`, `status`, `updated`, `related_issues`,
+  and `related_decisions`.
 - Move stale plans' status to `Parked` rather than deleting them.
