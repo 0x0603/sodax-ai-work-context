@@ -24,28 +24,40 @@ research). Keep the two worlds separate.
 
 ## How to use this memory
 
-Work is tracked per GitHub issue (or ad-hoc task) as a folder under
+Orient before searching deeply:
+
+1. Read `INDEX.md` (the repo map + search recipes).
+2. Read `projects/<repo>/README.md` for the repo you're working on.
+3. If there's a GitHub issue, open `projects/<repo>/issues/gh-<number>-*/` and
+   read `issue.md` (goal), `plan.md` (intent), `process.md` (history),
+   `outcome.md` (result) — this is how you resume a task after pulling context.
+4. Find related context by searching the frontmatter on issue / knowledge /
+   decision files:
+
+   ```bash
+   rg "^github: <number>"     # everything about one issue
+   rg "^tags:.*<keyword>"     # by topic
+   rg "^type: knowledge"      # all distilled knowledge
+   rg "^status: Active"       # work in progress
+   ```
+
+Work is tracked per GitHub issue (or ad-hoc `task-*`) as a folder under
 `projects/<repo>/issues/`. Scaffold one with `scripts/new-issue.sh` (see
 `projects/README.md`).
 
-Before resuming issue `N` of repo `X`:
-
-1. Open `projects/X/issues/gh-N-*/` and read `issue.md` (goal), `plan.md`
-   (intent), `process.md` (history so far), `outcome.md` (status). This is how
-   you pick up a task after pulling context.
-2. Skim `projects/X/decisions/` and top-level `decisions/` for ADRs that apply.
-
 While working:
 
-- Append discoveries, dead-ends, and debug notes to `process.md` as you go; keep
-  intent in `plan.md` and the final result in `outcome.md`.
+- Append discoveries, dead-ends, and debug notes to `process.md`; keep intent in
+  `plan.md` and the final result in `outcome.md`. Bump `updated:` when you edit.
 
 Where things go:
 
 - Issue-scoped plan → the issue's `plan.md`; cross-repo plan → top-level `plans/`.
-- Repo-scoped decision → `projects/X/decisions/`; cross-cutting → top-level
+- Repo-scoped decision → `projects/<repo>/decisions/`; cross-cutting → top-level
   `decisions/`.
-- Reusable synthesized knowledge → top-level `knowledge/`.
+- Reusable synthesized knowledge → top-level `knowledge/` (see its `README.md`).
+- Link related items by id in frontmatter (`related_issues`, `related_decisions`)
+  so `rg` can traverse both ways.
 - **Code changes go in the actual `icon-project` repo. Plans / decisions / notes
   go ONLY in this context repo.** Never commit personal notes into an
   `icon-project` repo.

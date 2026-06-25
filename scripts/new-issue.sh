@@ -41,10 +41,12 @@ title="$(printf '%s' "$slug" | tr '-' ' ' \
 
 if [ "$ref" = "task" ]; then
   folder="task-$slug"
+  github=""
   source="(no GitHub issue)"
   heading="$title"
 elif printf '%s' "$ref" | grep -Eq '^[0-9]+$'; then
   folder="gh-$ref-$slug"
+  github="$ref"
   source="https://github.com/$GH_ORG/$repo/issues/$ref"
   heading="GH-$ref $title"
 else
@@ -57,15 +59,15 @@ dest="$projects_dir/issues/$folder"
 today="$(date +%Y-%m-%d)"
 mkdir -p "$dest"
 
-# issue.md gets the metadata substituted; the rest are copied verbatim.
-sed -e "s|__HEADING__|$heading|g" \
-    -e "s|__SOURCE__|$source|g" \
-    -e "s|__REPO__|$repo|g" \
-    -e "s|__DATE__|$today|g" \
-    "$TPL_DIR/issue.md" > "$dest/issue.md"
-cp "$TPL_DIR/plan.md"    "$dest/plan.md"
-cp "$TPL_DIR/process.md" "$dest/process.md"
-cp "$TPL_DIR/outcome.md" "$dest/outcome.md"
+# All four files carry frontmatter; substitute the metadata into each.
+for f in issue plan process outcome; do
+  sed -e "s|__HEADING__|$heading|g" \
+      -e "s|__SOURCE__|$source|g" \
+      -e "s|__REPO__|$repo|g" \
+      -e "s|__GITHUB__|$github|g" \
+      -e "s|__DATE__|$today|g" \
+      "$TPL_DIR/$f.md" > "$dest/$f.md"
+done
 
 echo "Created $dest"
 ls -1 "$dest"

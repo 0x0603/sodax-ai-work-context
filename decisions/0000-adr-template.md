@@ -1,8 +1,15 @@
+---
+type: decision
+scope: <repo or cross-repo>
+status: Proposed
+tags: []
+date: YYYY-MM-DD
+related_issues: []
+---
+
 # NNNN — <Title>
 
-- **Date:** YYYY-MM-DD
-- **Status:** Proposed | Accepted | Superseded by NNNN
-- **Scope:** <which repos / area this affects>
+> Status and scope live in the frontmatter above (single source of truth).
 
 ## Context
 
@@ -20,3 +27,8 @@ Trade-offs, follow-ups, things to watch. What becomes easier / harder.
 
 - Option A — why not.
 - Option B — why not.
+
+## Related
+
+- Issues:
+- Knowledge:

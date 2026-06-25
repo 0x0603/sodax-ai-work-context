@@ -1,6 +1,13 @@
+---
+type: outcome
+repo: __REPO__
+github: __GITHUB__
+status:
+updated: __DATE__
+---
+
 # Outcome
 
-- Status:
 - PR:
 - Commits:
 - Tests:
