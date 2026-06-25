@@ -24,19 +24,28 @@ research). Keep the two worlds separate.
 
 ## How to use this memory
 
-Before working on repo `X`:
+Work is tracked per GitHub issue (or ad-hoc task) as a folder under
+`projects/<repo>/issues/`. Scaffold one with `scripts/new-issue.sh` (see
+`projects/README.md`).
 
-1. Read `sodax-ai-work-context/projects/<repo-folder>/` for current context,
-   plans, and open decisions. Use the exact repo folder name, such as
-   `projects/sodax-frontend/`.
-2. Skim `sodax-ai-work-context/decisions/` for cross-cutting ADRs that apply.
+Before resuming issue `N` of repo `X`:
 
-While / after working:
+1. Open `projects/X/issues/gh-N-*/` and read `issue.md` (goal), `plan.md`
+   (intent), `process.md` (history so far), `outcome.md` (status). This is how
+   you pick up a task after pulling context.
+2. Skim `projects/X/decisions/` and top-level `decisions/` for ADRs that apply.
 
-- Record significant decisions as ADRs — cross-cutting ones in `decisions/`,
-  repo-scoped ones in `projects/<repo-folder>/`.
-- Save implementation plans in `plans/` (or `projects/<repo-folder>/` if scoped
-  to one repo).
+While working:
+
+- Append discoveries, dead-ends, and debug notes to `process.md` as you go; keep
+  intent in `plan.md` and the final result in `outcome.md`.
+
+Where things go:
+
+- Issue-scoped plan → the issue's `plan.md`; cross-repo plan → top-level `plans/`.
+- Repo-scoped decision → `projects/X/decisions/`; cross-cutting → top-level
+  `decisions/`.
+- Reusable synthesized knowledge → top-level `knowledge/`.
 - **Code changes go in the actual `icon-project` repo. Plans / decisions / notes
   go ONLY in this context repo.** Never commit personal notes into an
   `icon-project` repo.
@@ -49,7 +58,7 @@ While / after working:
   `sodax-ai-work-context`.
 - New machine: `git clone` the repo, then run `./bootstrap.sh` once to create the
   workspace-root symlinks.
-- The `/sodax/AGENTS.md` and `/sodax/CLAUDE.md` symlinks live outside any repo, so
+- The `sodax/AGENTS.md` and `sodax/CLAUDE.md` symlinks live outside any repo, so
   they are not synced. If they break or change, run the `/sodax-relink` skill (or
   `./bootstrap.sh`) to recreate them.
 
