@@ -65,7 +65,8 @@ Where things go:
 ## Sync (2 machines)
 
 - This context repo syncs via git: `github.com/0x0603/sodax-ai-work-context`.
-- **Session start:** `git pull` in `sodax-ai-work-context`.
+- **Session start:** `git pull` in `sodax-ai-work-context` — enforced
+  automatically per machine by a SessionStart hook (`sync-ai-context.sh`).
 - **Session end:** `git status`, then `git commit` + `git push` in
   `sodax-ai-work-context`.
 - New machine: `git clone` the repo, then run `./bootstrap.sh` once to create the
