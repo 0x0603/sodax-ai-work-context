@@ -111,6 +111,33 @@ updated: 2026-06-26
     `ApproveResponseV2`/`CancelIntentResponseV2` are `{ tx: unknown }` objects;
     every method returns a JSON object.
 
+- Reviewed stage-1 `@sodax/swaps-api` scaffold on branch
+  `feat/swaps-api-sdk`:
+  - Package is present only as an untracked scaffold plus a
+    `pnpm-workspace.yaml` catalog edit; nothing is staged.
+  - Stage 1 currently re-exports only `ISwapsApiV2` type-only from
+    `@sodax/types`, matching the small public-surface decision.
+  - Blocking follow-up before merge/CI: update `pnpm-lock.yaml` for the new
+    package importer and `valibot` catalog entry.
+  - CI risk: the package has a `vitest run` script but no tests yet, so turbo
+    test discovery may fail unless a smoke test is added or the script
+    temporarily passes with no tests.
+  - README currently advertises `SwapsApi` runtime usage before the runtime
+    export exists; align docs with stage status or add the runtime before
+    publishing.
+- Addressed the stage-1 review (Codex) on `feat/swaps-api-sdk`:
+  - [P1] vitest `passWithNoTests: true` (scaffold-only; no-op once Stage 2 tests
+    land) so turbo's auto-discovered `test` task doesn't fail on an empty `src/`.
+    Note: no sibling package uses this flag — it is a temporary scaffold measure.
+  - [P2] README split into "Status" (type-only today) vs "Planned API" so the
+    `new SwapsApi(...)` example is no longer presented as working.
+  - [P3] Added `license: MIT` + `keywords` to match the other public packages.
+  - [P1 lockfile] Cannot regenerate `pnpm-lock.yaml` here — this sandbox has no
+    node/pnpm and network is blocked. It updates when the user runs the gate
+    `pnpm install`. Not hand-edited.
+  - [P2 publish workflow] Acknowledged; intentionally Stage 7 in the plan, not a
+    stage-1 defect.
+
 - Found the existing planning note at:
 
   ```text
