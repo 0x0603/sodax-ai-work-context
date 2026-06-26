@@ -13,6 +13,21 @@ updated: 2026-06-26
 
 ### 2026-06-26
 
+- Reviewed `plan.md` against the current `sodax-sdks` codebase:
+  - `packages/swaps-api` and `apps/swap-api-example` are not implemented yet.
+  - `ISwapsApiV2` in `packages/types/src/backend/backendApiV2.ts` still matches
+    the plan's 21-method throwing surface.
+  - No local `sodax-backend` checkout exists in this workspace, so endpoint
+    path verification is limited to the shared TypeScript contract and existing
+    SDK docs/tests.
+  - The plan direction is sound, but implementation should avoid a hand-written
+    21-method tangle by using a small endpoint descriptor map for method/path,
+    response schema, optional request schema, and serializer.
+  - Guardrails to preserve minimalism/scalability: explicit type-only re-exports
+    from `@sodax/types`, allowlisted retries only for idempotent/polling calls,
+    response schemas that tolerate additive backend fields, and strict central
+    serialization for known `IntentRequestV2` fields rather than a broad
+    "any bigint anywhere" escape hatch.
 - Verified `ISwapsApiV2` (`backendApiV2.ts:676`) is a **throwing** interface —
   every method returns `Promise<ResponseV2>`, not `Promise<Result<T>>`.
 - Reviewed v1 `SolverApiService` coupling: it depends on `ConfigService` for
@@ -34,6 +49,22 @@ updated: 2026-06-26
 - Updated `issue.md` (Open Questions → Decisions) and `plan.md` (single
   throwing `SwapsApi`, `http.ts` throws, response-only validation default,
   removed `throwing-client.ts`).
+- Reviewed docs / `packages/skills` / CI-CD coverage in `sodax-sdks`:
+  - **CI/CD gap found.** The repo publishes each package with its own
+    tag-triggered workflow (`.github/workflows/sodax-<pkg>-publish.yml`, trigger
+    `@sodax/<pkg>@*.*.*`); there is no changesets setup (`.changeset/` unused,
+    see `packages/RELEASE_INSTRUCTIONS.md`). The plan did not mention adding
+    `sodax-swaps-api-publish.yml`, so a publishable package would have shipped
+    with no release path. Added it to the wiring checklist, a new "Release &
+    CI/CD" section, Implementation Steps, DoD, and issue Acceptance Criteria.
+  - `ci.yml` auto-discovers packages/apps via turbo filters (`./apps/*`,
+    `turbo run build/lint/test`) → expect no `ci.yml` edit; just confirm green.
+  - `packages/skills` has one skill dir per consumer-facing package (5 today);
+    `check:ai` / `check-skills.sh` validate existing skills only and do not
+    require one per package. Decision: a `sodax-swaps-api` skill is **optional
+    and deferred**; the example app is the proof-of-flows deliverable.
+  - Top-level `docs/` only holds `ai-integration-guide.md` ("four skills"); it
+    needs no change unless a swaps-api skill is later added.
 
 ### 2026-06-25
 

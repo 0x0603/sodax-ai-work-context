@@ -110,6 +110,11 @@ small and tree-shakeable.
 - `apps/swap-api-example` exists and exercises every method/flow.
 - Tests cover schemas, serialization, HTTP/client error handling, and type drift.
 - Standard gates pass: lint, typecheck, package build, tests, circular-deps.
+- A per-package publish workflow `.github/workflows/sodax-swaps-api-publish.yml`
+  exists (tag-triggered, mirroring the other `sodax-*-publish.yml`). CI
+  (`ci.yml`) is green for the new package/app via turbo auto-discovery.
+- `packages/skills` and top-level `docs/` updates are out of scope here (a
+  dedicated skill is a deferred, optional follow-up; `check:ai` stays green).
 - No secrets are committed.
 
 ## Decisions

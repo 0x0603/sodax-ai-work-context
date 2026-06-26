@@ -282,8 +282,9 @@ Requirements:
 6. Implement all 21 `SwapsApi` methods (`implements ISwapsApiV2`, throwing).
 7. Export public API from `index.ts`.
 8. Build `apps/swap-api-example`.
-9. Add package README and consumer-facing AI docs only if needed.
-10. Run green gates.
+9. Add `packages/swaps-api/README.md` (a dedicated skill is deferred).
+10. Add `.github/workflows/sodax-swaps-api-publish.yml` (per-package publish).
+11. Run green gates.
 
 ## Repo Wiring Checklist
 
@@ -294,7 +295,41 @@ Requirements:
 - [ ] `biome.json`: root config applies.
 - [ ] No root `tsconfig` references expected.
 - [ ] Run `pnpm i`.
+- [ ] `.github/workflows/sodax-swaps-api-publish.yml`: add a per-package publish
+      workflow (see Release & CI/CD below). **Required** — publishable packages
+      use one tag-triggered workflow each; this is currently the main gap.
+- [ ] Confirm `ci.yml` auto-discovers the package/app via turbo filters
+      (`./apps/*`, `turbo run build/lint/test`); expect no `ci.yml` edit.
 - [ ] Confirm CI install, lint, circular deps, builds, typecheck, and tests.
+
+## Release & CI/CD
+
+The repo publishes each package with its **own** workflow triggered by a git
+tag, not changesets (`.changeset/` is unused; see
+`packages/RELEASE_INSTRUCTIONS.md`).
+
+- Add `.github/workflows/sodax-swaps-api-publish.yml`, cloned from
+  `sodax-types-publish.yml`:
+  - Trigger: `on.push.tags: ['@sodax/swaps-api@*.*.*']`.
+  - Validate the tag version matches `packages/swaps-api/package.json`.
+  - Build with `pnpm turbo run build --filter=@sodax/swaps-api...`.
+  - `cd packages/swaps-api && pnpm publish --provenance --access public`.
+  - Auth via `secrets.SODAX_SDKS_NPM_PUBLISH_TOKEN` (already used by siblings).
+- `ci.yml` (lint / typecheck / build / test) auto-discovers new packages and
+  apps through turbo, so it should need no change — confirm, don't assume.
+- Release flow: bump `packages/swaps-api/package.json` version, push the matching
+  `@sodax/swaps-api@x.y.z` tag; the workflow publishes to npm.
+
+## Docs & Skills (scope)
+
+- **Package README** (`packages/swaps-api/README.md`): required.
+- **`packages/skills`**: a dedicated `sodax-swaps-api` skill is **optional and
+  deferred** — `check:ai` / `check-skills.sh` validate existing skills only and
+  do not require one per package, so omitting it does not break CI. The example
+  app is the proof-of-flows deliverable. If a skill is added later, also add a
+  `skills/sodax-swaps-api/` tree and bump the "four skills" count in
+  `docs/ai-integration-guide.md`.
+- **Top-level `docs/`**: untouched unless a skill is added.
 
 ## Testing Strategy
 
@@ -316,8 +351,12 @@ Requirements:
 - `apps/swap-api-example` runs against staging and reports every method/flow.
 - `pnpm lint`, `pnpm checkTs`, `pnpm build:packages`, `pnpm test`, and
   `pnpm check:circular-deps` are green.
-- `packages/skills` is updated only if the package is published as
-  consumer-facing and `pnpm check:ai` requires it.
+- `packages/swaps-api/README.md` exists.
+- `.github/workflows/sodax-swaps-api-publish.yml` exists and follows the
+  tag-triggered per-package pattern; `ci.yml` confirmed green for the new
+  package/app (no edit expected).
+- `packages/skills` / top-level `docs/`: a dedicated skill is deferred (optional
+  follow-up); not required for done. `pnpm check:ai` stays green without it.
 - No unrelated refactor.
 - No secrets committed.
 
@@ -330,6 +369,10 @@ Requirements:
 - V1 client: `packages/sdk/src/swap/SolverApiService.ts`
 - V1 solver config: `packages/types/src/common/constants.ts`
 - `retry()`: `packages/sdk/src/shared/utils/shared-utils.ts`
+- Publish workflow template: `.github/workflows/sodax-types-publish.yml`
+- Release process: `packages/RELEASE_INSTRUCTIONS.md`
+- Skills layout / checks: `packages/skills/skills/`,
+  `packages/skills/scripts/check-skills.sh`, `docs/ai-integration-guide.md`
 - Build template: `packages/sdk/tsup.config.ts`, `packages/sdk/package.json`
 - Minimal package template: `packages/types/package.json`,
   `packages/types/tsconfig.json`
