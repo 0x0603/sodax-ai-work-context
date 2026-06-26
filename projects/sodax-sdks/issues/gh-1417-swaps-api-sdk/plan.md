@@ -24,6 +24,28 @@ Swaps API v2 types only.
   resolution.
 - No initial replacement of `@sodax/sdk` internal solver calls.
 
+## Design Principles
+
+The package must stay **simple, OOP, and easy to maintain — not clever**. When a
+review suggestion and simplicity conflict, simplicity wins.
+
+- **One class.** `SwapsApi implements ISwapsApiV2`, constructed from
+  `SwapsApiConfig`. Private state (`baseUrl`, `fetch`, `headers`,
+  `validateRequests`) + one private `request<T>()` helper. No DI framework, no
+  factories, no dual clients.
+- **Explicit thin methods, not metaprogramming.** Each of the 21 methods is a
+  1–3 line call to `request(...)`, reading 1:1 against `ISwapsApiV2` so it greps
+  and diffs cleanly. **Do NOT build a generic endpoint-descriptor dispatch
+  engine** — that is the kind of over-abstraction to avoid. The only shared data
+  is a small `PATHS` constant (plain strings) to prevent path drift; schema and
+  serializer are referenced inline in each method.
+- **Plain helpers over abstractions.** `SwapsApiError` (one class),
+  `serializeIntentRequest` (one function), valibot schemas (plain consts). No
+  base classes, no mixins, no decorators.
+- **Small public surface.** Export only what a consumer needs (see `index.ts`).
+- **Table-driven *tests* are fine** (a fixture loop is simpler than 21 copies) —
+  the simplicity rule is about runtime code, not test ergonomics.
+
 ## Endpoint Contract
 
 Implement the `ISwapsApiV2` methods from
@@ -164,10 +186,14 @@ Define `SwapsApiConfig`:
 - injectable `fetch`
 - optional headers
 - `validateRequests?: boolean` (default `false`)
-- `maxRetries?: number`
 
 Do not hardcode staging or production URLs inside the package. No `logger`
 injection — out of scope for "solely request/response logic".
+
+**No public `maxRetries`.** A global retry knob invites retrying non-idempotent
+mutations (`createIntent`, `approve`, `submitIntent`, `submitTx`,
+`cancelIntent`) → double-submit risk. Retry is an internal detail applied only
+to an idempotency allowlist (see `http.ts`), not a config field.
 
 ### `errors.ts`
 
@@ -183,13 +209,21 @@ available.
 
 ### `serialize.ts`
 
-Provide:
+Provide a **structured, narrow** serializer — not a blanket bigint replacer:
 
-- `serializeIntentRequest(intent: IntentRequestV2)`
-- `bigintReplacer`
+- `serializeIntentRequest(intent: IntentRequestV2)` — maps exactly the 6 bigint
+  fields (`intentId`, `inputAmount`, `minOutputAmount`, `deadline`, `srcChain`,
+  `dstChain`) to decimal strings; passes the rest through.
+- A helper that embeds a serialized intent into the few bodies that carry one
+  (e.g. `SubmitIntentRequestV2`, `CancelIntentRequestV2`, hash/packet/extra-data
+  requests).
 
-Any request body containing `IntentRequestV2` must pass through this boundary
-before JSON serialization.
+`bigint` is legitimate **only** inside `IntentRequestV2` — everything else on the
+wire (incl. `PartnerFeeV2.amount`, all `SwapExtrasV2`) is a decimal `string`, and
+the contract already compile-time-guards `SwapExtrasV2` against stray bigint
+(`backendApiV2.ts:85`). So **do not expose a broad `bigintReplacer`**; if a
+bigint ever appears outside the allowed fields, throw rather than silently
+coercing it (that would mask a caller bug).
 
 ### `schemas.ts`
 
@@ -216,33 +250,43 @@ Build a `request<T>` helper:
 - Map valibot failures to `VALIDATION_ERROR`.
 - Map thrown fetch errors to `NETWORK_ERROR`.
 
-Reuse or locally copy the tiny retry pattern for idempotent poll endpoints. Do
-not depend on `@sodax/sdk`.
+Apply the tiny retry pattern **only** to an explicit idempotency allowlist —
+read-only GETs and safe polls (`getTokens`, `getTokensByChain`, `getDeadline`,
+`getIntent`, `getFilledIntent`, `getStatus`, `getSubmitTxStatus`, fee queries).
+The discriminator is **idempotency, not HTTP verb** — `getStatus` is a `POST`
+but a safe poll. Never retry mutating calls. Do not depend on `@sodax/sdk`.
 
 ### `client.ts`
 
-Implement the single `SwapsApi implements ISwapsApiV2`, one method per endpoint,
-each returning `Promise<ResponseV2>` (throwing on failure, per the contract).
+Implement the single `SwapsApi implements ISwapsApiV2`, one explicit method per
+endpoint, each returning `Promise<ResponseV2>` (throwing on failure, per the
+contract). Keep methods thin and readable — no descriptor-map dispatch engine
+(see Design Principles).
 
 Each method:
 
 1. Optionally validates the request (only when `validateRequests` is on).
-2. Serializes `IntentRequestV2` where needed.
-3. Calls `request(...)` with the matching response schema and returns its result
-   (errors surface as thrown `SwapsApiError`).
+2. Serializes `IntentRequestV2` where needed (via `serialize.ts`).
+3. Calls the private `request(...)` with the path (from the `PATHS` const) and
+   the matching response schema, and returns its result (errors surface as
+   thrown `SwapsApiError`).
 
 No separate `Result<T>` client and no separate throwing facade — the one class
 is the whole public surface.
 
 ### `index.ts`
 
-Export:
+Keep the public surface minimal. Export:
 
 - `SwapsApi`
 - `SwapsApiError`
 - `SwapsApiConfig`
-- `schemas`
-- V2 contract types from `@sodax/types`
+- V2 contract types from `@sodax/types`, **type-only** (`export type { … }`, not
+  `export *`), to avoid runtime coupling.
+
+`schemas` stay **internal** by default — exporting them would freeze valibot
+shapes into the public API / semver surface. Re-export later behind an explicit,
+documented-as-unstable namespace only if a real consumer needs them.
 
 ## Example App
 
@@ -334,8 +378,12 @@ tag, not changesets (`.changeset/` is unused; see
 ## Testing Strategy
 
 - Schema tests for every response schema with valid and malformed fixtures.
-- Serialization tests for `IntentRequestV2` bigint to decimal strings.
-- Client tests with injected fake `fetch`.
+- Serialization tests: `IntentRequestV2` bigint → decimal strings, **and** that a
+  stray bigint outside the allowed fields throws (no silent coercion).
+- Client tests with injected fake `fetch`, **table-driven** over the 21 endpoints
+  (method → expected path/verb/response schema) so paths/schemas can't drift.
+- Retry-safety test: only the idempotency allowlist retries; mutating calls
+  (`createIntent`, `approve`, `submitIntent`, `submitTx`, `cancelIntent`) never do.
 - Type-level drift guards between valibot schemas and contract types.
 - Example app as manual/scripted integration proof against staging.
 

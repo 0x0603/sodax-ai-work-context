@@ -65,8 +65,25 @@ updated: 2026-06-26
     and deferred**; the example app is the proof-of-flows deliverable.
   - Top-level `docs/` only holds `ai-integration-guide.md` ("four skills"); it
     needs no change unless a swaps-api skill is later added.
-
-### 2026-06-25
+- Independently verified an external plan review against the contract on `main`
+  and accepted it. All 5 findings valid; all Contract Check claims confirmed
+  (`SwapExtrasV2{partnerFee,srcPublicKey,bound}` :68; `QuoteRequestV2`/
+  `CreateIntentParamsV2 extends SwapExtrasV2` :232/:291; `tx`/`gas`/`result`
+  `unknown`; bigint only in `IntentRequestV2` :123–141; `PartnerFeeV2.amount`
+  decimal string :52; `SwapExtrasV2` compile-time no-bigint guard :85).
+- Folded the review into `plan.md` under the user's directive **"simple, OOP,
+  not overkill, maintainable"** — which downgrades the "clever" suggestions:
+  - Added a **Design Principles** section (one class, explicit thin methods, no
+    descriptor-map dispatch engine, plain helpers, minimal public surface).
+  - [P1] Dropped public `maxRetries`; retry is internal, idempotency-allowlist
+    only (discriminator is idempotency, not HTTP verb — `getStatus` is a POST
+    poll). Prevents double-submit of mutating intents.
+  - [P1] `serialize.ts` is a narrow structured serializer over the 6 known bigint
+    fields; **no broad `bigintReplacer`**; throws on stray bigint.
+  - [P2] Kept explicit OOP methods (no descriptor engine); only a `PATHS` const
+    to avoid drift. Table-driven *tests* are allowed (test ergonomics ≠ runtime).
+  - [P2] `schemas` stay internal (semver surface); V2 types re-exported
+    **type-only** (`export type`, not `export *`).
 
 - Found the existing planning note at:
 
