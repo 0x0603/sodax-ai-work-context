@@ -84,6 +84,14 @@ updated: 2026-06-26
     to avoid drift. Table-driven *tests* are allowed (test ergonomics ≠ runtime).
   - [P2] `schemas` stay internal (semver surface); V2 types re-exported
     **type-only** (`export type`, not `export *`).
+- Second review pass (same 5 findings, re-checked on `main`) confirmed.
+  Findings #1/#2/#4/#5 were already folded in the prior commit. Finding #3
+  ("make an endpoint descriptor map mandatory") conflicted with the user's
+  simple-OOP directive; surfaced the tension and the user chose **explicit
+  methods + `PATHS`** over a descriptor map. Recorded the rationale and the
+  three anti-drift mechanisms (single `request()` helper, `v.InferOutput` drift
+  guards, table-driven tests) in plan Design Principles so #3 is visibly
+  addressed and not re-litigated.
 
 - Found the existing planning note at:
 

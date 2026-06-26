@@ -39,6 +39,13 @@ review suggestion and simplicity conflict, simplicity wins.
   engine** — that is the kind of over-abstraction to avoid. The only shared data
   is a small `PATHS` constant (plain strings) to prevent path drift; schema and
   serializer are referenced inline in each method.
+  - *A descriptor-map approach was reviewed (drift concern) and deliberately
+    declined* (user-confirmed): for a heterogeneous **typed** interface a generic
+    map forces type-gymnastics or duplicates as map-plus-wrappers — more
+    complexity, not less. Drift is instead contained by three lighter
+    mechanisms: the single `request()` helper (URL/fetch/validation/error in one
+    place), compile-time `v.InferOutput` drift guards (schema vs contract type),
+    and **table-driven tests** asserting each method's path/verb/response schema.
 - **Plain helpers over abstractions.** `SwapsApiError` (one class),
   `serializeIntentRequest` (one function), valibot schemas (plain consts). No
   base classes, no mixins, no decorators.
