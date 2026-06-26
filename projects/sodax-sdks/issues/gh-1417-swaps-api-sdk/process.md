@@ -138,6 +138,26 @@ updated: 2026-06-26
   - [P2 publish workflow] Acknowledged; intentionally Stage 7 in the plan, not a
     stage-1 defect.
 
+- Toolchain unblocked + Stage 1/2 gated GREEN:
+  - This sandbox had no Node at all (Spotlight confirmed). Installed via Homebrew:
+    `brew install node` (v26.4.0) + `brew install corepack` + `corepack prepare
+    pnpm@10.32.1 --activate`. pnpm now runs here (sandbox disabled for network).
+    Future sessions: node/pnpm available at /opt/homebrew/bin.
+  - `pnpm install` succeeded → `pnpm-lock.yaml` now has the `packages/swaps-api`
+    importer + `valibot` (resolved 1.4.0 via the security override). Fixes the
+    Codex P1 lockfile finding.
+  - Fixed a real `tsconfig` bug: added `include: ["src"]` so `tsc --noEmit`
+    stops type-checking root config files (TS6059 on tsup/vitest configs).
+  - Stage 2 (primitives) implemented + green: `errors.ts` (SwapsApiError),
+    `config.ts` (SwapsApiConfig), `serialize.ts` (serializeIntentRequest over the
+    6 bigint fields + `rejectBigint` body-boundary guard), with 8 passing tests.
+    `index.ts` now also exports SwapsApiError + SwapsApiConfig (final public API).
+  - Gates: build / checkTs / test (8/8) / check-exports / circular-deps / biome
+    all green. knip shows only transient/quirk findings (valibot + Serialized-
+    IntentRequest used from Stage 4/5; @sodax/types type-only; biome root binary)
+    and is not a CI gate.
+  - Not committed to the icon-project repo yet (commit on request).
+
 - Found the existing planning note at:
 
   ```text
