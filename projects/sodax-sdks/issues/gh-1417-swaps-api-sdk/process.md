@@ -93,6 +93,24 @@ updated: 2026-06-26
   guards, table-driven tests) in plan Design Principles so #3 is visibly
   addressed and not re-litigated.
 
+- Deep pass on implementation-readiness ("is the plan the best yet?"). Verified
+  against the contract and pinned the HTTP details the plan had left to
+  improvise (would otherwise drift):
+  - **A** `http.ts`/`errors.ts`: `HTTP_ERROR` captures `status` + best-effort
+    parsed backend body (no v2 error type exists in the contract).
+  - **B** query building: `boolean`/`number` serialization, omit `undefined`
+    optionals (`QuoteQueryV2.includeTxData?`, `DeadlineQueryV2.offsetSeconds?`).
+  - **C** `encodeURIComponent` for path params (`:chainKey`, `:txHash`).
+  - **D** request body: default `Content-Type: application/json`, stringify only
+    after `serialize.ts` so a raw bigint never reaches `JSON.stringify`.
+  - Added matching tests to the Testing Strategy.
+  - Recorded **E/F/G** as Open Implementation Decisions (AbortSignal pass-through;
+    retry count/backoff; base-path/version prefix) with recommendations; E/F are
+    code-time calls, G bundles with the deferred base-URL backend question.
+  - Honest retraction: an earlier worry about void/204 responses is moot —
+    `ApproveResponseV2`/`CancelIntentResponseV2` are `{ tx: unknown }` objects;
+    every method returns a JSON object.
+
 - Found the existing planning note at:
 
   ```text

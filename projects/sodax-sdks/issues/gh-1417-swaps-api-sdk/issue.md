@@ -141,9 +141,14 @@ ADR `0001-swaps-api-throwing-minimal`.
 
 ### Deferred
 
-- **Base URLs.** `baseUrl` is injected via `SwapsApiConfig`; never hardcoded in
-  the package. The real staging/production URLs are only needed for the e2e
-  smoke test of `apps/swap-api-example` — confirm with Robi at that point.
+- **Base URLs + API version prefix.** `baseUrl` is injected via `SwapsApiConfig`;
+  never hardcoded. Paths are treated as relative to `baseUrl` (`/swaps/...`); it
+  is unconfirmed whether the host mounts swaps under a `/v2` prefix. The real
+  staging/production URLs (and any version prefix) are only needed for the e2e
+  smoke test of `apps/swap-api-example` — confirm with Robi / backend then.
+- **Small HTTP-level calls** (not backend-blocked): `AbortSignal` pass-through,
+  exact retry count/backoff. Recommendations recorded in `plan.md` → Open
+  Implementation Decisions; confirm while coding.
 
 ## Related
 

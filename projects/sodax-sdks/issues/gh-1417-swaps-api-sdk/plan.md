@@ -141,6 +141,24 @@ Outbound `IntentRequestV2` bigint fields serialize to decimal strings:
 Inbound responses should mirror the contract and stay strings unless a deliberate
 future decision says otherwise.
 
+## Open Implementation Decisions
+
+Small calls to confirm before/while coding (recommendations given; they don't
+block scaffolding):
+
+- **[E] Cancellation / timeout.** A network client with no cancellation can hang.
+  *Recommend:* accept an optional `signal?: AbortSignal` per call and forward it
+  to `fetch` (≈ one line, fully minimal). Defer any built-in timeout/timer config
+  to a later version. Decide: signal pass-through now, or nothing at all.
+- **[F] Retry internals.** Public `maxRetries` is dropped. Pin the internal
+  policy so it isn't improvised. *Recommend:* 2 retries max, fixed short delay (or
+  none), allowlist-only (see `http.ts`). Decide the exact number/backoff.
+- **[G] Base path / API version.** The endpoint table uses `/swaps/...`; it is
+  unconfirmed whether `baseUrl` already includes a version prefix (e.g. `/v2`) or
+  the paths are absolute from the host root. *Recommend:* treat paths as relative
+  to `baseUrl` and let the consumer's `baseUrl` carry any version. Confirm with
+  the backend together with the staging/production URLs (same deferred bucket).
+
 ## Package Layout
 
 ```text
@@ -211,8 +229,10 @@ Define `SwapsApiError` and codes:
 - `VALIDATION_ERROR`
 - `PARSE_ERROR`
 
-Include endpoint, status, valibot issues, and original cause in context where
-available.
+Carry rich context where available: endpoint + HTTP method, `status`, the
+**best-effort-parsed backend response body** (no v2 error type exists, so keep it
+typed as `unknown`), valibot issues, and the original `cause`. The point is that a
+caller debugging a failed call sees the backend's message, not just a number.
 
 ### `serialize.ts`
 
@@ -246,22 +266,39 @@ Guidance:
 
 ### `http.ts`
 
-Build a `request<T>` helper:
+Build a `request<T>` helper.
 
-- Build URL with path and query.
-- Call injected/global `fetch`.
-- Return the parsed, valibot-validated `T` on success; **throw** `SwapsApiError`
-  on any failure.
-- Map non-2xx to `HTTP_ERROR`.
-- Map bad JSON to `PARSE_ERROR`.
-- Map valibot failures to `VALIDATION_ERROR`.
-- Map thrown fetch errors to `NETWORK_ERROR`.
+**URL & query building.** Join `baseUrl` + path; `encodeURIComponent` every path
+param (`:chainKey`, `:txHash` — up to 127 chars, may contain unsafe chars).
+Serialize query objects deterministically: `boolean → "true"/"false"`,
+`number → String(n)`, **omit `undefined`/optional fields** (never emit
+`?includeTxData=undefined`). Only a few endpoints carry queries
+(`QuoteQueryV2.includeTxData?`, `DeadlineQueryV2.offsetSeconds?`, `FeeQueryV2`,
+`SubmitTxStatusQueryV2`).
 
-Apply the tiny retry pattern **only** to an explicit idempotency allowlist —
-read-only GETs and safe polls (`getTokens`, `getTokensByChain`, `getDeadline`,
-`getIntent`, `getFilledIntent`, `getStatus`, `getSubmitTxStatus`, fee queries).
-The discriminator is **idempotency, not HTTP verb** — `getStatus` is a `POST`
-but a safe poll. Never retry mutating calls. Do not depend on `@sodax/sdk`.
+**Request body.** For methods with a body: set `Content-Type: application/json`,
+and `JSON.stringify` the body **after** it has passed through `serialize.ts` — a
+raw bigint must never reach `JSON.stringify` (it throws). Merge `config.headers`
+over the defaults.
+
+**Response & errors.** Call the injected/global `fetch`; return the parsed,
+valibot-validated `T` on success, else **throw** `SwapsApiError`:
+
+- non-2xx → `HTTP_ERROR`, capturing `status` **and a best-effort-parsed response
+  body** (the v2 contract defines no error type, so read the body defensively —
+  JSON if possible, else text — so the backend's message/code surfaces, mirroring
+  v1's `detail`).
+- bad/empty JSON on a 2xx → `PARSE_ERROR`.
+- valibot failure → `VALIDATION_ERROR`.
+- thrown fetch error (network / abort) → `NETWORK_ERROR`.
+
+**Retry.** Apply the tiny retry pattern **only** to an explicit idempotency
+allowlist — read-only GETs and safe polls (`getTokens`, `getTokensByChain`,
+`getDeadline`, `getIntent`, `getFilledIntent`, `getStatus`, `getSubmitTxStatus`,
+fee queries). The discriminator is **idempotency, not HTTP verb** — `getStatus`
+is a `POST` but a safe poll. Never retry mutating calls. Use a small internal
+constant (recommend **2 retries**, fixed/no backoff — see Open Implementation
+Decisions). Do not depend on `@sodax/sdk`.
 
 ### `client.ts`
 
@@ -389,6 +426,11 @@ tag, not changesets (`.changeset/` is unused; see
   stray bigint outside the allowed fields throws (no silent coercion).
 - Client tests with injected fake `fetch`, **table-driven** over the 21 endpoints
   (method → expected path/verb/response schema) so paths/schemas can't drift.
+- URL/query tests: path params are `encodeURIComponent`-escaped; query building
+  serializes `boolean`/`number` and omits `undefined` optionals.
+- Error tests: non-2xx surfaces `HTTP_ERROR` with `status` + parsed backend body;
+  malformed 2xx JSON → `PARSE_ERROR`; bad shape → `VALIDATION_ERROR`; fetch throw
+  → `NETWORK_ERROR`.
 - Retry-safety test: only the idempotency allowlist retries; mutating calls
   (`createIntent`, `approve`, `submitIntent`, `submitTx`, `cancelIntent`) never do.
 - Type-level drift guards between valibot schemas and contract types.
