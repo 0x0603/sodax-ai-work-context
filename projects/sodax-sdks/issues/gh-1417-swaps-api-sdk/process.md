@@ -180,6 +180,43 @@ updated: 2026-06-26
     the SDK contract version, the HTTP route is /v1. Confirm prod/staging URLs
     with Robi (same /v1 prefix expected).
 
+- Stage 5 (client) DONE + committed: single `SwapsApi implements ISwapsApiV2`,
+  21 explicit methods (PATHS + http.request + valibot schema + intent serialize).
+  Two independent drift guards (client `implements` + SchemaDriftGuards), both
+  proven to fail tsc on a deliberately broken schema. 62 unit tests. Dropped the
+  no-op `validateRequests` config flag; narrowed public surface.
+- API verification on the live canary (base `https://canary-api.sodax.com/v1`):
+  swept ALL 21 endpoints — every path resolves (no route_not_found). 16 schemas
+  live-validated against real 200s (tokens/quote±txData/deadline/fees/intentHash/
+  allowance/approve/createIntent/limit-order/extra-data + nested Intent/RelayData);
+  5 stateful ones (status/packet/filled/submitTx/submitTxStatus) stay
+  contract-guarded (need a real swap to hit). getIntent/getFilledIntent hang on
+  bogus hashes. Two backend error-body shapes seen; http.ts captures both.
+- Stage 6 (example app) DONE — `apps/swap-api-example` (Vite + React):
+  - swaps-api drives ALL HTTP (getTokens/getQuote/getDeadline/checkAllowance/
+    approve/createIntent/submitTx/getSubmitTxStatus); wallet-sdk-react does ONLY
+    connect + signing. No `@sodax/sdk` / dapp-kit.
+  - Flow: getQuote → createIntent → checkAllowance/approve → sign+broadcast →
+    submitTx → poll getSubmitTxStatus.
+  - UI redesigned (cherry-soda theme, mono for amounts/hashes, searchable
+    network+token comboboxes, swap-direction control). Demo's own theme is
+    redacted (`n`) in this checkout, so this is a fresh palette, not a clone.
+  - Connect = multi-chain via the SDK's unified `useWalletModal` + useChainGroups
+    + useConnectionFlow + useConnectedChains, in a SIDEBAR layout (networks left,
+    wallets right, no per-network drill-down). All chain families configured.
+  - Signing = per-source-chain `switch` (signTx), not EVM-only: EVM verified;
+    Solana/Sui/Stacks/ICON wired but tx-shape casts are UNVERIFIED (contract types
+    tx as `unknown`); Bitcoin/Stellar/Injective/NEAR throw a clear "not wired".
+  - Caveat: UI not browser-tested (no browser) — verified by checkTs/biome/vite
+    build only. Non-EVM signing needs a real wallet per chain to confirm tx shapes.
+  - Branch `feat/swaps-api-sdk` (sodax-sdks): commits e6f383dd (scaffold+primitives),
+    03e53a3f (http), d58b5ebe (schemas), 07658a8f (client), a65bd924 (example),
+    + UI/connect/signing iterations through 0fe952f7. NOT pushed.
+  - Toolchain note: this sandbox had no Node; installed via Homebrew
+    (node + corepack + pnpm@10.32.1) so gates run locally.
+- Remaining: Stage 7 — `.github/workflows/sodax-swaps-api-publish.yml`, package
+  `AGENTS.md`, and full repo-wide gates (`pnpm lint/checkTs/build:packages/test`).
+
 - Found the existing planning note at:
 - Found the existing planning note at:
 
