@@ -141,23 +141,23 @@ Outbound `IntentRequestV2` bigint fields serialize to decimal strings:
 Inbound responses should mirror the contract and stay strings unless a deliberate
 future decision says otherwise.
 
-## Open Implementation Decisions
+## Open Implementation Decisions (resolved)
 
-Small calls to confirm before/while coding (recommendations given; they don't
-block scaffolding):
-
-- **[E] Cancellation / timeout.** A network client with no cancellation can hang.
-  *Recommend:* accept an optional `signal?: AbortSignal` per call and forward it
-  to `fetch` (≈ one line, fully minimal). Defer any built-in timeout/timer config
-  to a later version. Decide: signal pass-through now, or nothing at all.
-- **[F] Retry internals.** Public `maxRetries` is dropped. Pin the internal
-  policy so it isn't improvised. *Recommend:* 2 retries max, fixed short delay (or
-  none), allowlist-only (see `http.ts`). Decide the exact number/backoff.
-- **[G] Base path / API version.** The endpoint table uses `/swaps/...`; it is
-  unconfirmed whether `baseUrl` already includes a version prefix (e.g. `/v2`) or
-  the paths are absolute from the host root. *Recommend:* treat paths as relative
-  to `baseUrl` and let the consumer's `baseUrl` carry any version. Confirm with
-  the backend together with the staging/production URLs (same deferred bucket).
+- **[E] Cancellation / timeout — resolved: none.** `ISwapsApiV2` method signatures
+  are fixed and carry no `signal` argument, so a per-call `AbortSignal` cannot be
+  added without breaking `implements ISwapsApiV2`. Cancellation stays available by
+  injecting a wrapped `config.fetch`. No timeout config (minimal).
+- **[F] Retry internals — resolved.** Internal constant: 2 retries, no backoff,
+  idempotency allowlist only (`http.ts`). Public `maxRetries` stays dropped.
+- **[G] Base path / API version — resolved.** Paths are relative to `baseUrl`; the
+  consumer's `baseUrl` carries the version prefix. **The canary host mounts swaps
+  under `/v1`, not `/v2`** — `https://canary-api.sodax.com/v2/...` returns 404,
+  while `https://canary-api.sodax.com/v1/swaps/...` returns 200. Crucially the
+  `/v1` route already serves the shape our **V2 contract types** describe (verified
+  live: `getTokens`/`getDeadline`/`getSolverFee` parse against the schemas). So the
+  "V2" in the type names is the SDK's internal contract version, not the HTTP route
+  version. **Use `baseUrl = https://canary-api.sodax.com/v1`** for the example app;
+  confirm staging/production base URLs with Robi (same host, `/v1` prefix expected).
 
 ## Package Layout
 

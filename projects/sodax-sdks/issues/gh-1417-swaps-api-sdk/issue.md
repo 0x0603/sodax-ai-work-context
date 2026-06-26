@@ -139,16 +139,15 @@ ADR `0001-swaps-api-throwing-minimal`.
    v1→v2 SDK migration is a separate follow-up gated on backend v2 parity.
    ✅ resolved.
 
-### Deferred
+### Resolved (was deferred)
 
-- **Base URLs + API version prefix.** `baseUrl` is injected via `SwapsApiConfig`;
-  never hardcoded. Paths are treated as relative to `baseUrl` (`/swaps/...`); it
-  is unconfirmed whether the host mounts swaps under a `/v2` prefix. The real
-  staging/production URLs (and any version prefix) are only needed for the e2e
-  smoke test of `apps/swap-api-example` — confirm with Robi / backend then.
-- **Small HTTP-level calls** (not backend-blocked): `AbortSignal` pass-through,
-  exact retry count/backoff. Recommendations recorded in `plan.md` → Open
-  Implementation Decisions; confirm while coding.
+- **Base URL + version prefix.** Canary host found and verified live: swaps mount
+  under **`/v1`** (`https://canary-api.sodax.com/v1/swaps/...` → 200; `/v2/...` →
+  404). The `/v1` route already returns the V2-typed shapes (schemas parse live
+  data). Use `baseUrl = https://canary-api.sodax.com/v1`. Still confirm
+  staging/production base URLs with Robi (same `/v1` prefix expected).
+- **HTTP-level calls.** `AbortSignal` → none (interface has no `signal` param;
+  cancel via injected `config.fetch`). Retry → 2, no backoff, allowlist-only.
 
 ## Related
 

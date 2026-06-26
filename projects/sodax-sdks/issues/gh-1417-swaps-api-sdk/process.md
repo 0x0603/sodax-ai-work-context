@@ -158,6 +158,29 @@ updated: 2026-06-26
     and is not a CI gate.
   - Not committed to the icon-project repo yet (commit on request).
 
+- Stages 3 + 4 implemented, gated GREEN (35 tests):
+  - Stage 3 `http.ts`: request() helper — buildUrl/buildQuery (boolean/number
+    serialization, omit undefined), JSON body with Content-Type + rejectBigint
+    guard, error mapping to throwing SwapsApiError, idempotency-allowlist retry
+    (2, no backoff). 14 fake-fetch tests. Decision E resolved: no per-call
+    AbortSignal (ISwapsApiV2 methods have no signal param) — cancel via
+    config.fetch.
+  - Stage 4 `schemas.ts`: valibot schemas for all 21 responses + a
+    SchemaDriftGuards type asserting each schema's InferOutput matches the
+    contract (strict, one-way for readonly arrays). checkTs passes => schemas
+    are contract-correct. v.object tolerates additive fields. 13 schema tests.
+  - Commits on feat/swaps-api-sdk: e6f383dd (scaffold+primitives),
+    03e53a3f (http), d58b5ebe (schemas). Not pushed.
+- API smoke test (decision G resolved). User gave the canary host. Verified live:
+  - swaps mount under **/v1** — `https://canary-api.sodax.com/v1/swaps/...` = 200;
+    every `/v2/...` = 404. The /v1 route returns the **V2-typed** shapes.
+  - Live `v.parse()` of getTokens (20 chains), getDeadline, getSolverFee against
+    the schemas all PASS — schemas match production data, not just the TS types.
+  - => baseUrl = `https://canary-api.sodax.com/v1` for the example app; "V2" is
+    the SDK contract version, the HTTP route is /v1. Confirm prod/staging URLs
+    with Robi (same /v1 prefix expected).
+
+- Found the existing planning note at:
 - Found the existing planning note at:
 
   ```text
