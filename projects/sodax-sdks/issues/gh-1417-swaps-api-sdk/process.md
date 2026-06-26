@@ -4,12 +4,36 @@ repo: sodax-sdks
 github: 1417
 status: Active
 tags: [swaps-api, sdk, context-migration]
-updated: 2026-06-25
+updated: 2026-06-26
 ---
 
 # Process
 
 ## Log
+
+### 2026-06-26
+
+- Verified `ISwapsApiV2` (`backendApiV2.ts:676`) is a **throwing** interface —
+  every method returns `Promise<ResponseV2>`, not `Promise<Result<T>>`.
+- Reviewed v1 `SolverApiService` coupling: it depends on `ConfigService` for
+  client-side token validation and spoke→hub asset resolution. v2 moves that
+  server-side, so the v2 client genuinely needs no such coupling.
+- Resolved open questions against the literal issue goal ("super minimalistic",
+  "only depends on the type", "solely request/response logic"):
+  - Scope: swaps-only.
+  - Deps: `@sodax/types` + `valibot` only.
+  - Error model: throwing-only — **dropped** the earlier dual
+    `Result<T>` client + throwing facade as over-engineering.
+  - Validation: responses always, requests opt-in (off by default).
+  - Standalone now; no `@sodax/sdk` migration in this issue.
+  - Also dropped the speculative `SodaxLogger` injection idea.
+- Deferred: confirm real staging/production base URLs (only needed for the e2e
+  smoke test; `baseUrl` is injected, never hardcoded).
+- Recorded the rationale as ADR
+  `projects/sodax-sdks/decisions/0001-swaps-api-throwing-minimal.md`.
+- Updated `issue.md` (Open Questions → Decisions) and `plan.md` (single
+  throwing `SwapsApi`, `http.ts` throws, response-only validation default,
+  removed `throwing-client.ts`).
 
 ### 2026-06-25
 

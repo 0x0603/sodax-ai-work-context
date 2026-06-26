@@ -4,7 +4,8 @@ repo: sodax-sdks
 github: 1417
 status: Active
 tags: [swaps-api, sdk, valibot, backend-api-v2]
-updated: 2026-06-25
+updated: 2026-06-26
+related_decisions: [0001-swaps-api-throwing-minimal]
 ---
 
 # Plan
@@ -55,16 +56,18 @@ Implement the `ISwapsApiV2` methods from
 Config endpoints from `IConfigApiV2` are out of scope unless Robi confirms they
 should be included.
 
-## Architecture Decisions to Confirm
+## Architecture Decisions (resolved)
+
+Locked by ADR `0001-swaps-api-throwing-minimal`. Driven by the issue goal
+("super minimalistic", "only depends on the type", "solely request/response
+logic") and the fact that `ISwapsApiV2` is a **throwing** interface
+(`Promise<ResponseV2>`, not `Promise<Result<T>>`).
 
 ### Scope
 
-Recommendation: implement `ISwapsApiV2` only. Defer `IConfigApiV2` to keep the
-package focused on "swaps-api".
+Implement `ISwapsApiV2` only (all 21 methods). `IConfigApiV2` is out of scope.
 
 ### Dependency Surface
-
-Recommendation:
 
 ```json
 {
@@ -76,22 +79,21 @@ Recommendation:
 ```
 
 `@sodax/types` is the canonical contract owner and has no heavy runtime surface.
-Do not depend on `@sodax/sdk`.
+Do not depend on `@sodax/sdk`, viem, or wallet providers.
 
-### Error Model
+### Error Model — throwing-only
 
-Expose both:
-
-- `SwapsApiClient`: primary Result-returning client.
-- `SwapsApi`: throwing facade that implements `ISwapsApiV2`.
-
-This keeps compatibility with the declared interface while preserving the SDK's
-`Result<T>` convention.
+Ship a single class `SwapsApi implements ISwapsApiV2`. Methods throw
+`SwapsApiError` on failure (matching the throwing contract type). **No parallel
+`Result<T>` client** — that was an earlier over-engineering and is dropped; if
+`@sodax/sdk` later wants `Result<T>`, it wraps `SwapsApi` itself.
 
 ### Validation Depth
 
-- Always validate responses.
-- Validate request bodies by default, with an opt-out config.
+- Always validate **responses** (the untrusted boundary).
+- **Do not** validate request bodies by default — they are TS-typed at compile
+  time. Expose runtime request validation as an opt-in `validateRequests` flag,
+  off by default.
 - Treat opaque `unknown` fields structurally only.
 
 ### Bigint Boundary
@@ -129,7 +131,6 @@ packages/swaps-api/
     ├── serialize.ts
     ├── schemas.ts
     ├── client.ts
-    ├── throwing-client.ts
     └── __tests__/
 ```
 
@@ -162,10 +163,11 @@ Define `SwapsApiConfig`:
 - `baseUrl: string`
 - injectable `fetch`
 - optional headers
-- `validateRequests?: boolean`
+- `validateRequests?: boolean` (default `false`)
 - `maxRetries?: number`
 
-Do not hardcode staging or production URLs inside the package.
+Do not hardcode staging or production URLs inside the package. No `logger`
+injection — out of scope for "solely request/response logic".
 
 ### `errors.ts`
 
@@ -207,7 +209,8 @@ Build a `request<T>` helper:
 
 - Build URL with path and query.
 - Call injected/global `fetch`.
-- Return `Result<T, SwapsApiError>`.
+- Return the parsed, valibot-validated `T` on success; **throw** `SwapsApiError`
+  on any failure.
 - Map non-2xx to `HTTP_ERROR`.
 - Map bad JSON to `PARSE_ERROR`.
 - Map valibot failures to `VALIDATION_ERROR`.
@@ -218,26 +221,23 @@ not depend on `@sodax/sdk`.
 
 ### `client.ts`
 
-Implement `SwapsApiClient`, one method per endpoint, returning `Result`.
+Implement the single `SwapsApi implements ISwapsApiV2`, one method per endpoint,
+each returning `Promise<ResponseV2>` (throwing on failure, per the contract).
 
 Each method:
 
-1. Optionally validates request.
+1. Optionally validates the request (only when `validateRequests` is on).
 2. Serializes `IntentRequestV2` where needed.
-3. Calls `request(...)` with the matching response schema.
+3. Calls `request(...)` with the matching response schema and returns its result
+   (errors surface as thrown `SwapsApiError`).
 
-### `throwing-client.ts`
-
-Implement `SwapsApi implements ISwapsApiV2`.
-
-Internally use `SwapsApiClient`; unwrap `Result` and throw `SwapsApiError` on
-failure.
+No separate `Result<T>` client and no separate throwing facade — the one class
+is the whole public surface.
 
 ### `index.ts`
 
 Export:
 
-- `SwapsApiClient`
 - `SwapsApi`
 - `SwapsApiError`
 - `SwapsApiConfig`
@@ -277,14 +277,13 @@ Requirements:
 1. Scaffold `packages/swaps-api` with build/test config and empty public barrel.
 2. Add `valibot` to the root catalog and run `pnpm i`.
 3. Implement primitives: `errors.ts`, `config.ts`, `serialize.ts`, plus tests.
-4. Implement `http.ts` with fake-fetch tests.
-5. Implement response and optional request schemas with drift guards.
-6. Implement all 21 `SwapsApiClient` methods.
-7. Implement the throwing `SwapsApi` facade.
-8. Export public API from `index.ts`.
-9. Build `apps/swap-api-example`.
-10. Add package README and consumer-facing AI docs only if needed.
-11. Run green gates.
+4. Implement `http.ts` (throws `SwapsApiError`) with fake-fetch tests.
+5. Implement response schemas (and opt-in request schemas) with drift guards.
+6. Implement all 21 `SwapsApi` methods (`implements ISwapsApiV2`, throwing).
+7. Export public API from `index.ts`.
+8. Build `apps/swap-api-example`.
+9. Add package README and consumer-facing AI docs only if needed.
+10. Run green gates.
 
 ## Repo Wiring Checklist
 
@@ -330,7 +329,6 @@ Requirements:
   `packages/types/src/index.ts`
 - V1 client: `packages/sdk/src/swap/SolverApiService.ts`
 - V1 solver config: `packages/types/src/common/constants.ts`
-- `Result<T>`: `packages/types/src/common/common.ts`
 - `retry()`: `packages/sdk/src/shared/utils/shared-utils.ts`
 - Build template: `packages/sdk/tsup.config.ts`, `packages/sdk/package.json`
 - Minimal package template: `packages/types/package.json`,

@@ -4,8 +4,8 @@ repo: sodax-sdks
 github: 1417
 status: Active
 tags: [swaps-api, sdk, valibot, backend-api-v2]
-updated: 2026-06-25
-related_decisions: []
+updated: 2026-06-26
+related_decisions: [0001-swaps-api-throwing-minimal]
 ---
 
 # GH-1417 Swaps API SDK
@@ -112,21 +112,35 @@ small and tree-shakeable.
 - Standard gates pass: lint, typecheck, package build, tests, circular-deps.
 - No secrets are committed.
 
-## Open Questions
+## Decisions
 
-1. Scope: swaps-only (`ISwapsApiV2`) or also config (`IConfigApiV2`)?
-   Recommendation: swaps-only.
-2. Dependency: OK to depend on `@sodax/types` for v2 types?
-   Recommendation: yes.
-3. Error model: primary `Result<T>` API plus throwing `ISwapsApiV2` facade?
-   Recommendation: yes.
-4. Base URLs: confirm staging and production Swaps API URLs.
-5. Request validation: default on for requests, or responses-only?
-   Recommendation: on by default, opt-out via config.
-6. Is this package eventually meant to back `@sodax/sdk` swap calls, or stay a
-   standalone low-level client for now?
+Resolved by the issue goal ("super minimalistic", "only depends on the type",
+"solely request/response logic") and the throwing shape of `ISwapsApiV2`. See
+ADR `0001-swaps-api-throwing-minimal`.
+
+1. **Scope — swaps-only.** Implement all 21 `ISwapsApiV2` methods. `IConfigApiV2`
+   is out of scope. ✅ resolved.
+2. **Dependencies — `@sodax/types` + `valibot` only.** Zero `@sodax/sdk` / viem.
+   ✅ resolved.
+3. **Error model — throwing-only.** A single `SwapsApi implements ISwapsApiV2`;
+   no parallel `Result<T>` client (the contract type itself throws). The earlier
+   dual-API recommendation is dropped. ✅ resolved.
+4. **Request validation — responses always, requests off by default.** Requests
+   are TS-typed at compile time; runtime request validation is an opt-in config
+   flag. Bigint serialization for `IntentRequestV2` is a separate always-on
+   boundary. ✅ resolved.
+5. **Standalone now — no `@sodax/sdk` migration in this issue.** Implementing the
+   shared `ISwapsApiV2` already makes it a viable future SDK backing layer; the
+   v1→v2 SDK migration is a separate follow-up gated on backend v2 parity.
+   ✅ resolved.
+
+### Deferred
+
+- **Base URLs.** `baseUrl` is injected via `SwapsApiConfig`; never hardcoded in
+  the package. The real staging/production URLs are only needed for the e2e
+  smoke test of `apps/swap-api-example` — confirm with Robi at that point.
 
 ## Related
 
 - Knowledge:
-- Decisions:
+- Decisions: 0001-swaps-api-throwing-minimal
