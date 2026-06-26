@@ -237,6 +237,47 @@ updated: 2026-06-26
   - `process.md`: migration log and work history.
   - `outcome.md`: current outcome and follow-ups.
 
+- Compared our standalone `@sodax/swaps-api` against Robi's PR #210
+  (`packages/sdk/src/backendApi/SwapsApiService.ts`, branch `feat/swaps-api-v2`):
+  - Two different products for the same issue: ours is a standalone, throwing
+    `SwapsApi implements ISwapsApiV2`; Robi's is a `Result<T>` service inside
+    `@sodax/sdk` (`sodax.api.swaps`) with dapp-kit hooks + wallet-sdk-core
+    per-chain signing + demo.
+  - Response schemas match field-for-field. The one real divergence is the
+    unsigned `tx`: we left it `v.unknown()` (opaque), Robi validates + transforms
+    it to the typed `RawTxReturnType` per source chain. Robi's branch also
+    evolves the contract (`tx: RawTxReturnType`, split V1/V2, `Result<T>`,
+    `ApiConfig`), which would break our `tx`-bearing drift guards on merge.
+- Adopted Robi's `tx` handling in our package (kept the throwing/standalone model):
+  - New `rawTxSchemas.ts` ported from #210 — per-chain validate + transform
+    (decimal-string -> bigint, Injective index-object bytes -> Uint8Array),
+    selected by source chain key; depends only on `@sodax/types`
+    (`getChainType`, `RawTxReturnType`), no viem/sdk.
+  - The 5 `tx`-bearing response schemas became `make*ResponseSchema(txSchema)`
+    factories; drift guards relaxed to `Extends` (our contract still types `tx`
+    as unknown; this tightens automatically once #210's contract lands).
+  - `client.ts` selects `rawTxSchemaForChainKey(...)` per method
+    (getQuote by `tokenSrcChainKey`, the rest by `srcChainKey`).
+  - +6 rawTxSchemas tests; 69 total green. checkTs / lint / build all green.
+- Example app (`apps/swap-api-example/SwapCard.tsx`), aligned with Robi's demo:
+  - Slippage tolerance (BigInt basis points) feeding `minOutputAmount`, instead
+    of sending the raw quoted amount (0% slippage -> fill risk).
+  - Wait for the approval tx receipt (`waitForTransactionReceipt`) before
+    createIntent — fixes a race where the intent tx reverts on a stale allowance.
+  - `asEvmRawTx` now only narrows the typed tx (no manual bigint coercion).
+- Multi-chain swap: **DEFERRED**. Traced Robi's `handleSwap` + `signAndBroadcast.ts`.
+  Blocker: this branch's wallet-provider interfaces lack `signAndSendTransaction`
+  for Solana/Stellar/Stacks (that is #210's wallet-sdk-core work, not merged
+  here); Bitcoin needs the Bound trading-wallet flow. Committed an unwired
+  dispatcher groundwork (`lib/signAndBroadcast.ts`) covering the chains that
+  already work on this branch: EVM/Sui/Icon/Near/Injective. User chose "support
+  all chains incl. Bitcoin" for the follow-up, which requires
+  `packages/wallet-sdk-core` changes (+ Bound infra) — a core-SDK effort that
+  essentially re-creates part of PR #210.
+- Pushed to `feat/swaps-api-sdk`: `cea59e8c` (swaps-api rawTxSchemas),
+  `9914a643` (example app slippage + approval wait), `a37789b5` (dispatcher
+  groundwork).
+
 ## Findings
 
 - The GitHub source issue is in `icon-project/sodax-frontend`, but the work
