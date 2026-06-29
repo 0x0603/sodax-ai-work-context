@@ -29,14 +29,14 @@ near-copy of Xverse; the only structural difference is the pinned provider id.
      (ECDSA + BIP-322), `sendTransfer`. Keep `countPsbtInputs`, finalize→hex
      logic, and `detectBitcoinAddressType` as-is.
    - `class HanaXConnector extends BitcoinXConnector`:
-     - `super('Hana Wallet', 'hana', defaults)` — id `'hana'` stable.
+     - `super('Hana Wallet', 'hana-bitcoin', defaults)` — display name matches
+       `IconHanaXConnector`; id chain-suffixed (OKX `okx-bitcoin` precedent) to
+       avoid colliding with the ICON `hana` connector.
      - Address purpose: default Taproot (`AddressPurpose.Ordinals`), persisted
        under a Hana-specific localStorage key; `setAddressPurpose` like Xverse.
      - `connect()` → `request('getAccounts', { purposes:[addressPurpose], message:'Connect to Sodax' }, HANA_PROVIDER_ID)`.
-     - `isInstalled` / `static isAvailable()` → detect Hana (see Open Q1; likely
-       a sats-connect provider-registry lookup for `hanaWallet.bitcoin`, with a
-       `window.hanaWallet?.bitcoin` fallback). Lazy-resolve if Hana injects late
-       (mirror Unisat/OKX pattern).
+     - `isInstalled` / `static isAvailable()` → `window.hanaWallet?.bitcoin`
+       (resolved; typed `declare global`, no `as any`).
      - `installUrl` → `WALLET_METADATA.hana.installUrl`; `icon` →
        `WALLET_METADATA.hana.icon` (both already exist in `constants.ts`).
      - `getWalletProvider()` / `recreateWalletProvider(xAccount)` → build
@@ -92,8 +92,16 @@ near-copy of Xverse; the only structural difference is the pinned provider id.
 - **Can't fully verify without the dev build** — code + unit tests can land, but
   sign-off requires the real wallet (Drive link in the issue).
 
-## Open decisions
+## Decisions (resolved)
 
-- Class/file name: `HanaXConnector` (recommended, matches `XverseXConnector`) vs
-  `HanaBitcoinXConnector`.
-- Detection surface (Open Q1) — confirm before implementing `isAvailable()`.
+- Class/file name: `BitcoinHanaXConnector` (mirrors `IconHanaXConnector`);
+  display name `Hana Wallet` (matches ICON). Inner provider
+  `BitcoinHanaWalletProvider` (same stem as the connector, like the siblings).
+- Connector id: `hana-bitcoin` — chain-suffixed (OKX precedent); avoids collision
+  with the ICON `hana` connector; brand `'hana'` still matches via substring.
+- Detection: `window.hanaWallet?.bitcoin` (typed global, no `as any`).
+- Reuse existing `WALLET_METADATA.hana`; no constants change.
+
+**Implemented 2026-06-29** — code + tests + docs done, all automated gates green.
+Pending: real Hana dev-build smoke test, then commit/PR. See `outcome.md` /
+`process.md` (incl. the `window.unisat` / `duplicatedPubKey` caveat).
