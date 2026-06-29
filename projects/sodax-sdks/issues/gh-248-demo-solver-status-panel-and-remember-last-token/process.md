@@ -132,3 +132,32 @@ updated: 2026-06-29
   - Note: `leverage-yield` renders `<OrderStatus>` without `onSettle`, so its
     orders don't cache/stop-polling (out of scope; pre-existing behavior). Could
     pass `onSettle` later if wanted.
+
+## 2026-06-29 — Show/hide history toggle (smooth + persisted)
+
+Follow-up on the same panel (still on `feat/demo-solver-status-panel`, PR #257).
+
+- **Ask:** make the history panel show/hide "thật mượt" and persist the state in
+  localStorage.
+- **Toggle lives in `OrderStatusPanel`** (one change covers both solver +
+  leverage-yield, which share the panel). The header is now a `<button>` with
+  `aria-expanded`; a `ChevronDown` rotates `-rotate-90` when collapsed.
+- **Smooth collapse without a measured pixel height:** wrap the list in a
+  `grid` whose `grid-template-rows` animates `1fr ⇄ 0fr` (inner child
+  `overflow-hidden`), `transition-[grid-template-rows] duration-300 ease-out`.
+  Auto-height collapse, no JS measuring, no new dep (no Radix Collapsible in the
+  app — didn't add one). Spacing moved off the `aside` `gap-3` onto the
+  collapsible inner (`pt-3`) so a collapsed panel leaves no trailing gap.
+- **Persistence:** new `lib/panelPrefs.ts` (thin over `lib/storage.ts`, mirrors
+  `lastSelection`), per-feature keys `SOLVER_PANEL_KEY` /
+  `LEVERAGE_YIELD_PANEL_KEY`. Panel lazy-inits collapsed from storage + re-saves
+  on change. Both pages pass `storageKey`.
+- **Verified in-browser (Playwright, injected 3 fake SOLVED orders):** expand
+  `grid-template-rows: 391.5px` ⇄ collapse `0px`, transition prop
+  `grid-template-rows` 0.3s, `localStorage … :history-collapsed` flips
+  `true`/`false`, survives reload, and solver (collapsed) vs leverage-yield
+  (expanded) stay independent. `checkTs` clean for the 4 touched files (the
+  pre-existing `constants.ts` `hanaWallet` TS2687 reproduces on a stashed tree —
+  unrelated/environmental); `biome lint` green on all 4.
+- Files: `lib/panelPrefs.ts` (new), `components/swaps/OrderStatusPanel.tsx`,
+  `pages/solver/page.tsx`, `pages/leverage-yield/page.tsx`.
