@@ -1,0 +1,109 @@
+{
+  "dimension": "CURRENT dapp-kit bridge hooks (working tree, packages/dapp-kit/src/hooks/bridge) + mapping to needed bridgeApi counterparts (informed by swap to swapsApi precedent on origin/feat/swaps-api-v2)",
+  "files_read": [
+    {
+      "path": "/Users/sangnguyen/Documents/GitHub/sodax/sodax-sdks/packages/dapp-kit/src/hooks/bridge/index.ts",
+      "lines": 5,
+      "role": "Bridge feature barrel: re-exports all 5 bridge hooks"
+    },
+    {
+      "path": "/Users/sangnguyen/Documents/GitHub/sodax/sodax-sdks/packages/dapp-kit/src/hooks/bridge/useBridge.ts",
+      "lines": 38,
+      "role": "Mutation hook: execute cross-chain bridge transfer via sodax.bridge.bridge"
+    },
+    {
+      "path": "/Users/sangnguyen/Documents/GitHub/sodax/sodax-sdks/packages/dapp-kit/src/hooks/bridge/useBridgeAllowance.ts",
+      "lines": 49,
+      "role": "Query hook: check ERC-20 allowance/trustline validity via sodax.bridge.isAllowanceValid"
+    },
+    {
+      "path": "/Users/sangnguyen/Documents/GitHub/sodax/sodax-sdks/packages/dapp-kit/src/hooks/bridge/useBridgeApprove.ts",
+      "lines": 43,
+      "role": "Mutation hook: approve token spending via sodax.bridge.approve"
+    },
+    {
+      "path": "/Users/sangnguyen/Documents/GitHub/sodax/sodax-sdks/packages/dapp-kit/src/hooks/bridge/useGetBridgeableAmount.ts",
+      "lines": 37,
+      "role": "Query hook: bridgeable amount limit via sodax.bridge.getBridgeableAmount"
+    },
+    {
+      "path": "/Users/sangnguyen/Documents/GitHub/sodax/sodax-sdks/packages/dapp-kit/src/hooks/bridge/useGetBridgeableTokens.ts",
+      "lines": 39,
+      "role": "Query hook: list bridgeable destination tokens via sodax.bridge.getBridgeableTokens (synchronous SDK call)"
+    },
+    {
+      "path": "/Users/sangnguyen/Documents/GitHub/sodax/sodax-sdks/packages/dapp-kit/src/hooks/shared/types.ts",
+      "lines": 78,
+      "role": "ReadHookParams / MutationHookParams / MutationHookOptions / ReadQueryOptions canonical hook-shape types"
+    },
+    {
+      "path": "/Users/sangnguyen/Documents/GitHub/sodax/sodax-sdks/packages/dapp-kit/src/hooks/index.ts",
+      "lines": 7,
+      "role": "Top-level hooks barrel; line 7 exports bridge"
+    },
+    {
+      "path": "packages/dapp-kit/src/hooks/swapsApi/index.ts (origin/feat/swaps-api-v2)",
+      "lines": 40,
+      "role": "REFERENCE: swapsApi barrel - the API-based parallel family to swap/ (mapping precedent for bridgeApi)"
+    },
+    {
+      "path": "packages/dapp-kit/src/hooks/swapsApi/useSwapsApiSubmitTx.ts (origin/feat/swaps-api-v2)",
+      "lines": 50,
+      "role": "REFERENCE: central submit-raw-tx mutation (sodax.api.swaps.submitTx), retry:3, apiConfig in vars"
+    },
+    {
+      "path": "packages/dapp-kit/src/hooks/swapsApi/useSwapsApiSubmitTxStatus.ts (origin/feat/swaps-api-v2)",
+      "lines": 55,
+      "role": "REFERENCE: poll submit-tx status (sodax.api.swaps.getSubmitTxStatus), refetchInterval stops on executed/failed"
+    },
+    {
+      "path": "packages/dapp-kit/src/hooks/swapsApi/useSwapsApiAllowance.ts (origin/feat/swaps-api-v2)",
+      "lines": 42,
+      "role": "REFERENCE: API allowance query parallel to useSwapAllowance / useBridgeAllowance"
+    },
+    {
+      "path": "packages/dapp-kit/src/hooks/swapsApi/useSwapsApiApprove.ts (origin/feat/swaps-api-v2)",
+      "lines": 48,
+      "role": "REFERENCE: API approve mutation that returns raw unsigned {tx}; parallel to useBridgeApprove"
+    },
+    {
+      "path": "packages/dapp-kit/src/hooks/swapsApi/useSwapsApiCreateIntent.ts (origin/feat/swaps-api-v2)",
+      "lines": 45,
+      "role": "REFERENCE: build unsigned create-intent tx {tx,intent,relayData}; parallel to the raw side of useBridge"
+    }
+  ],
+  "key_findings": [
+    "There are exactly 5 current bridge hooks + a barrel: useBridge (mutation), useBridgeApprove (mutation), useBridgeAllowance (query), useGetBridgeableAmount (query), useGetBridgeableTokens (query). All call sodax.bridge.* directly (the DIRECT/on-chain family). None call any HTTP API. File line counts: index.ts 5, useBridge.ts 38, useBridgeAllowance.ts 49, useBridgeApprove.ts 43, useGetBridgeableAmount.ts 37, useGetBridgeableTokens.ts 39.",
+    "bridge/index.ts is a pure barrel: exports './useBridge.js', './useBridgeAllowance.js', './useBridgeApprove.js', './useGetBridgeableAmount.js', './useGetBridgeableTokens.js'. Registered in hooks/index.ts line 7: `export * from './bridge/index.js';`.",
+    "useBridge - MUTATION. Generic over `K extends SpokeChainKey = SpokeChainKey`. Vars type: `UseBridgeVars<K> = Omit<BridgeParams<K, false>, 'raw'>`. Signature: `useBridge<K>({ mutationOptions }: MutationHookParams<TxHashPair, UseBridgeVars<K>> = {}): SafeUseMutationResult<TxHashPair, Error, UseBridgeVars<K>>`. Uses useSafeMutation. mutationKey `['bridge']`. mutationFn: `unwrapResult(await sodax.bridge.bridge({ ...vars, raw: false }))`. onSuccess (composed, runs before consumer onSuccess): invalidates `['shared','xBalances', vars.params.srcChainKey]` AND `['shared','xBalances', vars.params.dstChainKey]`, then awaits `mutationOptions?.onSuccess?.(data, vars, ctx)`. Returns unwrapped TxHashPair.",
+    "useBridgeApprove - MUTATION. Generic over `K extends SpokeChainKey = SpokeChainKey`. Vars: `UseBridgeApproveVars<K> = Omit<BridgeParams<K, false>, 'raw'>`. Signature: `useBridgeApprove<K>({ mutationOptions }: MutationHookParams<TxReturnType<K, false>, UseBridgeApproveVars<K>> = {}): SafeUseMutationResult<TxReturnType<K, false>, Error, UseBridgeApproveVars<K>>`. mutationKey `['bridge','approve']`. mutationFn: `unwrapResult(await sodax.bridge.approve({ ...vars, raw: false } as BridgeParams<K, false>))`. onSuccess invalidates `['bridge','allowance']` (broad, refreshes any pending allowance query), then awaits consumer onSuccess. Returns unwrapped TxReturnType<K, false>.",
+    "useBridgeAllowance - QUERY. Generic over `K extends SpokeChainKey` (NO default). Params type: `UseBridgeAllowanceParams<K> = ReadHookParams<boolean, { payload: CreateBridgeIntentParams<K> | undefined; walletProvider: GetWalletProviderType<K> | undefined }>`. Returns `UseQueryResult<boolean, Error>`. queryKey: `['bridge','allowance', payload?.srcChainKey, payload?.srcAddress, payload?.srcToken, payload?.amount?.toString()]` (extracts scalar tuple; amount bigint stringified per Rule 4). queryFn: if `!payload || !walletProvider` returns `false`; else `const result = await sodax.bridge.isAllowanceValid({ params: payload, raw: false, walletProvider }); return result.ok ? result.value : false;` (manual Result handling, returns false on error rather than throwing - does NOT use unwrapResult). enabled: `!!payload && !!walletProvider`. refetchInterval: 2000. gcTime: 0. Spreads `...queryOptions` last.",
+    "useGetBridgeableAmount - QUERY. NOT generic. Params: `UseGetBridgeableAmountParams = ReadHookParams<BridgeLimit, { from: XToken | undefined; to: XToken | undefined }>`. Returns `UseQueryResult<BridgeLimit, Error>`. queryKey: `['bridge','bridgeableAmount', from, to]` (passes whole XToken objects, NOT scalars - inconsistent with useBridgeAllowance which extracts scalars). queryFn: if `!from || !to` THROWS `new Error('from and to tokens are required')`; else `const result = await sodax.bridge.getBridgeableAmount(from, to); if (!result.ok) throw result.error; return result.value;` (manual Result handling, throws - does NOT use unwrapResult). enabled: `!!from && !!to`.",
+    "useGetBridgeableTokens - QUERY. NOT generic. Params: `UseGetBridgeableTokensParams = ReadHookParams<XToken[], { from: SpokeChainKey | undefined; to: SpokeChainKey | undefined; token: string | undefined }>`. Returns `UseQueryResult<XToken[], Error>`. queryKey: `['bridge','bridgeableTokens', from, to, token]`. queryFn is SYNCHRONOUS (no async/await): if `!from || !to || !token` THROWS `new Error('from, to and token are required')`; else `const result = sodax.bridge.getBridgeableTokens(from, to, token);` (SDK method is synchronous, returns Result) `if (!result.ok) throw result.error; return result.value;`. enabled: `!!from && !!to && !!token`. Imports useSodaxContext from '../shared/index.js' (barrel) whereas the other 4 import from '../shared/useSodaxContext.js' directly - minor inconsistency.",
+    "Result-handling inconsistency across current bridge hooks: NONE of the 3 queries use the shared `unwrapResult` helper (only the 2 mutations do). useBridgeAllowance returns `false` on error; useGetBridgeableAmount and useGetBridgeableTokens THROW result.error. The swapsApi family by contrast uses `unwrapResult` uniformly in every hook including queries.",
+    "_mutationContract.test.ts manifest registers ONLY the two bridge mutation hooks: `{ path: 'bridge/useBridge.ts' }` and `{ path: 'bridge/useBridgeApprove.ts' }`. Any new bridgeApi mutation hooks MUST be added to this manifest (the swapsApi branch added 6 entries: useSwapsApiApprove, useSwapsApiCancelIntent, useSwapsApiCreateIntent, useSwapsApiCreateLimitOrder, useSwapsApiSubmitIntent, useSwapsApiSubmitTx).",
+    "MAPPING PRECEDENT (swap/ to swapsApi/ on origin/feat/swaps-api-v2): the API family is a SEPARATE sibling directory `swapsApi/` (not merged into swap/). It mirrors the on-chain hooks but (a) calls `sodax.api.swaps.*` HTTP client instead of `sodax.swap.*`, (b) returns V2 response DTOs containing RAW UNSIGNED txs (createIntent returns `{ tx, intent, relayData }`, approve returns `{ tx }`), (c) accepts a per-request `apiConfig?: RequestOverrideConfig` override placed in mutation VARS / query PARAMS (never at hook level), (d) defaults `retry: 3` on both queries and mutations, (e) API mutations DO NOT invalidate queries (they build unsigned txs, do not change chain state), (f) queryKey/mutationKey prefix is the dir name `swapsApi`, (g) uses `unwrapResult` uniformly.",
+    "CENTRAL submit-tx + status state machine (the useBackendSubmitTx-style mechanism). useSwapsApiSubmitTx: mutation, vars `{ request: SubmitTxRequestV2; apiConfig?: RequestOverrideConfig }`, mutationKey `['swapsApi','submitTx']`, `retry: 3`, mutationFn `unwrapResult(await sodax.api.swaps.submitTx(request, apiConfig))`, returns SubmitTxResponseV2. useSwapsApiSubmitTxStatus: query, params `{ txHash: string|undefined; srcChainKey?: string; apiConfig?: RequestOverrideConfig }`, queryKey `['swapsApi','submitTx','status', txHash, srcChainKey]`, queryFn returns undefined if `!txHash||!srcChainKey` else `unwrapResult(await sodax.api.swaps.getSubmitTxStatus({ txHash, srcChainKey }, apiConfig))`, enabled `!!txHash && txHash.length>0 && !!srcChainKey`, `retry:3`, refetchInterval is a function: returns `false` (stop) when `query.state.data?.data?.status === 'executed' || 'failed'`, else `1000`ms. This is the FRONTEND flow: build raw tx (createIntent/approve) then sign+broadcast in wallet then submitTx then poll submitTxStatus until terminal.",
+    "NEEDED bridgeApi counterparts (mapping current bridge hooks to API parallels, by swapsApi precedent): (1) useBridgeAllowance (query, sodax.bridge.isAllowanceValid) -> useBridgeApiAllowance (sodax.api.bridge.checkAllowance, returns allowance-check DTO). (2) useBridgeApprove (mutation, sodax.bridge.approve) -> useBridgeApiApprove (sodax.api.bridge.approve returns raw `{ tx }`, no invalidation). (3) useBridge (mutation, sodax.bridge.bridge = sign+broadcast all-in-one) -> SPLITS into useBridgeApiCreateBridge/createIntent (build unsigned `{ tx, ... }`) + useBridgeApiSubmitTx (submit signed tx) + useBridgeApiSubmitTxStatus (poll status), mirroring useSwapsApiCreateIntent/SubmitTx/SubmitTxStatus. (4) useGetBridgeableTokens (query) -> useBridgeApiTokens (or remain direct if no HTTP endpoint). (5) useGetBridgeableAmount (query) -> useBridgeApiBridgeableAmount/limits (or remain direct). PLUS a NEW useBridgeApiStatus (no direct-bridge equivalent today) for cross-chain completion polling, mirroring useSwapsApiStatus.",
+    "Hook-shape conventions all 5 bridge hooks follow (from shared/types.ts): Read hooks take `{ params?, queryOptions? }` where `ReadHookParams<TData, TParams>` strips queryKey/queryFn/enabled (hook-owned). Mutation hooks take `{ mutationOptions? }` where `MutationHookParams<TData, TVars>` strips mutationFn (hook-owned); ALL domain inputs flow through `mutate(vars)`, default mutationKey set BEFORE spreading `...mutationOptions`, mutationFn defined AFTER the spread so consumers cannot override it."
+  ],
+  "open_questions": [
+    "Does the SDK expose a `sodax.api.bridge.*` HTTP client (parallel to `sodax.api.swaps.*`)? This dimension only read dapp-kit; the existence and method surface (checkAllowance, approve, createBridge/createIntent, submitTx, getSubmitTxStatus, status, tokens) must be confirmed from the @sodax/sdk BridgeApiService - that is a separate dimension. The whole bridgeApi hook family depends on it.",
+    "What are the exact Bridge V2 DTO type names the bridgeApi hooks would import (is there a SubmitTxRequestV2/SubmitTxResponseV2 reused across swaps+bridge, or bridge-specific types)? Needs SDK-side verification.",
+    "Should useGetBridgeableAmount and useGetBridgeableTokens get HTTP-API counterparts at all, or stay direct-only (token/limit metadata may be served the same way regardless)? Depends on whether the backend Bridge API exposes those read endpoints.",
+    "Whether to normalize the current bridge query hooks to use `unwrapResult` (as swapsApi does uniformly) when building the API family, or keep the existing mixed throw/return-false patterns. The direct bridge hooks are inconsistent; the new bridgeApi family should follow the swapsApi convention (uniform unwrapResult + retry:3).",
+    "Bridge cross-chain completion likely needs a status/polling hook with NO current direct equivalent (useBridge today resolves to a TxHashPair and only invalidates xBalances). Confirm what status endpoint/predicate (analogous to isTerminalSwapIntentStatus + useSwapsApiStatus) bridge exposes."
+  ],
+  "replication_recipe": [
+    "Create a NEW sibling directory `packages/dapp-kit/src/hooks/bridgeApi/` (do NOT merge into bridge/) mirroring `swapsApi/`, since the bridgeApi hooks are the HTTP-API parallel family to the existing direct `bridge/` hooks.",
+    "Add `bridgeApi/index.ts` barrel and register it in `packages/dapp-kit/src/hooks/index.ts` with `export * from './bridgeApi/index.js';` (alongside the existing `export * from './bridge/index.js';` - on the swaps branch the swapsApi export was inserted right before the bridge export at line 7).",
+    "For each query hook use: `useQuery({ queryKey: ['bridgeApi', <action>, ...scalar identifiers], queryFn: async () => { if (!<required>) return undefined; return unwrapResult(await sodax.api.bridge.<method>(body, apiConfig)); }, enabled: !!<required>, retry: 3, ...queryOptions })`. Use `ReadHookParams<TData, { body|...: ...|undefined; apiConfig?: RequestOverrideConfig }>`. Put `apiConfig` in PARAMS. Use unwrapResult uniformly (unlike current direct bridge queries).",
+    "For each mutation hook use: `useSafeMutation<TData, Error, TVars>({ mutationKey: ['bridgeApi', <action>], retry: 3, ...mutationOptions, mutationFn: async ({ body, apiConfig }) => unwrapResult(await sodax.api.bridge.<method>(body, apiConfig)) })` returning `SafeUseMutationResult<TData, Error, TVars>`; type options via `MutationHookParams<TData, TVars>`. Put `apiConfig` in VARS. Build-unsigned-tx mutations (approve, createBridge) must NOT invalidate queries.",
+    "Implement the submit-tx state machine pair: useBridgeApiSubmitTx (mutation, vars `{ request: <BridgeSubmitTxRequest>; apiConfig?: RequestOverrideConfig }`, mutationKey `['bridgeApi','submitTx']`, retry:3, calls `sodax.api.bridge.submitTx`) and useBridgeApiSubmitTxStatus (query, params `{ txHash; srcChainKey?; apiConfig? }`, queryKey `['bridgeApi','submitTx','status', txHash, srcChainKey]`, enabled requires both txHash and srcChainKey, refetchInterval function returns false on terminal status else 1000ms, calls `sodax.api.bridge.getSubmitTxStatus`). Mirror useSwapsApiSubmitTx/useSwapsApiSubmitTxStatus exactly.",
+    "Build the bridge create flow split: useBridgeApiAllowance (parallels useBridgeAllowance), useBridgeApiApprove (parallels useBridgeApprove, returns raw {tx}), useBridgeApiCreateBridge/createIntent (parallels the raw side of useBridge, returns raw {tx,...}). FRONTEND flow: createBridge -> sign+broadcast via wallet extension -> submitTx -> poll submitTxStatus until 'executed'/'failed'. BACKEND flow consumes the same SDK methods to produce the raw txs.",
+    "Add every new bridgeApi MUTATION hook path to `packages/dapp-kit/src/hooks/_mutationContract.test.ts` manifest (currently only has `bridge/useBridge.ts` and `bridge/useBridgeApprove.ts`); follow how the swaps branch added 6 swapsApi mutation entries.",
+    "Optionally add a terminal-status predicate file `bridgeApi/isTerminalBridgeStatus.ts` (+ .test.ts) analogous to swapsApi/isTerminalSwapIntentStatus.ts, used by the status hook's refetchInterval to stop polling on terminal states.",
+    "Update consumer skills docs under `packages/skills/skills/sodax-dapp-kit/` for the new bridgeApi hook signatures/keys/polling intervals, then run `pnpm --filter @sodax/skills check:ai` (required by dapp-kit AGENTS.md when public hook surface changes).",
+    "Keep the existing direct `bridge/` hooks untouched; bridgeApi is additive. Use queryKey/mutationKey prefix `bridgeApi` (the new dir name) to keep keys namespaced and invalidatable independently of the direct `bridge` keys."
+  ]
+}

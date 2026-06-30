@@ -1,0 +1,149 @@
+{
+  "dimension": "wallet-sdk-core per-chain raw-tx signing (Solana/Stacks/Stellar wallet providers + Bitcoin spoke service) and the skills/docs structure (granular SKILL.md + knowledge/features/*.md + docs/*.md) introduced by the Swaps API v2 PR.",
+  "files_read": [
+    {
+      "path": "packages/wallet-sdk-core/src/wallet-providers/solana/SolanaWalletProvider.ts",
+      "role": "Solana provider; PR added signAndSendTransaction(SolanaRawTransaction) + signTransaction/signAndSerializeTransaction/signTransactionWithAdapter/signTransactionWithKeypair helpers (+38 lines)",
+      "lines": 38
+    },
+    {
+      "path": "packages/wallet-sdk-core/src/wallet-providers/stacks/StacksWalletProvider.ts",
+      "role": "Stacks provider; PR added signAndSendTransaction(StacksRawTransaction) that deserializes the hex payload and routes through sendTransaction (+25 lines)",
+      "lines": 25
+    },
+    {
+      "path": "packages/wallet-sdk-core/src/wallet-providers/stellar/StellarWalletProvider.ts",
+      "role": "Stellar provider; PR added a Soroban rpc.Server, sendTransaction(XDR) broadcaster, and signAndSendTransaction(StellarRawTransaction) (+47 lines)",
+      "lines": 47
+    },
+    {
+      "path": "packages/wallet-sdk-core/src/wallet-providers/stellar/types.ts",
+      "role": "Stellar config types; PR added optional sorobanRpcUrl to both PrivateKey and BrowserExtension config variants (+6 lines)",
+      "lines": 6
+    },
+    {
+      "path": "packages/sdk/src/shared/services/spoke/BitcoinSpokeService.ts",
+      "role": "Bitcoin spoke service; PR added signAndSubmitRawTransaction({rawTx,walletProvider,relayData?,accessToken?}) for the Bound 2-of-2 trading-wallet flow (+36 lines)",
+      "lines": 36
+    },
+    {
+      "path": "packages/libs/src/stacks/core/index.ts",
+      "role": "Re-export barrel; PR added deserializePayload, addressToString, PayloadType from @stacks/transactions",
+      "lines": 3
+    },
+    {
+      "path": "packages/types/src/solana/solana.ts",
+      "role": "Defines SolanaRawTransaction {from,to,value,data} and adds optional signAndSendTransaction? to ISolanaWalletProvider",
+      "lines": 2
+    },
+    {
+      "path": "packages/types/src/stacks/stacks.ts",
+      "role": "Defines StacksRawTransaction {payload,estimatedLength?} and adds optional signAndSendTransaction? to IStacksWalletProvider",
+      "lines": 2
+    },
+    {
+      "path": "packages/types/src/stellar/stellar.ts",
+      "role": "Defines StellarRawTransaction; adds optional sendTransaction?(XDR) and signAndSendTransaction? to IStellarWalletProvider",
+      "lines": 4
+    },
+    {
+      "path": "packages/types/src/common/common.ts",
+      "role": "RawTxReturnType union (8 chains, no Bitcoin) and TxReturnType<C,Raw> conditional mapper used to narrow the per-chain raw tx",
+      "lines": 230
+    },
+    {
+      "path": "packages/types/src/sodax-config/sodax-config.ts",
+      "role": "Adds SwapsClientOptions { useBackendSubmitTx?: boolean } + swapsOptions? on SodaxOptionalConfig — the central backend-submit toggle",
+      "lines": 120
+    },
+    {
+      "path": "packages/types/src/shared/features.ts",
+      "role": "Adds 'backend' to SodaxFeature (error feature tag for BackendApiService/SwapsApiService)",
+      "lines": 1
+    },
+    {
+      "path": "packages/skills/skills/sodax-sdk/swaps-api/SKILL.md",
+      "role": "NEW granular skill — single SKILL.md (no own knowledge subtree), links into parent integration/knowledge tree",
+      "lines": 62
+    },
+    {
+      "path": "packages/skills/skills/sodax-sdk/integration/knowledge/features/swaps-api.md",
+      "role": "NEW feature knowledge doc — full 21-endpoint client reference (methods, wire shapes, call shapes, status tables)",
+      "lines": 120
+    },
+    {
+      "path": "packages/skills/skills/sodax-sdk/SKILL.md",
+      "role": "Parent broad skill — PR adds swaps-api row to the routing table and to the features reading list",
+      "lines": 150
+    },
+    {
+      "path": "packages/skills/AGENTS.md",
+      "role": "Skills package map — PR adds sodax-sdk/swaps-api to the granular-skill inventory in 3 places",
+      "lines": 70
+    },
+    {
+      "path": "packages/sdk/docs/SWAPS_API.md",
+      "role": "NEW human doc (169 lines) accompanying the feature; sibling to BACKEND_API.md/SWAPS.md",
+      "lines": 169
+    },
+    {
+      "path": "apps/demo/src/components/swaps-api/lib/signAndBroadcast.ts",
+      "role": "Frontend dispatcher: signAndBroadcastSwapsApiTx + isSignableSwapsApiChain + waitForTxFinality — per-chain sign+broadcast of the API raw tx",
+      "lines": 186
+    },
+    {
+      "path": "packages/dapp-kit/src/hooks/swapsApi/useSwapsApiSubmitTx.ts",
+      "role": "React mutation hook wrapping sodax.api.swaps.submitTx (retry:3)",
+      "lines": 48
+    },
+    {
+      "path": "packages/dapp-kit/src/hooks/swapsApi/useSwapsApiSubmitTxStatus.ts",
+      "role": "React query hook polling sodax.api.swaps.getSubmitTxStatus every 1s until executed/failed",
+      "lines": 55
+    },
+    {
+      "path": "packages/sdk/src/swap/SwapService.ts",
+      "role": "Orchestrator; PR added submitTx() (backend 2-step) + fallbackSwapSteps() (client relay) gated by useBackendSubmitTx (+310 lines)",
+      "lines": 310
+    }
+  ],
+  "key_findings": [
+    "SIGNING COVERAGE MATRIX (which chains can sign+broadcast a Swaps-API raw tx, from apps/demo/.../signAndBroadcast.ts switch + isSignableSwapsApiChain): EVM, SUI, ICON, NEAR, SOLANA, STELLAR, STACKS, INJECTIVE are signable via the wallet-only dispatcher. BITCOIN is signable but NOT via the wallet dispatcher — it must go through BitcoinSpokeService.signAndSubmitRawTransaction (Bound 2-of-2 trading wallet). isSignableSwapsApiChain() returns true for the 8 wallet-dispatcher chains (Bitcoin excluded).",
+    "NEW per-chain methods added BY THIS PR (3 wallet providers + 1 spoke service): SOLANA, STACKS, STELLAR wallet providers each gained signAndSendTransaction(params: <Chain>RawTransaction); Bitcoin gained BitcoinSpokeService.signAndSubmitRawTransaction.",
+    "EXISTING/REUSED methods (NOT changed by PR — the dispatcher just calls them): EVM IEvmWalletProvider.sendTransaction(tx: EvmRawTransaction): Promise<Hex>; SUI ISuiWalletProvider.signAndExecuteTxn({ toJSON: async () => data }); ICON IIconWalletProvider.sendTransaction(tx: IcxCallTransaction); NEAR INearWalletProvider.signAndSubmitTxn(tx: NearRawTransaction); INJECTIVE IInjectiveWalletProvider.signAndSendTransaction(tx: InjectiveRawTransaction). The diff --stat confirms only solana/stacks/stellar provider files (+ stellar/types.ts) changed in wallet-sdk-core.",
+    "SOLANA signature: public async signAndSendTransaction(params: SolanaRawTransaction): Promise<TransactionSignature>. Body: const bytes = Buffer.from(params.data,'base64'); const versionedTx = VersionedTransaction.deserialize(bytes); const signedTx = await this.signAndSerializeTransaction(versionedTx); return this.sendTransaction(signedTx). Also added supporting public helpers: signTransaction(tx: VersionedTransaction): Promise<VersionedTransaction> (branches isAdapterMode → signTransactionWithAdapter else signTransactionWithKeypair); signAndSerializeTransaction(tx): Promise<SolanaSerializedTransaction> (signs then tx.serialize()); signTransactionWithAdapter(tx) (uses (this.wallet as WalletContextState).signTransaction, throws if missing); signTransactionWithKeypair(tx) (transaction.sign([keypairWallet]), throws in adapter mode). Imports SolanaRawTransaction added from @sodax/types.",
+    "STACKS signature: async signAndSendTransaction(params: StacksRawTransaction): Promise<string>. Body: const payload = deserializePayload(params.payload); if (payload.payloadType !== PayloadType.ContractCall) throw new Error('signAndSendTransaction: expected a contract-call payload.'); return this.sendTransaction({ contractAddress: addressToString(payload.contractAddress), contractName: payload.contractName.content, functionName: payload.functionName.content, functionArgs: payload.functionArgs, postConditionMode: PostConditionMode.Allow }). The raw tx's `payload` is the hex-serialized contract-call payload; sendTransaction signs+broadcasts in both private-key and browser-extension modes. New imports deserializePayload, addressToString, PayloadType added from @sodax/libs/stacks/core (which now re-exports them from @stacks/transactions).",
+    "STELLAR signatures (two new methods): public async sendTransaction(signedTx: XDR): Promise<string> — TransactionBuilder.fromXDR(signedTx, networkPassphrase) then this.sorobanServer.sendTransaction(tx); if response.status==='ERROR' throw StellarWalletError(...,'SEND_TX_ERROR'); return response.hash. AND public async signAndSendTransaction(params: StellarRawTransaction): Promise<string> — const signedXdr = await this.signTransaction(params.data); return this.sendTransaction(signedXdr). Errors use code 'SIGN_TX_ERROR' (sign) / 'SEND_TX_ERROR' (broadcast). Stellar now needs a Soroban RPC server: added private readonly sorobanServer: rpc.Server constructed from config.sorobanRpcUrl ?? STELLAR_SOROBAN_URLS[network] ({TESTNET:'https://soroban-testnet.stellar.org', PUBLIC:'https://rpc.ankr.com/stellar_soroban'}) with { allowHttp: true }. New imports: TransactionBuilder, rpc from @stellar/stellar-sdk; StellarRawTransaction from @sodax/types.",
+    "STELLAR types.ts change: added optional sorobanRpcUrl?: string ('Soroban RPC server URL used to broadcast transactions. Defaults per network.') to BOTH PrivateKeyStellarWalletConfig and BrowserExtensionStellarWalletConfig (alongside the existing rpcUrl which is documented as the Horizon URL).",
+    "BITCOIN signature (spoke-service, NOT a wallet provider): public async signAndSubmitRawTransaction(params: { rawTx: BitcoinRawTransaction; walletProvider: IBitcoinWalletProvider; relayData?: RelayExtraData; accessToken?: string }): Promise<string>. Guards: throws if this.walletMode !== 'TRADING'; throws if !rawTx?.data || !rawTx?.from (Bitcoin's API raw tx hits the permissive AnyRawTxSchema, so it is NOT schema-validated upstream — must guard manually). Body: const signedTx = await walletProvider.signTransaction(rawTx.data, false); const signedBase64Tx = normalizePsbtToBase64(signedTx); return this.radfi.requestRadfiSignature({ userAddress: rawTx.from, signedBase64Tx, relayData }, accessToken). accessToken defaults to this.radfi.accessToken. relayData ({address,payload}) is the relay identity from createIntent() and must be supplied by the caller (not recoverable from rawTx). New import: RelayExtraData from ../../types/relay-types.js.",
+    "INTERFACE pattern in @sodax/types: each new method is added to the wallet-provider interface as OPTIONAL (signAndSendTransaction?: (params: <Chain>RawTransaction) => Promise<...>) so existing provider implementations stay compatible. ISolanaWalletProvider.signAndSendTransaction? → Promise<TransactionSignature>; IStacksWalletProvider.signAndSendTransaction? → Promise<string>; IStellarWalletProvider gained BOTH sendTransaction?(signedTx: XDR)=>Promise<string> and signAndSendTransaction?(params)=>Promise<string>. The dispatcher null-checks the optional method and throws SwapsApiSignError(chainKey,'sdk-gap',...) when absent.",
+    "RAW TX TYPE SHAPES (packages/types/src/<chain>/<chain>.ts): SolanaRawTransaction = { from: SolanaBase58PublicKey; to: SolanaBase58PublicKey; value: bigint; data: Base64String }. StacksRawTransaction = { payload: string /*hex-encoded serialized tx payload*/; estimatedLength?: number }. SuiRawTransaction = { from: Hex; to: string; value: bigint; data: string /*Transaction#serialize() JSON, rebuild via Transaction.from()*/ }. EvmRawTransaction = { from: Address; to: Address; value: bigint; data: Hex }. (StellarRawTransaction at stellar.ts:90 has a `data: XDR` field consumed by signTransaction; BitcoinRawTransaction at bitcoin.ts:102 has `data` PSBT + `from`.)",
+    "RawTxReturnType union (common/common.ts:186) = EvmRawTransaction | SolanaRawTransaction | InjectiveRawTransaction | IconRawTransaction | SuiRawTransaction | StellarRawTransaction | StacksRawTransaction | NearRawTransaction — NOTE: BitcoinRawTransaction is intentionally NOT in this union. TxReturnType<C extends SpokeChainKey|ChainType, Raw extends boolean> is a conditional mapper that resolves a chain key to its per-chain return type and INCLUDES a BITCOIN branch (BitcoinReturnType<Raw>). The dispatcher narrows `tx as <Chain>RawTransaction` per chain-type branch.",
+    "FRONTEND DISPATCHER (apps/demo/src/components/swaps-api/lib/signAndBroadcast.ts) is the canonical client-side pattern, exporting THREE functions: (1) signAndBroadcastSwapsApiTx({chainKey,tx,walletProvider}): Promise<string> — switch on getXChainType(chainKey), narrows tx to the per-chain RawTxReturnType variant, calls the right provider method, returns spoke tx hash; throws SwapsApiSignError for sdk-gaps; (2) isSignableSwapsApiChain(chainKey): boolean; (3) waitForTxFinality(chainKey,walletProvider,txHash): Promise<void> — EVM/ICON waitForTransactionReceipt, SOLANA waitForConfirmation(txHash,'confirmed'), STELLAR waitForTransactionReceipt (poll Horizon after Soroban submit); SUI/NEAR/INJECTIVE need no extra wait. Custom error class SwapsApiSignError extends Error with (chainKey, reason:'sdk-gap'|'malformed-payload', message, payload?). This file documents that 'neither @sodax/dapp-kit nor @sodax/sdk ship a utility for this step — every consumer hand-rolls the per-chain dispatch' (a known SDK gap).",
+    "CENTRAL submit-tx + fallback mechanism: SwapsClientOptions { useBackendSubmitTx?: boolean } added to SodaxOptionalConfig.swapsOptions (sodax-config.ts). It is a CLIENT-SIDE runtime toggle (like logger), NOT part of backend-fetched config; distinct key so it never collides with the data `swaps` slot. Default false. SwapService got constructor param useBackendSubmitTx (stored readonly), and swap() branches: if this.useBackendSubmitTx → submitTx(params, created, deadline) (private; calls this.backendApi.swaps.submitTx(...) then polls this.backendApi.swaps.getSubmitTxStatus({txHash,srcChainKey}) until 'executed'); on ANY non-success (submit fail, terminal failed, abandoned, poll timeout) it falls back to fallbackSwapSteps(...) (the default client-side relay) so the swap still completes — safe because re-relay/re-post are idempotent. The single `deadline`/timeout is split between backend path and fallback (reserve up to a third, capped at 20s) so total wall-clock never exceeds one timeout.",
+    "dapp-kit submit-tx hooks: useSwapsApiSubmitTx (mutation, mutationKey ['swapsApi','submitTx'], retry:3, mutateAsync({request: SubmitTxRequestV2, apiConfig?})) wraps unwrapResult(sodax.api.swaps.submitTx(...)); useSwapsApiSubmitTxStatus (query, queryKey ['swapsApi','submitTx','status',txHash,srcChainKey], requires BOTH txHash AND srcChainKey via enabled gate, refetchInterval 1000ms stopping on 'executed'|'failed'). Note PR DELETED the old useBackendSubmitSwapTxStatus.ts and renamed the old hook into swapsApi/useSwapsApiSubmitTx.ts; all 22 swapsApi hooks live under packages/dapp-kit/src/hooks/swapsApi/.",
+    "SKILL.md ANATOMY (granular feature skill — swaps-api/SKILL.md, 62 lines, SINGLE file with no own knowledge subtree): YAML frontmatter with `name:` (kebab id e.g. sodax-sdk-swaps-api) and a long `description:` (one paragraph: what it is = class + access path + endpoint count, plus 'Use when …' trigger phrases, ending 'Skill links into the parent sodax-sdk knowledge tree.'). Body sections in order: H1 title; intro paragraph (access path, Result<T> never-throws contract, error tags); blockquote pointing to the higher-level orchestrator skill; '## Step 1 — Clarify with user before coding' (numbered clarifying questions); '## Integration workflow' (numbered list of relative links into ../integration/knowledge/ — ai-rules.md FIRST, then the feature md, then related feature mds, then result-and-errors/error-codes); a feature-specific anti-patterns sub-list; '## Migration workflow (v1 → v2)' (links to ../migration-v1-to-v2/knowledge/features/*); '## Verification' (numbered checks incl. `pnpm tsc --noEmit`); '## Related granular skills (same family)' (sibling skill links). Frontmatter in bridge/SKILL.md additionally shows `license: MIT` and `metadata: { version, author }` keys.",
+    "KNOWLEDGE FEATURE DOC ANATOMY (integration/knowledge/features/swaps-api.md): H1 '# <Feature> — `<ServiceClass>`'; intro (access path, never-throws + valibot-validation contract, error feature/context tags); '## Methods' (one big ```ts block listing every method signature grouped by area with comments); '## Wire shapes — bigint vs decimal strings'; '## Common call shapes' (sub-H3 per flow with code); '## Status fields' (markdown table of distinct status enums); '## Per-call overrides'; '## Custom endpoint'; '## Error handling' (Result branch example); '## Cross-references' (links to sibling feature docs + reference/error-codes.md).",
+    "DOCS FILE that accompanies the feature: packages/sdk/docs/SWAPS_API.md (NEW, 169 lines). It mirrors the knowledge feature md but is the human-facing SDK doc (sibling of BACKEND_API.md, SWAPS.md, BRIDGE.md, etc.). Sections: title; intro (access path); '## Methods' (ts block); '## Wire shapes'; '## Long-polling'; '## Examples'; '## Status fields' table; '## Configuration' (ApiConfig/BaseApiConfig/CustomApiConfig types); '## Result<T> and Error Handling'; '## See also' (links to BACKEND_API.md, SWAPS.md). PR also edited sibling docs BACKEND_API.md (-56), CONFIGURE_SDK.md, SWAPS.md (+8 cross-link). NOTE: docs/BRIDGE.md ALREADY EXISTS.",
+    "REGISTRATION TOUCHPOINTS for a new granular skill (3 edits, all small): (1) parent sodax-sdk/SKILL.md — add a routing-table row '| <Feature> API client (…) | [`./<feat>/SKILL.md`](./<feat>/SKILL.md) | \"trigger phrases\" |' AND append the feature md to the step-3 features reading list; (2) packages/skills/AGENTS.md — append `sodax-sdk/<feat>` to the granular-skills inventory in the package table, the consumer-situation table, and the directory-tree comment (3 spots); (3) add the feature md to integration/knowledge/features/ and (optionally) migration-v1-to-v2/knowledge/features/. The swaps-api skill REUSED swap.md + backend-api.md migration docs rather than adding its own migration feature file.",
+    "ERROR/CONFIG plumbing: SodaxFeature gained 'backend' tag (features.ts) — the HTTP-client layer (BackendApiService/SwapsApiService) errors carry feature:'backend', context.api:'backend', context.endpoint:<path>, cause:<transport failure>; this is distinct from domain features ('swap','bridge', …). errors/codes.ts changed +12 lines (new EXTERNAL_API_ERROR plumbing). @sodax/libs/stacks/core/index.ts is the only place a third-party (@stacks/transactions) symbol gets re-exported for provider use — the repo isolates third-party deps through packages/libs."
+  ],
+  "open_questions": [
+    "Does a 'Bridge API v2' backend surface (analogous to /swaps/*) actually exist on the backend, or will the Bridge API reuse the same submit-tx/relay endpoints? The PR's submit-tx/fallback machinery (SwapService) is swap-specific; whether BridgeService needs its own backend-submit path or can share the swaps one is unverified.",
+    "BridgeService.bridge() returns TxHashPair { srcChainTxHash, dstChainTxHash } (per existing bridge/SKILL.md) — different from the Swaps create-intent → raw tx → submit-tx model. Need to confirm whether the Bridge API feature is a NEW typed HTTP client (mirroring SwapsApiService) or an extension of the existing on-chain BridgeService, because that changes which skill/doc to author.",
+    "The per-chain signAndSendTransaction methods are generic 'sign+broadcast an unsigned API raw tx' — they are NOT swap-specific, so Bridge raw txs of the same RawTxReturnType shape would reuse them as-is with ZERO new wallet-provider code. Confirm the Bridge API returns the same RawTxReturnType union (esp. whether it ever needs Bitcoin, which is excluded from RawTxReturnType and requires the Bound spoke-service path).",
+    "signAndBroadcastSwapsApiTx lives in apps/demo (a hand-rolled consumer helper), explicitly flagged as a missing shared SDK/dapp-kit utility. A Bridge equivalent would face the same gap — decide whether to promote a shared dispatcher into dapp-kit/sdk now or keep hand-rolling per feature."
+  ],
+  "replication_recipe": [
+    "Per-chain signing for Bridge raw txs is ALREADY covered if the Bridge API returns the same RawTxReturnType variants — no new wallet-provider methods are required: reuse signAndSendTransaction (Solana/Stacks/Stellar/Injective), sendTransaction (EVM/ICON), signAndExecuteTxn (Sui), signAndSubmitTxn (NEAR), and BitcoinSpokeService.signAndSubmitRawTransaction (Bitcoin/Bound). Only add a new provider method if Bridge introduces a chain or tx shape not already wired.",
+    "If Bridge needs Bitcoin source signing, mirror BitcoinSpokeService.signAndSubmitRawTransaction exactly: gate on walletMode==='TRADING', manually guard rawTx.data + rawTx.from (Bitcoin API raw tx is NOT schema-validated — AnyRawTxSchema), sign via walletProvider.signTransaction(rawTx.data,false), normalizePsbtToBase64, then radfi.requestRadfiSignature({userAddress,signedBase64Tx,relayData}, accessToken). Require the caller to pass relayData (not recoverable from rawTx).",
+    "Author a Bridge frontend dispatcher mirroring apps/demo/src/components/swaps-api/lib/signAndBroadcast.ts: export signAndBroadcast<Feature>Tx({chainKey,tx,walletProvider}), is<Feature>SignableChain(chainKey), waitForTxFinality(chainKey,walletProvider,txHash); switch on getXChainType, narrow tx per-chain, throw a typed <Feature>SignError('sdk-gap'/'malformed-payload') for unsupported chains, and route Bitcoin to the spoke-service path (Bitcoin excluded from the wallet-only switch).",
+    "If a Bridge API HTTP client is introduced, mirror SwapsApiService: one method per endpoint returning Promise<Result<T>> (never throw), valibot-validate every response, optional trailing RequestOverrideConfig per call, errors tagged feature:'backend' + context.endpoint. Expose it on the Sodax facade (e.g. sodax.api.bridge) and add a CustomApiConfig slice if it can live at its own host.",
+    "If Bridge adopts a backend submit-tx flow, replicate the SwapService pattern: add a BridgeClientOptions { useBackendSubmitTx?: boolean } under SodaxOptionalConfig.bridgeOptions (client-side runtime toggle, default false, distinct from the data `bridge` slot), thread useBackendSubmitTx into BridgeService, and branch bridge() into a backend 2-step submitTx() (call api.bridge.submitTx + poll getSubmitTxStatus until 'executed') with a fallbackBridgeSteps() client-relay path on any non-success; split the deadline (reserve ~1/3 capped at 20s) so total wall-clock never exceeds one timeout. Add matching dapp-kit hooks useBridgeApiSubmitTx (mutation, retry:3) + useBridgeApiSubmitTxStatus (query, requires txHash+srcChainKey, refetchInterval 1000ms stop on executed/failed).",
+    "Create packages/skills/skills/sodax-sdk/bridge-api/SKILL.md as a SINGLE granular SKILL.md (no own knowledge subtree): YAML frontmatter {name: sodax-sdk-bridge-api, description: '<class> <access path> <endpoint count>, Use when … , Skill links into the parent sodax-sdk knowledge tree.'}; body sections H1 title → intro (access/Result-contract/error-tags) → blockquote to higher-level orchestrator → '## Step 1 — Clarify with user before coding' → '## Integration workflow' (ai-rules.md FIRST, then the new feature md, then siblings, then result-and-errors/error-codes) → feature anti-patterns → '## Migration workflow (v1 → v2)' → '## Verification' (incl. pnpm tsc --noEmit + Result branch checks) → '## Related granular skills'.",
+    "Create packages/skills/skills/sodax-sdk/integration/knowledge/features/bridge-api.md following the swaps-api.md anatomy: H1 '# Bridge API — `BridgeApiService`' → intro contract → '## Methods' (single ts block, one signature per endpoint grouped + commented) → '## Wire shapes (bigint vs decimal)' → '## Common call shapes' → '## Status fields' table → '## Per-call overrides' → '## Custom endpoint' → '## Error handling' → '## Cross-references'. (Note the existing integration/knowledge/features/bridge.md is the on-chain BridgeService doc — the API doc is a separate file.)",
+    "Create packages/sdk/docs/BRIDGE_API.md mirroring docs/SWAPS_API.md structure (title, Methods ts block, Wire shapes, Examples, Status fields, Configuration with ApiConfig/CustomApiConfig, Result<T>/Error Handling, See also). docs/BRIDGE.md already exists for the on-chain service — keep them distinct and cross-link. Add a cross-link line into BRIDGE.md/BACKEND_API.md and run pnpm check:ai.",
+    "Register the new skill in 3 places: (1) parent sodax-sdk/SKILL.md — add a routing-table row and append bridge-api.md to the step-3 features list; (2) packages/skills/AGENTS.md — append sodax-sdk/bridge-api to the package table, the consumer-situation table, and the directory-tree comment; (3) re-use existing migration feature docs unless Bridge needs its own. Add 'backend' is already a SodaxFeature so no new error feature tag is needed for an HTTP-client-layer Bridge API.",
+    "Add tests mirroring the PR: <Chain>WalletProvider.test.ts for any new signAndSendTransaction (the PR added +68 Solana / +61 Stacks / +118 Stellar test lines and +64 BitcoinSpokeService test lines), and SwapsApiService.test.ts-style coverage if a BridgeApiService is added. Update wallet-sdk-core/stellar config tests if a new sorobanRpcUrl-like field is introduced."
+  ]
+}

@@ -1,0 +1,210 @@
+{
+  "dimension": "dapp-kit swapsApi hook family (origin/feat/swaps-api-v2) — full inventory + replication recipe for a bridgeApi/ hook family",
+  "files_read": [
+    {
+      "path": "packages/dapp-kit/src/hooks/swapsApi/index.ts",
+      "role": "Barrel: re-exports all 21 useSwapsApi* hooks + isTerminalSwapIntentStatus, grouped by feature with comments",
+      "lines": 41
+    },
+    {
+      "path": "packages/dapp-kit/src/hooks/swapsApi/isTerminalSwapIntentStatus.ts",
+      "role": "Pure predicate (no React imports) used by useSwapsApiStatus refetchInterval; terminal = status 3 or 4",
+      "lines": 11
+    },
+    {
+      "path": "packages/dapp-kit/src/hooks/swapsApi/isTerminalSwapIntentStatus.test.ts",
+      "role": "Vitest unit test (node env) for the predicate",
+      "lines": 26
+    },
+    {
+      "path": "packages/dapp-kit/src/hooks/swapsApi/useSwapsApiTokens.ts",
+      "role": "Query hook: getTokens",
+      "lines": 34
+    },
+    {
+      "path": "packages/dapp-kit/src/hooks/swapsApi/useSwapsApiTokensByChain.ts",
+      "role": "Query hook: getTokensByChain (gated on chainKey)",
+      "lines": 40
+    },
+    {
+      "path": "packages/dapp-kit/src/hooks/swapsApi/useSwapsApiQuote.ts",
+      "role": "Query hook: getQuote (big composite queryKey)",
+      "lines": 62
+    },
+    {
+      "path": "packages/dapp-kit/src/hooks/swapsApi/useSwapsApiDeadline.ts",
+      "role": "Query hook: getDeadline",
+      "lines": 36
+    },
+    {
+      "path": "packages/dapp-kit/src/hooks/swapsApi/useSwapsApiAllowance.ts",
+      "role": "Query hook: checkAllowance",
+      "lines": 40
+    },
+    {
+      "path": "packages/dapp-kit/src/hooks/swapsApi/useSwapsApiApprove.ts",
+      "role": "Mutation hook: approve (returns unsigned tx)",
+      "lines": 42
+    },
+    {
+      "path": "packages/dapp-kit/src/hooks/swapsApi/useSwapsApiCreateIntent.ts",
+      "role": "Mutation hook: createIntent (returns {tx,intent,relayData})",
+      "lines": 41
+    },
+    {
+      "path": "packages/dapp-kit/src/hooks/swapsApi/useSwapsApiSubmitIntent.ts",
+      "role": "Mutation hook: submitIntent (relay)",
+      "lines": 40
+    },
+    {
+      "path": "packages/dapp-kit/src/hooks/swapsApi/useSwapsApiStatus.ts",
+      "role": "Polling query hook: getStatus, 1s refetch until terminal via predicate",
+      "lines": 45
+    },
+    {
+      "path": "packages/dapp-kit/src/hooks/swapsApi/useSwapsApiCancelIntent.ts",
+      "role": "Mutation hook: cancelIntent (returns unsigned tx)",
+      "lines": 41
+    },
+    {
+      "path": "packages/dapp-kit/src/hooks/swapsApi/useSwapsApiIntentHash.ts",
+      "role": "Query hook: getIntentHash",
+      "lines": 40
+    },
+    {
+      "path": "packages/dapp-kit/src/hooks/swapsApi/useSwapsApiIntentPacket.ts",
+      "role": "Query hook: getSolvedIntentPacket (server long-poll, no refetchInterval)",
+      "lines": 43
+    },
+    {
+      "path": "packages/dapp-kit/src/hooks/swapsApi/useSwapsApiIntentExtraData.ts",
+      "role": "Query hook: getIntentSubmitTxExtraData (txHash OR intent)",
+      "lines": 41
+    },
+    {
+      "path": "packages/dapp-kit/src/hooks/swapsApi/useSwapsApiFilledIntent.ts",
+      "role": "Query hook: getFilledIntent",
+      "lines": 41
+    },
+    {
+      "path": "packages/dapp-kit/src/hooks/swapsApi/useSwapsApiIntent.ts",
+      "role": "Query hook: getIntent",
+      "lines": 40
+    },
+    {
+      "path": "packages/dapp-kit/src/hooks/swapsApi/useSwapsApiCreateLimitOrder.ts",
+      "role": "Mutation hook: createLimitOrderIntent",
+      "lines": 41
+    },
+    {
+      "path": "packages/dapp-kit/src/hooks/swapsApi/useSwapsApiEstimateGas.ts",
+      "role": "Query hook: estimateGas",
+      "lines": 40
+    },
+    {
+      "path": "packages/dapp-kit/src/hooks/swapsApi/useSwapsApiPartnerFee.ts",
+      "role": "Query hook: getPartnerFee",
+      "lines": 40
+    },
+    {
+      "path": "packages/dapp-kit/src/hooks/swapsApi/useSwapsApiSolverFee.ts",
+      "role": "Query hook: getSolverFee",
+      "lines": 40
+    },
+    {
+      "path": "packages/dapp-kit/src/hooks/swapsApi/useSwapsApiSubmitTx.ts",
+      "role": "Mutation hook: submitTx (the submit-tx-to-API mechanism; renamed from backend/useBackendSubmitSwapTx, R050)",
+      "lines": 48
+    },
+    {
+      "path": "packages/dapp-kit/src/hooks/swapsApi/useSwapsApiSubmitTxStatus.ts",
+      "role": "Polling query hook: getSubmitTxStatus, 1s refetch until 'executed'/'failed' (renamed from backend/useBackendSubmitSwapTxStatus)",
+      "lines": 55
+    },
+    {
+      "path": "packages/dapp-kit/src/hooks/shared/types.ts",
+      "role": "Defines ReadHookParams / ReadQueryOptions / MutationHookParams / MutationHookOptions — the canonical params shapes ALL hooks use",
+      "lines": 90
+    },
+    {
+      "path": "packages/dapp-kit/src/hooks/shared/unwrapResult.ts",
+      "role": "Result<T> -> value or throw Error; used by every hook",
+      "lines": 22
+    },
+    {
+      "path": "packages/dapp-kit/src/hooks/shared/useSafeMutation.ts",
+      "role": "useMutation wrapper adding mutateAsyncSafe (returns Result, never rejects); used by every mutation hook",
+      "lines": 70
+    },
+    {
+      "path": "packages/dapp-kit/src/hooks/shared/useSodaxContext.ts",
+      "role": "useContext(SodaxContext) accessor returning {sodax,...}; throws outside SodaxProvider",
+      "lines": 18
+    },
+    {
+      "path": "packages/dapp-kit/src/hooks/index.ts",
+      "role": "Top-level hooks barrel; diff adds `export * from './swapsApi/index.js';`",
+      "lines": 14
+    },
+    {
+      "path": "packages/dapp-kit/src/hooks/backend/index.ts",
+      "role": "Backend barrel; diff REMOVES the two submit-swap-tx exports (moved to swapsApi)",
+      "lines": 25
+    },
+    {
+      "path": "packages/dapp-kit/src/hooks/backend/useBackendSubmitSwapTx.ts",
+      "role": "OLD pre-rename version (base commit) — calls sodax.backendApi.submitSwapTx",
+      "lines": 50
+    }
+  ],
+  "key_findings": [
+    "SHARED CONVENTIONS (apply to EVERY swapsApi hook): (1) sodax instance obtained via `const { sodax } = useSodaxContext();` imported from '../shared/useSodaxContext.js'. (2) ALL hooks call methods on the `sodax.api.swaps.*` namespace (the SwapsApiService HTTP client). (3) ALL hooks unwrap the SDK Result<T> via `unwrapResult(...)` imported from '../shared/unwrapResult.js' (NOTE: the new swapsApi hooks import from shared/, NOT the local backend/unwrapResult.js the old backend hooks used). (4) Every method takes an optional trailing `apiConfig?: RequestOverrideConfig` param. (5) `retry: 3` is set on every query and every mutation.",
+    "QUERY HOOK PATTERN (used by 14 of 21 hooks): signature is `export const useSwapsApiX = ({ params, queryOptions }: UseSwapsApiXParams = {}): UseQueryResult<TData | undefined, Error> => {...}`. Params type = `ReadHookParams<TData|undefined, { <domain inputs>; apiConfig?: RequestOverrideConfig }>` (from shared/types.ts; ReadHookParams<TData, TParams> = { params?: TParams; queryOptions?: ReadQueryOptions<TData> } where ReadQueryOptions strips queryKey/queryFn/enabled). Body: destructure inputs from params, return useQuery({ queryKey:[...], queryFn: async () => { if(!required) return undefined; return unwrapResult(await sodax.api.swaps.method(args, apiConfig)); }, enabled: !!required, retry: 3, ...queryOptions }).",
+    "MUTATION HOOK PATTERN (used by 6 of 21 hooks: approve, createIntent, submitIntent, cancelIntent, createLimitOrder, submitTx): signature is `export const useSwapsApiX = ({ mutationOptions }: MutationHookParams<TData, UseSwapsApiXVars> = {}): SafeUseMutationResult<TData, Error, UseSwapsApiXVars> => {...}`. A dedicated `export type UseSwapsApiXVars = { <body/request>; apiConfig?: RequestOverrideConfig }` carries the per-call domain inputs (NOT at hook level). Body: `return useSafeMutation<TData, Error, Vars>({ mutationKey: ['swapsApi','x'], retry: 3, ...mutationOptions, mutationFn: async ({ body, apiConfig }) => unwrapResult(await sodax.api.swaps.method(body, apiConfig)) });`. mutationKey is set BEFORE spreading mutationOptions so consumers can override. useSafeMutation (shared/useSafeMutation.ts) returns UseMutationResult plus `mutateAsyncSafe(vars, opts): Promise<Result<TData>>` that never rejects.",
+    "queryKey CONVENTION: always a tuple led by the literal string 'swapsApi', then a sub-resource name, then the discriminating inputs. Examples verbatim: ['swapsApi','tokens']; ['swapsApi','tokens', chainKey]; ['swapsApi','quote', body?.tokenSrcChainKey, body?.tokenSrc, body?.tokenDstChainKey, body?.tokenDst, body?.amount, body?.srcAddress, body?.dstAddress, query?.includeTxData ?? false]; ['swapsApi','deadline', query?.offsetSeconds ?? null]; ['swapsApi','allowance', body?.srcChainKey, body?.inputToken, body?.inputAmount, body?.srcAddress]; ['swapsApi','status', intentTxHash]; ['swapsApi','intentHash', intent?.intentId?.toString()]; ['swapsApi','intentPacket', body?.chainId, body?.fillTxHash]; ['swapsApi','intentExtraData', body?.txHash ?? body?.intent?.intentId?.toString()]; ['swapsApi','filledIntent', txHash]; ['swapsApi','intent', txHash]; ['swapsApi','estimateGas', body?.chainKey, body?.tx]; ['swapsApi','partnerFee', amount]; ['swapsApi','solverFee', amount]; ['swapsApi','submitTx','status', txHash, srcChainKey]. Mutation keys: ['swapsApi','approve'], ['swapsApi','createIntent'], ['swapsApi','submitIntent'], ['swapsApi','cancelIntent'], ['swapsApi','createLimitOrder'], ['swapsApi','submitTx'].",
+    "enabled GATING CONVENTION: derived purely from presence of required inputs (queryOptions cannot override enabled — it's Omit'd in ReadQueryOptions). For string inputs: `enabled: !!txHash && txHash.length > 0`. For object/body inputs: `enabled: !!body`. Compound: useSwapsApiSubmitTxStatus uses `enabled: !!txHash && txHash.length > 0 && !!srcChainKey`; useSwapsApiIntentExtraData uses `enabled: !!body && (!!body.txHash || !!body.intent)`. The queryFn ALSO re-checks the same condition and returns undefined to narrow types (belt-and-suspenders). Hooks with no required inputs (useSwapsApiTokens, useSwapsApiDeadline) omit `enabled` entirely.",
+    "POLLING / TERMINAL-STATUS HELPER: isTerminalSwapIntentStatus.ts is a pure module: `export const isTerminalSwapIntentStatus = (status: SwapIntentStatusCodeV2 | undefined): boolean => status === 3 || status === 4;` (3=SOLVED, 4=FAILED; -1=NOT_FOUND,1=NOT_STARTED_YET,2=STARTED_NOT_FINISHED non-terminal; undefined non-terminal → keeps polling). It is deliberately kept React-free so it can be unit-tested in dapp-kit's node vitest env (importing the hook would pull in useSodaxContext). useSwapsApiStatus consumes it: `refetchInterval: query => (isTerminalSwapIntentStatus(query.state.data?.status) ? false : 1000)`. useSwapsApiSubmitTxStatus uses an INLINE string-status check instead: `refetchInterval: query => { const status = query.state.data?.data?.status; if (status === 'executed' || status === 'failed') return false; return 1000; }`. useSwapsApiIntentPacket has NO refetchInterval (the SERVER long-polls until packet arrives or body.timeout elapses).",
+    "HOOK 1 useSwapsApiTokens — QUERY. Params: none required (apiConfig? only). queryKey ['swapsApi','tokens']. Calls sodax.api.swaps.getTokens(apiConfig). Returns GetSwapTokensResponseV2. No enabled gate.",
+    "HOOK 2 useSwapsApiTokensByChain — QUERY. Params: { chainKey: string|undefined, apiConfig? }. queryKey ['swapsApi','tokens', chainKey]. Calls sodax.api.swaps.getTokensByChain(chainKey, apiConfig). Returns GetSwapTokensByChainResponseV2|undefined. enabled: !!chainKey && chainKey.length>0.",
+    "HOOK 3 useSwapsApiQuote — QUERY. Params: { body: QuoteRequestV2|undefined, query?: QuoteQueryV2, apiConfig? }. queryKey is the 10-element composite above. Calls sodax.api.swaps.getQuote(body, query, apiConfig). Returns QuoteResponseV2|undefined. enabled: !!body. (query.includeTxData=true also builds unsigned create-intent tx; then srcAddress/dstAddress required in body.)",
+    "HOOK 4 useSwapsApiDeadline — QUERY. Params: { query?: DeadlineQueryV2, apiConfig? }. queryKey ['swapsApi','deadline', query?.offsetSeconds ?? null]. Calls sodax.api.swaps.getDeadline(query, apiConfig). Returns DeadlineResponseV2. No enabled gate.",
+    "HOOK 5 useSwapsApiAllowance — QUERY. Params: { body: CreateIntentParamsV2|undefined, apiConfig? }. queryKey ['swapsApi','allowance', body?.srcChainKey, body?.inputToken, body?.inputAmount, body?.srcAddress]. Calls sodax.api.swaps.checkAllowance(body, apiConfig). Returns AllowanceCheckResponseV2|undefined ({valid}). enabled: !!body.",
+    "HOOK 6 useSwapsApiApprove — MUTATION. Vars: { body: CreateIntentParamsV2, apiConfig? }. mutationKey ['swapsApi','approve']. Calls sodax.api.swaps.approve(body, apiConfig). Returns ApproveResponseV2 ({tx}). No invalidations (does not change state).",
+    "HOOK 7 useSwapsApiCreateIntent — MUTATION. Vars: { body: CreateIntentParamsV2, apiConfig? }. mutationKey ['swapsApi','createIntent']. Calls sodax.api.swaps.createIntent(body, apiConfig). Returns CreateIntentResponseV2 ({tx, intent, relayData}).",
+    "HOOK 8 useSwapsApiSubmitIntent — MUTATION. Vars: { body: SubmitIntentRequestV2, apiConfig? }. mutationKey ['swapsApi','submitIntent']. Calls sodax.api.swaps.submitIntent(body, apiConfig). Returns SubmitIntentResponseV2 ({result}).",
+    "HOOK 9 useSwapsApiStatus — QUERY (polling). Params: { intentTxHash: string|undefined, apiConfig? }. queryKey ['swapsApi','status', intentTxHash]. Calls sodax.api.swaps.getStatus({ intentTxHash }, apiConfig). Returns StatusResponseV2|undefined ({status, fillTxHash?}). enabled: !!intentTxHash && length>0. refetchInterval uses isTerminalSwapIntentStatus → 1000 until terminal.",
+    "HOOK 10 useSwapsApiCancelIntent — MUTATION. Vars: { body: CancelIntentRequestV2, apiConfig? }. mutationKey ['swapsApi','cancelIntent']. Calls sodax.api.swaps.cancelIntent(body, apiConfig). Returns CancelIntentResponseV2 ({tx}). (body.intent carries bigint numerics.)",
+    "HOOK 11 useSwapsApiIntentHash — QUERY. Params: { intent: IntentRequestV2|undefined, apiConfig? }. queryKey ['swapsApi','intentHash', intent?.intentId?.toString()]. Calls sodax.api.swaps.getIntentHash({ intent }, apiConfig). Returns IntentHashResponseV2|undefined ({hash}). enabled: !!intent.",
+    "HOOK 12 useSwapsApiIntentPacket — QUERY (server long-poll). Params: { body: IntentPacketRequestV2|undefined, apiConfig? }. queryKey ['swapsApi','intentPacket', body?.chainId, body?.fillTxHash]. Calls sodax.api.swaps.getSolvedIntentPacket(body, apiConfig). Returns IntentPacketResponseV2|undefined. enabled: !!body. NO refetchInterval.",
+    "HOOK 13 useSwapsApiIntentExtraData — QUERY. Params: { body: IntentExtraDataRequestV2|undefined, apiConfig? }. queryKey ['swapsApi','intentExtraData', body?.txHash ?? body?.intent?.intentId?.toString()]. Calls sodax.api.swaps.getIntentSubmitTxExtraData(body, apiConfig). Returns IntentExtraDataResponseV2|undefined ({address, payload}). enabled: !!body && (!!body.txHash || !!body.intent). Provide EITHER txHash OR intent.",
+    "HOOK 14 useSwapsApiFilledIntent — QUERY. Params: { txHash: string|undefined, apiConfig? }. queryKey ['swapsApi','filledIntent', txHash]. Calls sodax.api.swaps.getFilledIntent(txHash, apiConfig). Returns IntentStateV2|undefined ({exists, remainingInput, receivedOutput, pendingPayment}). enabled: !!txHash && length>0.",
+    "HOOK 15 useSwapsApiIntent — QUERY. Params: { txHash: string|undefined, apiConfig? }. queryKey ['swapsApi','intent', txHash]. Calls sodax.api.swaps.getIntent(txHash, apiConfig). Returns GetIntentResponseV2|undefined. enabled: !!txHash && length>0.",
+    "HOOK 16 useSwapsApiCreateLimitOrder — MUTATION. Vars: { body: CreateLimitOrderParamsV2, apiConfig? }. mutationKey ['swapsApi','createLimitOrder']. Calls sodax.api.swaps.createLimitOrderIntent(body, apiConfig). Returns CreateLimitOrderResponseV2 ({tx, intent, relayData}).",
+    "HOOK 17 useSwapsApiEstimateGas — QUERY. Params: { body: GasEstimateRequestV2|undefined, apiConfig? }. queryKey ['swapsApi','estimateGas', body?.chainKey, body?.tx]. Calls sodax.api.swaps.estimateGas(body, apiConfig). Returns GasEstimateResponseV2|undefined ({gas}). enabled: !!body.",
+    "HOOK 18 useSwapsApiPartnerFee — QUERY. Params: { amount: string|undefined, apiConfig? }. queryKey ['swapsApi','partnerFee', amount]. Calls sodax.api.swaps.getPartnerFee({ amount }, apiConfig). Returns FeeResponseV2|undefined ({fee}). enabled: !!amount && length>0.",
+    "HOOK 19 useSwapsApiSolverFee — QUERY. Params: { amount: string|undefined, apiConfig? }. queryKey ['swapsApi','solverFee', amount]. Calls sodax.api.swaps.getSolverFee({ amount }, apiConfig). Returns FeeResponseV2|undefined ({fee}). enabled: !!amount && length>0.",
+    "HOOK 20 useSwapsApiSubmitTx — MUTATION (CENTRAL submit-tx-to-API mechanism). Vars: UseSwapsApiSubmitTxVars = { request: SubmitTxRequestV2, apiConfig? }. mutationKey ['swapsApi','submitTx']. retry:3. Calls `unwrapResult(await sodax.api.swaps.submitTx(request, apiConfig))`. Returns SubmitTxResponseV2. The request shape (from doc + old type): { txHash, srcChainKey, walletAddress, intent, relayData }. This is the hook the FRONTEND calls AFTER signing+broadcasting the raw tx, to hand it to the relay/solver. Exposes mutateAsync AND mutateAsyncSafe.",
+    "HOOK 21 useSwapsApiSubmitTxStatus — QUERY (polling, the submit-tx fallback/status poller). Params: { txHash: string|undefined, srcChainKey?: string, apiConfig? }. queryKey ['swapsApi','submitTx','status', txHash, srcChainKey]. Calls sodax.api.swaps.getSubmitTxStatus({ txHash, srcChainKey }, apiConfig). Returns SubmitTxStatusResponseV2|undefined. enabled requires BOTH txHash AND srcChainKey: `!!txHash && txHash.length>0 && !!srcChainKey`. refetchInterval reads query.state.data?.data?.status and stops on 'executed'/'failed', else 1000ms. NOTE the response shape is nested data.data.status (vs status hook's data.status).",
+    "RENAME R050 (backend/useBackendSubmitSwapTx.ts -> swapsApi/useSwapsApiSubmitTx.ts): The submit-tx hook + its status hook MOVED from the backend/ family to the swapsApi/ family. Concrete deltas: (a) import of unwrapResult changed from local `./unwrapResult.js` to shared `../shared/unwrapResult.js`; (b) types changed SubmitSwapTxRequest/SubmitSwapTxResponse -> SubmitTxRequestV2/SubmitTxResponseV2 (and SubmitSwapTxStatusResponse -> SubmitTxStatusResponseV2); (c) SDK call changed `sodax.backendApi.submitSwapTx(request, apiConfig)` -> `sodax.api.swaps.submitTx(request, apiConfig)` and `sodax.backendApi.getSubmitSwapTxStatus(...)` -> `sodax.api.swaps.getSubmitTxStatus(...)`; (d) mutationKey/queryKey prefix 'backend' -> 'swapsApi'; (e) the status hook gained a hard `&& !!srcChainKey` requirement in enabled (the old backend version did not require srcChainKey). backend/index.ts had its two `export { useBackendSubmitSwapTx/useBackendSubmitSwapTxStatus }` lines DELETED; the new family is wired by adding `export * from './swapsApi/index.js';` to hooks/index.ts (placed right after the backend export line).",
+    "SDK WIRING: hooks reach the HTTP client via `sodax.api.swaps` — backed by packages/sdk/src/backendApi/SwapsApiService.ts (new on branch), with types in packages/sdk/src/backendApi/swapsApiSchemas.ts. There is NO BridgeApiService / sodax.api.bridge on the branch yet (grep returned nothing) — that SDK surface must be created by the SDK-dimension work before bridgeApi hooks can call it. All response/param types (QuoteResponseV2, CreateIntentResponseV2, SubmitTxRequestV2, etc.) are imported from '@sodax/sdk'.",
+    "index.ts BARREL STYLE: the swapsApi/index.ts uses `export * from './useSwapsApiX.js';` for every hook (grouped by comment headers: Tokens / Quote·deadline / Allowance·approve·create intent / Intent lifecycle / Limit orders·gas·fees / Submit-tx state machine) and ALSO `export * from './isTerminalSwapIntentStatus.js';`. Contrast: backend/index.ts uses named `export { x } from './x.js';`. The top-of-file JSDoc explicitly distinguishes these HTTP-API hooks from the on-chain swap/ hooks."
+  ],
+  "replication_recipe": [
+    "Create directory packages/dapp-kit/src/hooks/bridgeApi/ mirroring swapsApi/ one-to-one. Add `export * from './bridgeApi/index.js';` to packages/dapp-kit/src/hooks/index.ts (place it right after the existing `export * from './bridge/index.js';` line, mirroring how swapsApi was added after backend). Keep the existing on-chain bridge/ hooks (useBridge, useBridgeAllowance, useBridgeApprove, useGetBridgeableAmount, useGetBridgeableTokens) untouched — bridgeApi/ is the NEW HTTP-API family, analogous to how swapsApi/ sits beside swap/.",
+    "Every hook MUST: import `useSodaxContext` from '../shared/useSodaxContext.js' and destructure `const { sodax } = useSodaxContext();`; import `unwrapResult` from '../shared/unwrapResult.js'; call methods on `sodax.api.bridge.*` (the new BridgeApiService namespace — coordinate with the SDK-dimension work to ensure `sodax.api.bridge` exists and exposes the needed methods); accept a trailing `apiConfig?: RequestOverrideConfig`; set `retry: 3`.",
+    "For READ hooks, copy the query template exactly: `export type UseBridgeApiXParams = ReadHookParams<TData | undefined, { <inputs>; apiConfig?: RequestOverrideConfig }>;` then `export const useBridgeApiX = ({ params, queryOptions }: UseBridgeApiXParams = {}): UseQueryResult<TData | undefined, Error> => { const { sodax } = useSodaxContext(); const <inputs> = params?.<...>; const apiConfig = params?.apiConfig; return useQuery({ queryKey: ['bridgeApi','x', ...inputs], queryFn: async () => { if (!required) return undefined; return unwrapResult(await sodax.api.bridge.method(args, apiConfig)); }, enabled: !!required && required.length > 0, retry: 3, ...queryOptions }); };`. Import ReadHookParams from '../shared/types.js'.",
+    "For MUTATION hooks, copy the mutation template exactly: define `export type UseBridgeApiXVars = { body: <ReqType>; apiConfig?: RequestOverrideConfig };` then `export const useBridgeApiX = ({ mutationOptions }: MutationHookParams<TResp, UseBridgeApiXVars> = {}): SafeUseMutationResult<TResp, Error, UseBridgeApiXVars> => { const { sodax } = useSodaxContext(); return useSafeMutation<TResp, Error, UseBridgeApiXVars>({ mutationKey: ['bridgeApi','x'], retry: 3, ...mutationOptions, mutationFn: async ({ body, apiConfig }) => unwrapResult(await sodax.api.bridge.method(body, apiConfig)) }); };`. Import MutationHookParams from '../shared/types.js' and { useSafeMutation, type SafeUseMutationResult } from '../shared/useSafeMutation.js'.",
+    "queryKey/mutationKey: lead every key with the literal 'bridgeApi' (the namespace prefix), then the sub-resource string, then discriminating inputs. Reuse swapsApi's exact key-shape decisions: status poller key ['bridgeApi','status', <hash>]; submit-tx mutation ['bridgeApi','submitTx']; submit-tx status poller ['bridgeApi','submitTx','status', txHash, srcChainKey]; tokens ['bridgeApi','tokens'] and ['bridgeApi','tokens', chainKey]; fees ['bridgeApi','partnerFee'/'solverFee', amount]. For numeric/bigint inputs in keys use `.toString()`; for nullable query params use `?? null`/`?? false`.",
+    "If Bridge has an intent/transfer status lifecycle with terminal states, create packages/dapp-kit/src/hooks/bridgeApi/isTerminalBridgeStatus.ts as a PURE React-free predicate (mirroring isTerminalSwapIntentStatus.ts) plus a co-located .test.ts in vitest node env. Wire it into the status hook's `refetchInterval: query => (isTerminalBridgeStatus(query.state.data?.status) ? false : 1000)`. If Bridge status is a string enum instead (like submitTxStatus 'executed'/'failed'), use the inline refetchInterval check instead of a predicate module.",
+    "Build the submit-tx mechanism for Bridge: create useBridgeApiSubmitTx (MUTATION over sodax.api.bridge.submitTx, Vars { request: <SubmitTxRequest>, apiConfig? }, mutationKey ['bridgeApi','submitTx'], retry 3, exposes mutateAsync + mutateAsyncSafe) and useBridgeApiSubmitTxStatus (polling QUERY over sodax.api.bridge.getSubmitTxStatus, params { txHash, srcChainKey?, apiConfig? }, queryKey ['bridgeApi','submitTx','status', txHash, srcChainKey], enabled requires BOTH txHash and srcChainKey, refetchInterval reads data?.data?.status and stops on 'executed'/'failed'). This is the frontend-signs-then-submits + poll-for-status flow; keep the nested data.data.status access shape.",
+    "Create packages/dapp-kit/src/hooks/bridgeApi/index.ts as a barrel using `export * from './useBridgeApiX.js';` for each hook plus `export * from './isTerminalBridgeStatus.js';` if added. Add a top-of-file JSDoc clarifying these are typed React Query wrappers over `sodax.api.bridge.*` (HTTP API), distinct from the on-chain bridge/ hooks. Group exports by comment headers mirroring swapsApi (Tokens / Quote / Allowance·approve·create / lifecycle: submit·status·cancel / fees / submit-tx state machine).",
+    "The concrete set of bridgeApi hooks to create = one per method the new BridgeApiService exposes. Use the swapsApi inventory as the template menu and keep only what Bridge actually has: likely useBridgeApiTokens, useBridgeApiTokensByChain (if grouped-by-chain endpoint exists), useBridgeApiQuote, useBridgeApiAllowance (query) + useBridgeApiApprove (mutation), useBridgeApiCreateIntent/createTransfer (mutation, returns {tx, intent/relayData}), useBridgeApiSubmitTx (mutation) + useBridgeApiSubmitTxStatus (poll), useBridgeApiStatus (poll), and optionally useBridgeApiIntent/useBridgeApiFilledIntent/useBridgeApiEstimateGas/useBridgeApiPartnerFee/useBridgeApiSolverFee/useBridgeApiCancelIntent if the Bridge API has those endpoints. Do NOT invent hooks for endpoints the BridgeApiService does not expose — confirm each against the SDK-dimension method list.",
+    "Do NOT add a local bridgeApi/unwrapResult.ts — the modern swapsApi family standardized on shared/unwrapResult.js and shared/useSafeMutation.js. Reuse the shared/ modules verbatim; only the backend/ family kept its legacy local unwrapResult.js."
+  ],
+  "open_questions": [
+    "There is no `sodax.api.bridge` / BridgeApiService on origin/feat/swaps-api-v2 yet (grep found none). The bridgeApi hook family is blocked on the SDK-dimension work creating that service + its V2 schema types (BridgeQuoteResponseV2, BridgeSubmitTxRequest, etc.) under packages/sdk/src/backendApi/. Hook signatures cannot be finalized until those method names/param/return types exist.",
+    "Unconfirmed whether Bridge has a numeric status-code lifecycle (like SwapIntentStatusCodeV2 3/4) needing an isTerminalBridgeStatus predicate, or only a string submit-tx status ('executed'/'failed'). Choose predicate-module vs inline refetchInterval accordingly.",
+    "Whether Bridge needs the full intent lifecycle set (cancelIntent, intentHash, intentPacket, intentExtraData, filledIntent, createLimitOrder) or a smaller surface — depends entirely on the BridgeApiService method list from the SDK dimension.",
+    "How `sodax.api.swaps` (and the future `sodax.api.bridge`) is wired onto the Sodax instance (the `api` aggregator) was not read in this dimension — confirm in the SDK/context dimension that `sodax.api.bridge` will be the accessor name the hooks should use."
+  ]
+}

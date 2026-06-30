@@ -1,0 +1,92 @@
+{
+  "dimension": "Config + Sodax entity wiring that exposes the API and the options flag (swaps-api-v2 → how to replicate for Bridge)",
+  "files_read": [
+    {
+      "path": "packages/sdk/src/shared/entities/Sodax.ts",
+      "lines": 125,
+      "role": "Sodax root entity: constructs every feature service; gained `public readonly api` (alias of backendApi), resolves `useBackendSubmitTx`, threads it + backendApi into SwapService"
+    },
+    {
+      "path": "packages/sdk/src/backendApi/BackendApiService.ts",
+      "lines": 666,
+      "role": "HTTP client for backend API; exposes `public readonly swaps: SwapsApiService`; constructor takes `ApiConfig` union and resolves base/swaps slices via resolvers; setHeaders fans out to swaps"
+    },
+    {
+      "path": "packages/sdk/src/backendApi/apiConfig.ts",
+      "lines": 87,
+      "role": "NEW file: isCustomApiConfig guard + layerConfigs + resolveBaseApiConfig/resolveSwapsApiConfig that reduce the ApiConfig union to concrete per-service configs"
+    },
+    {
+      "path": "packages/sdk/src/backendApi/index.ts",
+      "lines": 9,
+      "role": "barrel: re-exports BackendApiService, SwapsApiService, and request-config types (RequestOverrideConfig etc.)"
+    },
+    {
+      "path": "packages/types/src/common/constants.ts",
+      "lines": 45,
+      "role": "Defines BaseApiConfig/SwapsApiConfig/CustomApiConfig/ApiConfig union + DEFAULT_BACKEND_API_* constants + `apiConfig` default object"
+    },
+    {
+      "path": "packages/types/src/sodax-config/sodax-config.ts",
+      "lines": 110,
+      "role": "Defines SodaxOptionalConfig (gained `swapsOptions?`), SwapsClientOptions, SodaxOptions, SodaxConfig, SodaxDefaultConfig (`api: ApiConfig`), BridgeOptions/BridgeConfig, sodaxConfig default object"
+    },
+    {
+      "path": "packages/sdk/src/swap/SwapService.ts",
+      "lines": 169,
+      "role": "Feature service; constructor gained `backendApi` + `useBackendSubmitTx`; swap() branches on the flag to submitTx() (calls this.backendApi.swaps.submitTx/getSubmitTxStatus) with fallbackSwapSteps()"
+    },
+    {
+      "path": "packages/sdk/src/shared/config/ConfigService.ts",
+      "lines": 0,
+      "role": "Receives merged SodaxConfig (whose .api is the ApiConfig union); initialize() dynamic fetch is DISABLED/commented in this branch (now a no-op); api/userConfig fields commented out"
+    },
+    {
+      "path": "packages/sdk/src/shared/guards.ts",
+      "lines": 0,
+      "role": "REMOVED the v1 isSubmitSwapTxResponse / isSubmitSwapTxStatusResponse guards (validation moved to valibot schemas); no new guards added in this dimension"
+    },
+    {
+      "path": "packages/sdk/src/bridge/BridgeService.ts",
+      "lines": 90,
+      "role": "Current Bridge feature service (working tree). BridgeServiceConstructorParams = { hubProvider, config, spoke } — no backendApi/useBackendSubmitTx yet; this is what Bridge replication must extend"
+    },
+    {
+      "path": "packages/types/src/backend/backendApiV2.ts",
+      "lines": 0,
+      "role": "V2 backend request/response DTOs for swaps; unsigned `tx` typed as RawTxReturnType (was unknown)"
+    }
+  ],
+  "key_findings": [
+    "Sodax.ts — the `api` alias: a new field `public readonly api: BackendApiService; // syntactic sugar for backend API service` was added next to `backendApi`. In the constructor, immediately after `this.backendApi = new BackendApiService(this.instanceConfig.api, logger);` it does `this.api = this.backendApi;`. So `sodax.api` IS the same BackendApiService instance — `sodax.api.swaps` resolves to `BackendApiService.swaps` (a SwapsApiService). There is NO separate api object; it is a pure alias.",
+    "BackendApiService exposes sub-services: `export class BackendApiService implements IConfigApiV1 { public readonly swaps: SwapsApiService; private readonly config: BaseApiConfig; private readonly headers: Record<string,string>; private readonly logger: SodaxLogger; }`. Constructor signature: `constructor(config: ApiConfig, logger: SodaxLogger = consoleLogger)`. Body: `this.config = resolveBaseApiConfig(config); this.headers = { ...this.config.headers }; this.logger = logger; this.swaps = new SwapsApiService(resolveSwapsApiConfig(config), this.logger);`. setHeaders fans out: `setHeaders(headers){ Object.entries(headers).forEach(([k,v]) => { this.headers[k]=v; }); this.swaps.setHeaders(headers); }`.",
+    "SwapsApiService signature: `export class SwapsApiService implements ResultifiedSwapsApiV2 { private readonly config: SwapsApiConfig; private readonly headers; private readonly logger; constructor(config: SwapsApiConfig, logger: SodaxLogger = consoleLogger) }`. It owns the submit-tx pair: `public async submitTx(body: SubmitTxRequestV2, config?): Promise<Result<SubmitTxResponseV2>>` and `public async getSubmitTxStatus(...)`, plus getQuote/createIntent/submitIntent/getStatus/approve/checkAllowance/etc. and its own `setHeaders`.",
+    "ApiConfig is now a UNION (packages/types/src/common/constants.ts). The old flat `ApiConfig` was renamed to `BaseApiConfig = { baseURL: HttpUrl; timeout: number; headers: Record<string,string> }`. New: `SwapsApiConfig = BaseApiConfig` (alias); `CustomApiConfig = { baseApiConfig: BaseApiConfig; swapsApiConfig?: SwapsApiConfig } | { baseApiConfig?: BaseApiConfig; swapsApiConfig: SwapsApiConfig }` (at least one slice required, so it stays disjoint from BaseApiConfig and is discriminable by the presence of a slice key); `ApiConfig = BaseApiConfig | CustomApiConfig`.",
+    "Defaults / hosts (constants.ts): `DEFAULT_BACKEND_API_ENDPOINT = 'https://api.sodax.com/v1/be'`, `DEFAULT_BACKEND_API_TIMEOUT = 30000`, `DEFAULT_BACKEND_API_HEADERS = { 'Content-Type': 'application/json', Accept: 'application/json' }`. The default config object: `export const apiConfig = { baseURL: DEFAULT_BACKEND_API_ENDPOINT, timeout: DEFAULT_BACKEND_API_TIMEOUT, headers: DEFAULT_BACKEND_API_HEADERS } satisfies ApiConfig;`. NOTE: there are NO per-env (mainnet/testnet/staging) hosts — a single default endpoint is used; the swaps API is reached as `/swaps/*` sub-paths under the same base URL unless a CustomApiConfig.swapsApiConfig overrides it.",
+    "apiConfig.ts resolvers (NEW, 87 lines): `export function isCustomApiConfig(config: ApiConfig): config is CustomApiConfig { return 'baseApiConfig' in config || 'swapsApiConfig' in config; }`. Internal `layerConfigs(...slices: Array<Partial<BaseApiConfig>|undefined>): BaseApiConfig` reduces left→right over the defaults: baseURL/timeout take last-defined (`slice.x ?? acc.x`), headers merge `{ ...acc.headers, ...slice.headers }`, seeded with the DEFAULT_BACKEND_API_* values. `resolveBaseApiConfig(config)`: custom → `layerConfigs(config.baseApiConfig)`, flat → `layerConfigs(config)`. `resolveSwapsApiConfig(config)`: custom → `layerConfigs(config.baseApiConfig, config.swapsApiConfig)` (swaps layered OVER base so swaps inherits base auth/tracing headers + baseURL/timeout it doesn't override), flat → `layerConfigs(config)` (shared with base).",
+    "SwapsClientOptions / swapsOptions (sodax-config.ts): NEW type `export type SwapsClientOptions = { useBackendSubmitTx?: boolean };` documented as a client-side runtime toggle resolved once at construction, NOT part of the backend-fetched config. `SodaxOptionalConfig` gained `swapsOptions?: SwapsClientOptions;` with the comment 'distinct key so it never collides with the data `swaps` slot'. CRITICAL: `swaps?: SwapsOptions` already exists as a DATA-config slot (feeds SodaxDefaultConfig.swaps), which is exactly why a SEPARATE `swapsOptions` key was introduced for the client toggle.",
+    "useBackendSubmitTx defaulting + threading (Sodax.ts constructor): resolved up front alongside logger/analytics/fee — `const useBackendSubmitTx = options?.swapsOptions?.useBackendSubmitTx ?? false;` (comment: like logger, a client-side runtime toggle read off SodaxOptions, never merged into SodaxConfig/instanceConfig). Then SwapService is built with the two extra params: `this.swaps = new SwapService({ config: this.config, hubProvider: this.hubProvider, spoke: this.spoke, backendApi: this.backendApi, useBackendSubmitTx });`.",
+    "SwapService.ts threading: `SwapServiceConstructorParams` gained `backendApi: BackendApiService;` and `useBackendSubmitTx?: boolean; // Opt-in backend submit-tx 2-step flow (from SodaxOptions.swapsOptions.useBackendSubmitTx). Default off.`. Class gained `readonly backendApi: BackendApiService; readonly useBackendSubmitTx: boolean;`. Constructor destructures them and sets `this.backendApi = backendApi; this.useBackendSubmitTx = useBackendSubmitTx ?? false;` (defaulted AGAIN here for direct-construction safety). swap() body: `if (this.useBackendSubmitTx) { const submitted = await this.submitTx(_params, created, deadline); if (submitted.ok) return submitted; this.config.logger.warn('[swap] backend submit-tx did not complete; falling back to the client-side relay', { error: submitted.error }); } return this.fallbackSwapSteps(_params, created, deadline);`. submitTx() calls `this.backendApi.swaps.submitTx({...})` then polls `this.backendApi.swaps.getSubmitTxStatus({ txHash: spokeTxHash, srcChainKey })`. A single `deadline = Date.now() + (_params.timeout ?? DEFAULT_RELAY_TX_TIMEOUT)` is shared by the backend poll and the fallback so total wall-clock never exceeds one timeout.",
+    "ConfigService.ts — the framing 'ConfigService gained a nested API config block' is slightly off for THIS branch: ConfigService did NOT gain the nested API block. The ApiConfig union lives in types/constants.ts and is resolved in BackendApiService; ConfigService merely holds the merged `SodaxConfig` whose `.api` is the union. In this branch ConfigService.initialize() was DELIBERATELY DISABLED: the dynamic `this.api.getAllConfig()` + re-layer is commented out (TODO config-v2), the private `api`/`userConfig` fields are commented out (constructor still accepts `{ api, config, userConfig, logger, analytics, fee }` but ignores api/userConfig), and initialize() is now a no-op returning `{ ok: true, value: undefined }` without flipping `initialized`.",
+    "guards.ts (this dimension): NO new guards added. The two v1 backend response guards `isSubmitSwapTxResponse` and `isSubmitSwapTxStatusResponse` were REMOVED, along with their `SubmitSwapTxResponse`/`SubmitSwapTxStatusResponse` type imports. Runtime validation of submit-tx responses now lives in valibot schemas (swapsApiSchemas.ts / backendApiSchemas.ts) rather than hand-written guards. The discrimination of the ApiConfig union is done by `isCustomApiConfig` in apiConfig.ts, not in shared/guards.ts.",
+    "Test pattern — mergeSodaxConfig.test.ts: a new describe 'mergeSodaxConfig — api ApiConfig union resolves correctly per service' uses resolveBaseApiConfig/resolveSwapsApiConfig as the ORACLE (mirrors how PartnerFee tests use calculateFeeAmount) to prove which values actually reach each service after a deep-merge. Because `api` is now a union, the older 'non-union fields still deep-merge' test had to cast: `(base.api as { baseURL: string }).baseURL`, `(merged.api as { timeout: number }).timeout`. Imports added from @sodax/types: DEFAULT_BACKEND_API_ENDPOINT, DEFAULT_BACKEND_API_HEADERS, DEFAULT_BACKEND_API_TIMEOUT, DeepPartial; and from ../../backendApi/apiConfig.js: resolveBaseApiConfig, resolveSwapsApiConfig.",
+    "Test pattern — Sodax.initialize.test.ts: rewritten to assert the current NO-OP contract. Single test: `const sodax = new Sodax({ fee: USER_FEE }); const getAllConfig = vi.spyOn(sodax.backendApi, 'getAllConfig'); const result = await sodax.initialize(); expect(result.ok).toBe(true); expect(sodax.config.fee).toEqual(USER_FEE); expect(sodax.config.isInitialized()).toBe(false); expect(getAllConfig).not.toHaveBeenCalled();`. The original dynamic-config regression suite is preserved as a COMMENTED block (biome noSkippedTests forbids .skip).",
+    "Current Bridge baseline (working tree BridgeService.ts): `export type BridgeServiceConstructorParams = { hubProvider: HubProvider; config: ConfigService; spoke: SpokeService; };` — NO backendApi, NO useBackendSubmitTx. Sodax constructs it as `this.bridge = new BridgeService({ hubProvider: this.hubProvider, config: this.config, spoke: this.spoke });`. `sodax.bridge` is the orchestration BridgeService; there is currently NO `sodax.api.bridge` (BackendApiService has only `swaps`). BridgeOptions already exists as a DATA slot: `export type BridgeOptions = { partnerFee?: PartnerFee };` and `bridge?: BridgeOptions` is in SodaxOptionalConfig — so a NEW separate client key (bridgeOptions) is required, exactly as swapsOptions was added separately from the swaps data slot."
+  ],
+  "open_questions": [
+    "Does the backend expose a real /bridge/* submit-tx endpoint set (BridgeApiService analog of SwapsApiService) yet? sodax.api.bridge can only be wired once a BridgeApiService HTTP client + its V2 DTOs/schemas exist. The Swaps API dimension added SwapsApiService + swapsApiSchemas + backendApiV2 DTOs; Bridge needs the equivalent.",
+    "Should the swaps endpoints stay sub-paths under the shared base URL for bridge too (flat BaseApiConfig), or does CustomApiConfig need a third `bridgeApiConfig` slice? Adding bridge as a third independent endpoint would require extending CustomApiConfig to `{ baseApiConfig?, swapsApiConfig?, bridgeApiConfig? }` and adding a resolveBridgeApiConfig resolver — a types-package change beyond the swaps pattern.",
+    "Naming: `sodax.bridge` (orchestration BridgeService) already exists. Exposing `sodax.api.bridge` (HTTP client BridgeApiService) is unambiguous, but reusing local variable name `useBackendSubmitTx` in the Sodax constructor would collide with the swaps one — Bridge replication must use a distinct local (e.g. `bridgeUseBackendSubmitTx`).",
+    "ConfigService.initialize() is currently a no-op (config-v2 disabled). Any Bridge plan that assumed dynamic config fetch must account for this temporary disable; the constructor-merged instanceConfig is what services actually see today."
+  ],
+  "replication_recipe": [
+    "types/common/constants.ts: if bridge needs an independent endpoint, extend the union — add `export type BridgeApiConfig = BaseApiConfig;` and widen `CustomApiConfig` to allow a `bridgeApiConfig?` slice (and require at least one slice). If bridge endpoints are just `/bridge/*` sub-paths under the shared base (simplest, mirrors how flat config shares base+swaps), no constants change is needed and bridge reuses resolveBaseApiConfig's base URL.",
+    "packages/sdk/src/backendApi/apiConfig.ts: add `export function resolveBridgeApiConfig(config: ApiConfig): BridgeApiConfig` mirroring resolveSwapsApiConfig — `isCustomApiConfig(config) ? layerConfigs(config.baseApiConfig, config.bridgeApiConfig) : layerConfigs(config)` so bridge inherits base auth/tracing headers + base URL/timeout it doesn't override.",
+    "Create packages/sdk/src/backendApi/BridgeApiService.ts mirroring SwapsApiService: `export class BridgeApiService { private readonly config: BridgeApiConfig; private readonly headers; private readonly logger; constructor(config: BridgeApiConfig, logger: SodaxLogger = consoleLogger) }` with `submitTx(body): Promise<Result<SubmitBridgeTxResponseV2>>` and `getSubmitTxStatus(...)` plus its own `setHeaders`. Add matching V2 DTOs (backendApiV2.ts) and valibot schemas (new bridgeApiSchemas.ts) — do NOT re-add hand-written guards in shared/guards.ts. Export it from packages/sdk/src/backendApi/index.ts.",
+    "BackendApiService.ts: add `public readonly bridge: BridgeApiService;`, in the constructor `this.bridge = new BridgeApiService(resolveBridgeApiConfig(config), this.logger);` (import resolveBridgeApiConfig), and in setHeaders add `this.bridge.setHeaders(headers);` to the fan-out. This makes `sodax.api.bridge` resolve (since `sodax.api === sodax.backendApi`). No Sodax.ts change is needed just to expose `sodax.api.bridge`.",
+    "types/sodax-config/sodax-config.ts: add `export type BridgeClientOptions = { /** Opt-in backend submit-tx 2-step flow with client-side fallback. Default false. */ useBackendSubmitTx?: boolean };` and add `bridgeOptions?: BridgeClientOptions;` to SodaxOptionalConfig (NEW key, separate from the existing `bridge?: BridgeOptions` DATA slot, exactly as swapsOptions is separate from swaps). Add the comment that it is a client-side runtime toggle never merged into the backend config.",
+    "Sodax.ts constructor: resolve `const bridgeUseBackendSubmitTx = options?.bridgeOptions?.useBackendSubmitTx ?? false;` next to the swaps one, then pass into BridgeService: `this.bridge = new BridgeService({ hubProvider: this.hubProvider, config: this.config, spoke: this.spoke, backendApi: this.backendApi, useBackendSubmitTx: bridgeUseBackendSubmitTx });`. (Use a distinct local name to avoid colliding with the swaps useBackendSubmitTx.)",
+    "BridgeService.ts: extend `BridgeServiceConstructorParams` with `backendApi: BackendApiService;` and `useBackendSubmitTx?: boolean;`; add `readonly backendApi: BackendApiService; readonly useBackendSubmitTx: boolean;`; destructure + set `this.backendApi = backendApi; this.useBackendSubmitTx = useBackendSubmitTx ?? false;`. In the orchestration `bridge()` method, branch: `if (this.useBackendSubmitTx) { const submitted = await this.submitTx(...); if (submitted.ok) return submitted; this.config.logger.warn('[bridge] backend submit-tx did not complete; falling back to the client-side relay', { error: submitted.error }); } return this.fallbackBridgeSteps(...)` with a single shared `deadline = Date.now() + (timeout ?? DEFAULT_RELAY_TX_TIMEOUT)`, calling `this.backendApi.bridge.submitTx(...)` / `this.backendApi.bridge.getSubmitTxStatus(...)`.",
+    "Tests to mirror: (a) a BridgeApiService.test.ts like SwapsApiService.test.ts; (b) extend mergeSodaxConfig.test.ts using resolveBridgeApiConfig as oracle if a bridgeApiConfig slice is added; (c) a Sodax wiring test asserting `sodax.api.bridge` is defined and that `bridgeOptions.useBackendSubmitTx` reaches BridgeService (e.g. construct `new Sodax({ bridgeOptions: { useBackendSubmitTx: true } })` and assert `sodax.bridge.useBackendSubmitTx === true`)."
+  ]
+}

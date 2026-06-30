@@ -1,0 +1,122 @@
+{
+  "dimension": "CURRENT demo bridge UI (apps/demo) + contrast recipe for a new bridge-api demo page mirroring the swaps-api-v2 pattern",
+  "files_read": [
+    {
+      "path": "/Users/sangnguyen/Documents/GitHub/sodax/sodax-sdks/apps/demo/src/components/bridge/BridgeManager.tsx",
+      "lines": 291,
+      "role": "CURRENT bridge demo root component: chain+token selectors, account connect, builds CreateBridgeIntentParams, opens BridgeDialog"
+    },
+    {
+      "path": "/Users/sangnguyen/Documents/GitHub/sodax/sodax-sdks/apps/demo/src/components/bridge/BridgeDialog.tsx",
+      "lines": 276,
+      "role": "CURRENT bridge confirm dialog: approve+bridge mutations, Stellar trustline, NEAR storage, Bitcoin setup, EVM chain switch gating"
+    },
+    {
+      "path": "/Users/sangnguyen/Documents/GitHub/sodax/sodax-sdks/apps/demo/src/pages/bridge/page.tsx",
+      "lines": 11,
+      "role": "CURRENT /bridge route page: renders <BridgeManager/> centered"
+    },
+    {
+      "path": "/Users/sangnguyen/Documents/GitHub/sodax/sodax-sdks/apps/demo/src/components/bridge/index.ts",
+      "lines": 1,
+      "role": "barrel: re-exports BridgeManager"
+    },
+    {
+      "path": "/Users/sangnguyen/Documents/GitHub/sodax/sodax-sdks/apps/demo/src/App.tsx",
+      "lines": 74,
+      "role": "react-router routes: /bridge -> BridgePage; swaps-api-v2 added /swaps-api -> SwapsApiPage"
+    },
+    {
+      "path": "/Users/sangnguyen/Documents/GitHub/sodax/sodax-sdks/apps/demo/src/components/shared/header.tsx",
+      "lines": 120,
+      "role": "nav: navLinks array contains {to:'/bridge',label:'Bridge'}; swaps-api added a Swaps API link"
+    },
+    {
+      "path": "/Users/sangnguyen/Documents/GitHub/sodax/sodax-sdks/apps/demo/src/components/shared/ChainSelector.tsx",
+      "lines": 30,
+      "role": "shared chain dropdown built from baseChainInfo, filtered by allowedChains - used by current bridge UI"
+    },
+    {
+      "path": "origin/feat/swaps-api-v2:apps/demo/src/pages/swaps-api/page.tsx",
+      "lines": 17,
+      "role": "REFERENCE new API page: owns orders[] state, maps OrderStatus pollers, renders SwapCard"
+    },
+    {
+      "path": "origin/feat/swaps-api-v2:apps/demo/src/components/swaps-api/SwapCard.tsx",
+      "lines": 762,
+      "role": "REFERENCE API-only card: API quote/tokens/allowance/createIntent/submitTx hooks + manual sign+broadcast flow"
+    },
+    {
+      "path": "origin/feat/swaps-api-v2:apps/demo/src/components/swaps-api/lib/signAndBroadcast.ts",
+      "lines": 186,
+      "role": "REFERENCE per-chain sign+broadcast dispatcher for raw txs returned by API; waitForTxFinality; isSignable check"
+    },
+    {
+      "path": "origin/feat/swaps-api-v2:apps/demo/src/components/swaps-api/lib/config.ts",
+      "lines": 9,
+      "role": "REFERENCE SWAPS_API_CONFIG (RequestOverrideConfig baseURL) passed per-call via apiConfig"
+    },
+    {
+      "path": "origin/feat/swaps-api-v2:apps/demo/src/components/swaps-api/lib/mappers.ts",
+      "lines": 31,
+      "role": "REFERENCE toIntentRequest (response->request bigint) + toXToken (SwapTokenV2->XToken cast)"
+    },
+    {
+      "path": "origin/feat/swaps-api-v2:apps/demo/src/components/swaps-api/SelectChain.tsx",
+      "lines": 51,
+      "role": "REFERENCE chain dropdown driven by API token-map keys (plain strings), not baseChainInfo"
+    },
+    {
+      "path": "origin/feat/swaps-api-v2:apps/demo/src/components/swaps-api/OrderStatus.tsx",
+      "lines": 40,
+      "role": "REFERENCE status poller via useSwapsApiSubmitTxStatus; renders status/result/failure"
+    },
+    {
+      "path": "origin/feat/swaps-api-v2:apps/demo/src/components/swaps-api/lib/useDebouncedValue.ts",
+      "lines": 13,
+      "role": "REFERENCE debounce hook for amount input feeding quote"
+    }
+  ],
+  "key_findings": [
+    "CURRENT bridge demo file set is tiny: apps/demo/src/components/bridge/{BridgeManager.tsx, BridgeDialog.tsx, index.ts} + apps/demo/src/pages/bridge/page.tsx. No lib/ subfolder, no OrderStatus, no signAndBroadcast, no mappers, no config override - the SDK/dapp-kit hooks do all the signing/broadcast/relay internally.",
+    "Route + nav registration: App.tsx imports `BridgePage from './pages/bridge/page'` and registers `{ path: '/bridge', element: <BridgePage /> }`. header.tsx navLinks array has `{ to: '/bridge', label: 'Bridge' }`. page.tsx renders `<BridgeManager/>` inside `<div className='flex flex-col items-center justify-center min-h-screen p-4'>`.",
+    "CURRENT BridgeManager UX (Card titled 'Cross-Chain Transfer'): (1) From-chain selected via shared <ChainSelector selectedChainId selectChainId allowedChains={supportedSpokeChains}/>; (2) amount <Input type=number>; (3) from-token via shadcn <Select> over fromTokens; (4) source-address Input(disabled) + Connect/Disconnect button; (5) ArrowDownUp switch button calling handleSwitch (swaps chains+tokens, clears amount); (6) To-chain <ChainSelector>; (7) read-only output amount Input mirroring fromAmount; (8) to-token <Select> over bridgeableTokens (Skeleton while loading); (9) dest-address Input(disabled)+Connect/Disconnect. Footer shows 'Maximum bridgeable: <amount> <symbol> (deposit|withdraw limit)' from useGetBridgeableAmount, or 'Route not available', plus full-width 'Bridge' button (disabled until fromToken,toToken,both addresses,fromAmount).",
+    "CURRENT chain source-of-truth: `sodax.config.getSupportedSpokeChains()` -> allowedChains; `sodax.config.getSupportedTokensPerChain()` -> Map<SpokeChainKey, XToken[]> for the from-token list. Default fromChainKey=ChainKeys.BASE_MAINNET, toChainKey=ChainKeys.POLYGON_MAINNET. fromToken seeded to fromTokens[0]; a useEffect resets fromToken when fromChainKey changes.",
+    "CURRENT destination-token list comes from `useGetBridgeableTokens({ params: { from: fromToken?.chainKey, to: toChainKey, token: fromToken?.address } })` returning XToken[]; a useEffect keeps current toToken if still present else picks bridgeableTokens[0]. `sodax.bridge.isBridgeable({ from, to })` (sync) gates the footer copy.",
+    "CURRENT hooks used by BridgeManager: useSodaxContext, useGetBridgeableTokens, useGetBridgeableAmount({params:{from:fromToken,to:toToken}}), plus wallet-sdk-react: useWalletProvider, useXAccount({xChainId}), useXDisconnect, getXChainType, useXConnection, useXService. Bitcoin connector name/icon resolved via useXConnection+useXService.getXConnectorById when chainType==='BITCOIN'.",
+    "CURRENT order object is built in handleOpenDialog as `CreateBridgeIntentParams`: { srcChainKey, srcToken: fromToken.address, srcAddress: fromAccount.address, amount: parseUnits(fromAmount,fromToken.decimals) (a bigint), dstChainKey, dstToken: toToken.address, recipient }. Recipient special-cases Bitcoin dest: `loadRadfiSession(toAccount.address)?.tradingAddress ?? toAccount.address`. BridgeDialog only mounted when `order && walletProvider`.",
+    "CURRENT BridgeDialog hooks: useBridgeAllowance({params:{payload:order, walletProvider}}), useBridgeApprove() and useBridge() (both return { mutateAsyncSafe, isPending }), useEvmSwitchChain({xChainId:order.srcChainKey}) -> {isWrongChain,handleSwitchChain}, useStellarTrustlineCheck, useRequestTrustline(order.dstToken), useNearStorageGate({dstChainKey,token,accountId,walletProvider}), useBitcoinBalance, plus useWalletProvider/useXAccount. Uses BitcoinSetupPanel from components/bitcoin.",
+    "CURRENT submit flow is fully SDK-internal (NOT API-only): handleApprove calls `await approve({ params: order, walletProvider })` then checks `result.ok` (Result type). handleBridge calls `await bridge({ params: order, walletProvider })`, on `result.ok` calls onClose(). The dapp-kit useBridge hook internally signs+broadcasts+relays - the demo never sees a raw/unsigned tx, never calls a submit-tx-to-API step, and has NO status polling after success (dialog just closes). Errors surfaced via formatMutationFailureMessage(result.error,'...') into local approveError/bridgeError state.",
+    "CURRENT gating in BridgeDialog: isBridgeDisabled = isBridging || (fromChainType==='EVM' && !hasAllowance) || (srcChainKey===BITCOIN && !isFromBtcReady) || (toChainKey===BITCOIN && !isToBtcReady) || needsTrustline || nearStorage.blocksAction. EVM Approve button shown only when fromChainType==='EVM'; Switch Chain button when isWrongChain && EVM; Request Trustline when destination Stellar lacks trustline; Register Storage when NEAR needs it.",
+    "REFERENCE swaps-api-v2 demo (the API-only pattern to mirror) added a NEW parallel folder components/swaps-api/ (NOT modifying components/swaps/) + pages/swaps-api/page.tsx + nav link + route, exactly mirroring how a Bridge-API demo should live beside the existing components/bridge/.",
+    "REFERENCE swaps-api page owns orders state: `const [orders,setOrders]=useState<SwapsApiOrder[]>([])`; renders one <OrderStatus> per order ABOVE the <SwapCard setOrders={setOrders}/>. This is the contrast: API demos add a persistent order-status panel because settlement is async and tracked by polling the API.",
+    "REFERENCE SwapCard API-only hooks (all take `apiConfig: SWAPS_API_CONFIG` per-call): useSwapsApiTokens (chain->token map), useSwapsApiQuote({body:QuoteRequestV2}), useSwapsApiDeadline({query:{offsetSeconds}}), useSwapsApiAllowance({body:intentParams}) -> {valid}, useSwapsApiApprove(), useSwapsApiCreateIntent(), useSwapsApiSubmitTx(), and useSwapsApiSubmitTxStatus (in OrderStatus). All mutations expose mutateAsyncSafe returning a Result {ok,value|error}.",
+    "REFERENCE SwapCard 3-step API submit flow (THE central API-only + sign/broadcast mechanism): handleApprove: `const result = await approve({body:intentParams,apiConfig})` -> if ok, `txHash = await signAndBroadcastSwapsApiTx({chainKey:srcChainKey, tx:result.value.tx, walletProvider:sourceWalletProvider})` -> `await waitForTxFinality(...)` -> `await refetchAllowance()` (manual, the hook can't auto-invalidate). handleSwap: 1) `created = await createIntent({body:intentParams,apiConfig})` returns `{tx,intent,relayData}`; 2) sign+broadcast on source chain (Bitcoin special-cased via `sodax.spoke.getSpokeService(BITCOIN).signAndSubmitRawTransaction({rawTx,walletProvider,relayData,accessToken})`, else signAndBroadcastSwapsApiTx); 3) submit txHash back to API: `const request:SubmitTxRequestV2 = { txHash:spokeTxHash, srcChainKey, walletAddress, intent:toIntentRequest(intent), relayData:relayData.payload }; await submitTx({request,apiConfig})`; on ok pushes `{txHash,srcChainKey,apiBaseURL}` into orders and closes the dialog.",
+    "REFERENCE signAndBroadcast.ts is the load-bearing client-side helper that has NO SDK/dapp-kit equivalent: `signAndBroadcastSwapsApiTx({chainKey, tx:RawTxReturnType, walletProvider:IWalletProvider}):Promise<string>` switch on getXChainType -> EVM sendTransaction, SUI signAndExecuteTxn (rebuilds via {toJSON}), ICON sendTransaction, NEAR signAndSubmitTxn, SOLANA/STELLAR/STACKS/INJECTIVE signAndSendTransaction (throw SwapsApiSignError if provider lacks the method), BITCOIN throws (must use BitcoinSpokeService). Plus `isSignableSwapsApiChain(chainKey)` and `waitForTxFinality(chainKey,walletProvider,txHash)` (EVM/ICON waitForTransactionReceipt, SOLANA waitForConfirmation, STELLAR waitForTransactionReceipt).",
+    "REFERENCE config.ts: `export const SWAPS_API_CONFIG = { baseURL:'https://canary-api.sodax.com/v1' } as const satisfies RequestOverrideConfig;` - the API demo targets a specific (canary) backend per-call via each hook's apiConfig param WITHOUT touching app-wide SodaxProvider config.",
+    "REFERENCE mappers.ts bridges type gaps the SDK exports but doesn't convert: `toIntentRequest(IntentResponseV2):IntentRequestV2` (BigInt() on intentId,inputAmount,minOutputAmount,deadline,srcChain,dstChain - decimal-string -> bigint) and `toXToken(SwapTokenV2):XToken` (cast chainKey/hubAsset/vault branded fields so wallet-layer hooks like useXBalances accept API tokens).",
+    "REFERENCE SelectChain.tsx differs from the current bridge ChainSelector: it takes `chainList: string[]` derived from `Object.keys(tokensByChain ?? {})` (API token-map keys, plain strings) and resolves a display name via `chainIdToChainName(chain) ?? chain` (try/catch fallback to raw key) - vs the current bridge UI's ChainSelector which iterates baseChainInfo and filters by sodax.config.getSupportedSpokeChains().",
+    "REFERENCE balances in the API demo are still wallet-layer (API doesn't cover balances): useXBalances({params:{xService:useXService({xChainType:getXChainType(chainKey)}), xChainId, xTokens:[toXToken(token)], address}}). Quote input is debounced via useDebouncedValue(sourceAmount,400ms) before building QuoteRequestV2.",
+    "Shared client-side prerequisite hooks are IDENTICAL across both bridge demo and swaps-api demo and must be reused for bridge-api: useStellarTrustlineCheck + useRequestTrustline (Stellar dest), useNearStorageGate (NEAR dest), BitcoinSetupPanel + loadRadfiSession + useTradingWalletBalance (Bitcoin trading wallet), useEvmSwitchChain (EVM wrong-chain)."
+  ],
+  "open_questions": [
+    "Does a Bridge API v2 (parallel to Swaps API v2) backend endpoint set + dapp-kit hooks (e.g. useBridgeApiQuote / useBridgeApiCreateIntent / useBridgeApiSubmitTx / useBridgeApiSubmitTxStatus / useBridgeApiTokens / useBridgeApiAllowance / useBridgeApiApprove) actually exist yet, or must they be created first? The current dapp-kit only ships SDK-internal bridge hooks (useBridge/useBridgeApprove/useBridgeAllowance/useGetBridgeableTokens/useGetBridgeableAmount) - no API-only variants. This digest only covers the demo layer; confirm hook availability with the dapp-kit/SDK digests.",
+    "Is bridge a distinct API surface from swaps, or does the backend treat a bridge as a same-token swap (so the Swaps API v2 already covers it)? If the latter, a 'bridge-api' demo page may just be a constrained SwapCard (same input/output token, cross-chain) rather than a wholly new hook set.",
+    "The current bridge demo has NO post-submit status tracking (dialog just closes on success). A bridge-api demo would need an OrderStatus equivalent + a submit-tx-status polling hook on the backend - confirm that endpoint exists for bridge.",
+    "signAndBroadcast.ts can be reused verbatim for bridge IF the Bridge API returns the same RawTxReturnType union; confirm the bridge create-intent response shape matches (tx + intent + relayData) so toIntentRequest/SubmitTxRequestV2 analogs apply.",
+    "Whether the new bridge-api page reuses the existing components/bridge/ ChainSelector + Select widgets or the swaps-api SelectChain (API-token-map driven) - depends on whether bridgeable chains/tokens come from an API token map or from sodax.config."
+  ],
+  "replication_recipe": [
+    "Create a NEW parallel folder apps/demo/src/components/bridge-api/ (do NOT modify the existing components/bridge/ which stays as the SDK-internal demo), mirroring components/swaps-api/ structure: BridgeCard.tsx (port of BridgeManager+BridgeDialog merged like SwapCard), OrderStatus.tsx, SelectChain.tsx (or reuse swaps-api's), and lib/{config.ts, mappers.ts, signAndBroadcast.ts, useDebouncedValue.ts}.",
+    "Add the page apps/demo/src/pages/bridge-api/page.tsx mirroring pages/swaps-api/page.tsx: `const [orders,setOrders]=useState<BridgeApiOrder[]>([])`, render <OrderStatus> per order, then <BridgeCard setOrders={setOrders}/>.",
+    "Register the route in apps/demo/src/App.tsx: import `BridgeApiPage from './pages/bridge-api/page'` and add `{ path: '/bridge-api', element: <BridgeApiPage /> }` in the children array (next to the existing /bridge and /swaps-api routes).",
+    "Add a nav link in apps/demo/src/components/shared/header.tsx: push `{ to: '/bridge-api', label: 'Bridge API' }` into the navLinks array.",
+    "Create lib/config.ts exporting `BRIDGE_API_CONFIG = { baseURL: '<bridge api base url>' } as const satisfies RequestOverrideConfig`, passed per-call as `apiConfig` to every bridge-api hook (mirrors SWAPS_API_CONFIG).",
+    "Reuse/port lib/signAndBroadcast.ts verbatim (signAndBroadcastSwapsApiTx -> signAndBroadcastBridgeApiTx, isSignable*, waitForTxFinality) - it is feature-agnostic (operates on RawTxReturnType + IWalletProvider) and is the central client-side sign+broadcast mechanism the API demo needs; keep the Bitcoin branch that routes through sodax.spoke.getSpokeService(BITCOIN).signAndSubmitRawTransaction.",
+    "Create lib/mappers.ts with the response->request bigint converter (analogous to toIntentRequest) and toXToken cast, if the Bridge API returns decimal-string numerics + SwapTokenV2-shaped tokens.",
+    "In BridgeCard, replace the current SDK-internal mutations (useBridge/useBridgeApprove from components/bridge/BridgeDialog) with the API-only 3-step flow: (1) call the bridge-api allowance+approve hook -> sign+broadcast result.value.tx via signAndBroadcast helper -> waitForTxFinality -> manual refetchAllowance; (2) call create-intent hook -> get {tx,intent,relayData} -> sign+broadcast -> (3) submit txHash back to the API submit-tx hook with a SubmitTxRequest-shaped body, then push the order into setOrders and close the dialog.",
+    "Add OrderStatus.tsx that polls the bridge-api submit-tx-status hook (analogous to useSwapsApiSubmitTxStatus) keyed by {txHash, srcChainKey, apiConfig}; render status/result/failure - this is NEW relative to the current bridge demo which has no post-submit tracking.",
+    "Keep reusing the shared client-side prerequisite components/hooks unchanged: ChainSelector or the API-token-map SelectChain, useStellarTrustlineCheck + useRequestTrustline, useNearStorageGate, BitcoinSetupPanel + loadRadfiSession + useTradingWalletBalance, useEvmSwitchChain, useXBalances + toXToken for balances, and useDebouncedValue for the amount->quote input.",
+    "Preserve the exact gating/UX semantics from the current BridgeManager/BridgeDialog (recipient = Bitcoin trading address via loadRadfiSession; amount via parseUnits(amount,decimals); EVM approve+switch-chain; Stellar trustline; NEAR storage; Bitcoin ready flags) - only the submit mechanism changes from SDK-internal to API-returns-raw-tx + client-signs + client-submits-to-API."
+  ]
+}

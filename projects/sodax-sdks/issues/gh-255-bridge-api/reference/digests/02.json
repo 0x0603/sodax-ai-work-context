@@ -1,0 +1,130 @@
+{
+  "dimension": "SwapService domain refactor for \"submit tx to API + fallback\" (useBackendSubmitTx) and error-code changes — to be replicated on BridgeService",
+  "files_read": [
+    {
+      "path": "packages/sdk/src/swap/SwapService.ts (origin/feat/swaps-api-v2, diff + full)",
+      "lines": 1400,
+      "role": "Reference target. Adds backend 2-step submit-tx flow to swap(): new constructor deps (backendApi, useBackendSubmitTx), new private fallbackSwapSteps() (extracted client-side path) and submitTx() (backend path), shared single-deadline timeout budget."
+    },
+    {
+      "path": "packages/sdk/src/swap/SwapService.test.ts (origin/feat/swaps-api-v2 diff)",
+      "lines": 200,
+      "role": "New 'Batch 7' describe block with 5 tests covering executed / POST-rejected / terminal-failed / flag-off / shared-timeout-budget."
+    },
+    {
+      "path": "packages/sdk/src/errors/codes.ts (origin/feat/swaps-api-v2 diff + full)",
+      "lines": 207,
+      "role": "Only behavioral change: adds 'backend' to SODAX_FEATURES. NO new SodaxErrorCode values. SodaxErrorContext already supports api?: 'solver'|'backend'."
+    },
+    {
+      "path": "packages/sdk/src/swap/errors.ts (origin/feat/swaps-api-v2)",
+      "lines": 60,
+      "role": "SwapError union (unchanged) already includes EXECUTION_FAILED, EXTERNAL_API_ERROR, UNKNOWN — the codes the submit-tx path uses. isSwapError guard."
+    },
+    {
+      "path": "packages/sdk/src/errors/wrappers.ts (origin/feat/swaps-api-v2)",
+      "lines": 115,
+      "role": "Error constructor helpers used by the refactor: verifyFailed, executionFailed, unknownFailed, intentCreationFailed (signature (feature, cause, context?))."
+    },
+    {
+      "path": "packages/sdk/src/backendApi/SwapsApiService.ts (origin/feat/swaps-api-v2)",
+      "lines": 528,
+      "role": "Backend Swaps API HTTP client (sodax.api.swaps). Defines submitTx() and getSubmitTxStatus() the swap path calls; never throws, returns Result<T> with SodaxError<'EXTERNAL_API_ERROR'>."
+    },
+    {
+      "path": "packages/sdk/src/backendApi/swapsApiSchemas.ts (origin/feat/swaps-api-v2)",
+      "lines": 209,
+      "role": "Valibot runtime schemas for SubmitTxResponse / SubmitTxStatusResponse and the lifecycle status picklist."
+    },
+    {
+      "path": "packages/types/src/backend/backendApiV2.ts (origin/feat/swaps-api-v2)",
+      "lines": 760,
+      "role": "Wire types: SubmitTxRequestV2, SubmitTxResponseV2, SubmitTxStatusQueryV2, SubmitTxStatusResponseV2/DataV2/ResultV2, SubmitSwapTxStatusV2 union, ISwapsApiV2 interface."
+    },
+    {
+      "path": "packages/sdk/src/shared/entities/Sodax.ts (origin/feat/swaps-api-v2 diff)",
+      "lines": 7,
+      "role": "Facade wiring: adds public api alias, resolves useBackendSubmitTx off options.swapsOptions, passes backendApi + useBackendSubmitTx into SwapService ctor."
+    },
+    {
+      "path": "packages/types/src/sodax-config/sodax-config.ts (origin/feat/swaps-api-v2 diff)",
+      "lines": 14,
+      "role": "Adds SwapsClientOptions type and swapsOptions?: SwapsClientOptions on SodaxOptionalConfig (client-side toggle, NOT merged into backend config)."
+    },
+    {
+      "path": "packages/types/src/shared/features.ts (origin/feat/swaps-api-v2 diff)",
+      "lines": 1,
+      "role": "Adds 'backend' to SodaxFeature union."
+    },
+    {
+      "path": "packages/sdk/src/backendApi/BackendApiService.ts (origin/feat/swaps-api-v2)",
+      "lines": 660,
+      "role": "Exposes ONLY `public readonly swaps: SwapsApiService` — there is NO `.bridge` backend client. Key dependency gap for Bridge."
+    },
+    {
+      "path": "packages/sdk/src/backendApi/index.ts (origin/feat/swaps-api-v2 diff)",
+      "lines": 8,
+      "role": "Barrel re-exports SwapsApiService and request-config types."
+    },
+    {
+      "path": "packages/sdk/src/bridge/BridgeService.ts (working tree / baseline)",
+      "lines": 850,
+      "role": "Refactor target. Current bridge() inlines createBridgeIntent → verifyTxHash → relayTxAndWaitPacket → TxHashPair. Constructor only takes {hubProvider, config, spoke}."
+    },
+    {
+      "path": "packages/sdk/src/bridge/errors.ts (working tree)",
+      "lines": 96,
+      "role": "BridgeOrchestrationErrorCode union already includes EXECUTION_FAILED + UNKNOWN (no new codes needed). isBridgeOrchestrationError guard."
+    },
+    {
+      "path": "packages/sdk/src/shared/types/types.ts (working tree)",
+      "lines": 39,
+      "role": "TxHashPair {srcChainTxHash,dstChainTxHash} and IntentTxResult<K,Raw> {tx, relayData: RelayExtraData}. RelayExtraData = {address: Hex, payload: Hex}."
+    },
+    {
+      "path": "packages/types/src/common/constants.ts (origin/feat/swaps-api-v2)",
+      "lines": 5,
+      "role": "DEFAULT_RELAY_TX_TIMEOUT = 120000 (120s), exported from @sodax/types — used to seed the shared deadline."
+    }
+  ],
+  "key_findings": [
+    "SCOPE OF codes.ts CHANGE: The ONLY behavioral edit is adding 'backend' to the SODAX_FEATURES runtime array (and to SodaxFeature in @sodax/types/src/shared/features.ts: `| 'backend' // backend-API HTTP client layer ...`). NO new SodaxErrorCode values were introduced. The rest of the codes.ts diff is pure formatting reflow (GasEstimationErrorCode, APPROVE_CODES collapsed to single lines). The submit-tx flow REUSES existing codes: EXECUTION_FAILED + UNKNOWN (in SwapService) and EXTERNAL_API_ERROR (emitted by the backend client with feature:'backend'). SodaxErrorContext already declares `api?: 'solver' | 'backend'`.",
+    "CONSTRUCTOR CHANGE: SwapServiceConstructorParams gained `backendApi: BackendApiService;` and `useBackendSubmitTx?: boolean;`. Class gained `readonly backendApi: BackendApiService;` and `readonly useBackendSubmitTx: boolean;`. Constructor body: `this.backendApi = backendApi; this.useBackendSubmitTx = useBackendSubmitTx ?? false;`. backendApi imported as `import type { BackendApiService } from '../backendApi/index.js';`.",
+    "swap() NEW CONTROL FLOW (inside the same config.analytics.trackResult('swap','swap', ...) wrapper; the start/success/failure options object was moved to a 4th argument — formatting only): (1) `const createIntentResult = await this.createIntent(_params); if (!createIntentResult.ok) return { ok:false, error: createIntentResult.error };` (2) `const created = createIntentResult.value;` (3) `const deadline = Date.now() + (_params.timeout ?? DEFAULT_RELAY_TX_TIMEOUT);` — ONE shared budget for the whole completion. (4) `if (this.useBackendSubmitTx) { const submitted = await this.submitTx(_params, created, deadline); if (submitted.ok) return submitted; this.config.logger.warn('[swap] backend submit-tx did not complete; falling back to the client-side relay', { error: submitted.error }); }` (5) `return this.fallbackSwapSteps(_params, created, deadline);` (6) outer catch: `if (isSwapError(error)) return { ok:false, error }; return { ok:false, error: unknownFailed('swap', error, { ...baseCtx, action:'swap' }) };`.",
+    "NEW PRIVATE fallbackSwapSteps: `private async fallbackSwapSteps<K extends SpokeChainKey>(_params: SwapActionParams<K, false>, created: CreateIntentResult<K, false>, deadline: number): Promise<Result<SwapResponse, SwapError>>`. Body is the OLD swap() tail extracted verbatim: spoke.verifyTxHash({txHash: created.tx, chainKey: srcChainKey}) → if(!ok) verifyFailed('swap',...) ; then `if (isHubChainKeyType(srcChainKey)) dstIntentTxHash = spokeTxHash; else { const packet = await relayTxAndWaitPacket({ srcTxHash: spokeTxHash, data: relayData, chainKey: srcChainKey, relayerApiEndpoint: this.relayerApiEndpoint, timeout: Math.max(deadline - Date.now(), 5_000) }); if(!packet.ok) return mapRelayFailure(...); dstIntentTxHash = packet.value.dst_tx_hash; }` → postExecution({intent_tx_hash: dstIntentTxHash}) → build SwapResponse {solverExecutionResponse, intent, intentDeliveryInfo}. THE ONLY DIFF vs the old inlined code: relay timeout changed from raw `timeout` to `Math.max(deadline - Date.now(), 5_000)` (remaining shared budget, floored at 5s).",
+    "NEW PRIVATE submitTx (the backend path): `private async submitTx<K extends SpokeChainKey>(_params: SwapActionParams<K, false>, created: CreateIntentResult<K, false>, deadline: number): Promise<Result<SwapResponse, SwapError>>`. NEVER throws. Local helper `const submitTxFailed = (cause: unknown): Result<SwapResponse, SwapError> => ({ ok:false, error: executionFailed('swap', cause, { ...baseCtx, action:'swap' }) });`. Steps: (a) `const submitted = await this.backendApi.swaps.submitTx({ txHash: spokeTxHash, srcChainKey, walletAddress: params.srcAddress, intent, relayData: relayData.payload }); if (!submitted.ok) return submitTxFailed(submitted.error);` (b) reserve budget for fallback: `const reserveMs = Math.min(Math.ceil((deadline - Date.now()) / 3), 20_000); const pollDeadline = deadline - reserveMs; const pollIntervalMs = 1_000;` (c) `while (Date.now() < pollDeadline) { const statusResult = await this.backendApi.swaps.getSubmitTxStatus({ txHash: spokeTxHash, srcChainKey }); if (statusResult.ok) { const { status, result, failureReason, abandonedAt } = statusResult.value.data; if (status === 'executed' && result?.dstIntentTxHash && result.intent_hash) { return {ok:true, value:{ solverExecutionResponse:{answer:'OK', intent_hash: result.intent_hash as Hex}, intent, intentDeliveryInfo:{ srcChainKey, srcTxHash: spokeTxHash, srcAddress: params.srcAddress, dstChainKey: params.dstChainKey, dstTxHash: result.dstIntentTxHash, dstAddress: params.dstAddress } } }; } if (status === 'failed' || abandonedAt) { const reason = failureReason ? `: ${failureReason}` : ''; return submitTxFailed(new Error(`backend submit-tx ${status}${reason}`)); } } await new Promise<void>(resolve => setTimeout(resolve, pollIntervalMs)); }` then `return submitTxFailed(new Error('backend submit-tx polling timed out before reaching executed'));` (d) wrapping catch: `return { ok:false, error: unknownFailed('swap', error, { ...baseCtx, action:'swap' }) };`. Transient !ok / pending / relaying / relayed / posting_execution statuses just keep polling.",
+    "FALLBACK SAFETY RATIONALE (documented in JSDoc): falling back after a partial backend attempt is safe because re-relaying / re-posting an already-processed swap is IDEMPOTENT — the relay dedups and returns the existing executed packet, and the solver re-affirms the intent (no double-fill). Verified by e2e-tests/e2e-relay.test.ts. Polling stops at deadline - reserve so the fallback always keeps a guaranteed slice of the shared budget.",
+    "BACKEND CLIENT submitTx SIGNATURE: `submitTx(body: SubmitTxRequestV2, config?: RequestOverrideConfig): Promise<Result<SubmitTxResponseV2>>` → POST /swaps/submit-tx. SubmitTxRequestV2 = { txHash: string; srcChainKey: string; walletAddress: string; intent: IntentRequestV2; relayData: string /*hex*/ }. SubmitTxResponseV2 = { success: boolean; data: { status: 'inserted'|'duplicate'; message: string } }. Idempotent on (txHash, srcChainKey).",
+    "BACKEND CLIENT getSubmitTxStatus SIGNATURE: `getSubmitTxStatus(query: SubmitTxStatusQueryV2, config?: RequestOverrideConfig): Promise<Result<SubmitTxStatusResponseV2>>` → GET /swaps/submit-tx/status?txHash=&srcChainKey=. SubmitTxStatusQueryV2 = { txHash: string; srcChainKey: string }. SubmitTxStatusResponseV2 = { success: boolean; data: SubmitTxStatusDataV2 }.",
+    "SUBMIT-TX STATE MACHINE TYPES: SubmitSwapTxStatusV2 = 'pending' | 'relaying' | 'relayed' | 'posting_execution' | 'executed' | 'failed'. SubmitTxStatusDataV2 = { txHash; srcChainKey; status: SubmitSwapTxStatusV2; failedAtStep?; failureReason?; processingAttempts: number; abandonedAt?: string; result?: SubmitTxStatusResultV2; userMessage?; intentCancelled? }. SubmitTxStatusResultV2 = { dstIntentTxHash: string; packetData?: PacketDataV2; intent_hash?: string }. Terminal-success = status 'executed' WITH result.dstIntentTxHash (+ result.intent_hash for swap). Terminal-failure = status 'failed' OR abandonedAt set.",
+    "BACKEND CLIENT ERROR MODEL: SwapsApiService methods NEVER throw — on network failure/timeout/non-2xx/shape-mismatch they return { ok:false, error: SodaxError<'EXTERNAL_API_ERROR'> } with feature:'backend', context.api:'backend', underlying error on .cause. In submitTx() this backend error becomes the `cause` passed to executionFailed('swap', cause) so the swap()-level error code is always EXECUTION_FAILED (or UNKNOWN), never EXTERNAL_API_ERROR.",
+    "FACADE WIRING (Sodax.ts): added `public readonly api: BackendApiService;` (= this.backendApi, syntactic sugar). In constructor: `const useBackendSubmitTx = options?.swapsOptions?.useBackendSubmitTx ?? false;` (resolved client-side like logger, never merged into instanceConfig). `this.api = this.backendApi;`. SwapService is constructed with `{ config, hubProvider, spoke, backendApi: this.backendApi, useBackendSubmitTx }`.",
+    "CONFIG TYPE (sodax-config.ts): new `export type SwapsClientOptions = { useBackendSubmitTx?: boolean };` and SodaxOptionalConfig gained `swapsOptions?: SwapsClientOptions; // client-side swap behavior toggles ... distinct key so it never collides with the data `swaps` slot`. Default false = current fully client-side flow.",
+    "RELEVANT TYPES IN SwapService.ts: `export type SwapResponse = { solverExecutionResponse: SolverExecutionResponse; intent: Intent; intentDeliveryInfo: IntentDeliveryInfo };` `export type CreateIntentResult<K extends SpokeChainKey, Raw extends boolean> = { tx: TxReturnType<K, Raw>; intent: Intent & FeeAmount; relayData: RelayExtraData };` `export type SwapActionParams<K, Raw=false> = SpokeExecActionParams<K, Raw, CreateIntentParams<K>, SwapExtras<K>>`. DEFAULT_RELAY_TX_TIMEOUT imported from '@sodax/types' (= 120000).",
+    "ERROR HELPER SIGNATURES (errors/wrappers.ts): `executionFailed(feature: SodaxFeature, cause: unknown, context?: Partial<SodaxErrorContext>): SodaxError<'EXECUTION_FAILED'>` (phase:'execution'); `unknownFailed(feature, cause, context?): SodaxError<'UNKNOWN'>`; `verifyFailed(feature, cause, context?): SodaxError<'TX_VERIFICATION_FAILED'>` (phase:'verify'). All extract message via messageOf().",
+    "TEST PATTERN (SwapService.test.ts 'Batch 7'): `const sodaxBE = new Sodax({ logger:'silent', swapsOptions:{ useBackendSubmitTx: true } });`. Helper `stubCreatedAndVerified(srcChain)` spies `sodaxBE.swaps.createIntent` (mockResolvedValueOnce ok with {tx,intent,relayData}) and `sodaxBE.spoke.verifyTxHash` (ok:true). Five tests: (1) backend 'executed' → SwapResponse reconstructed from backend, asserts relayTxAndWaitPacket & solverPostExecution NOT called; (2) submit POST rejected (ok:false) → falls back to client relay, asserts getSubmitTxStatus NOT called; (3) terminal 'failed' status → falls back; (4) flag OFF (default `sodax` instance) → asserts sodax.api.swaps.submitTx NOT called; (5) shared timeout budget with vi.useFakeTimers — stalled backend ('pending' forever) polls to its reserved cutoff then falls back, asserts the fallback relay's timeout arg is >0 AND <overallTimeout (proves ONE shared budget, not 2x). Spies target `sodaxBE.api.swaps.submitTx` / `.getSubmitTxStatus`.",
+    "CURRENT BridgeService BASELINE: constructor `BridgeServiceConstructorParams = { hubProvider; config; spoke }` (NO backendApi). `bridge<K>(_params: BridgeParams<K,false>): Promise<Result<TxHashPair, BridgeOrchestrationError>>` wraps trackResult('bridge','bridge',...) and inline does: createBridgeIntent → verifyTxHash({txHash: txResult.value.tx, chainKey}) → relayTxAndWaitPacket({srcTxHash, data: relayData, chainKey, relayerApiEndpoint: this.config.relay.relayerApiEndpoint, timeout}) → returns { srcChainTxHash: txResult.value.tx, dstChainTxHash: packetResult.value.dst_tx_hash }. Outer catch: `if (isBridgeOrchestrationError(error)) return {ok:false,error}; return executionFailed('bridge', error, baseCtx)`. NOTE: bridge has NO hub-source short-circuit (always relays) and NO postExecution/solver step.",
+    "createBridgeIntent (the BACKEND raw-tx creation path) returns `Result<IntentTxResult<K, Raw>, BridgeCreateIntentError>` where IntentTxResult = { tx: TxReturnType<K,Raw>; relayData: RelayExtraData {address, payload} }. relayData.payload is the hub calldata (from buildBridgeData). With raw:true it returns encoded tx without broadcasting (backend's create-unsigned-tx path); raw:false signs+broadcasts via walletProvider. Same shape the submitTx body needs (txHash=tx, relayData=relayData.payload).",
+    "BRIDGE ERROR UNION (no change needed): BridgeOrchestrationErrorCode already includes EXECUTION_FAILED and UNKNOWN (and VALIDATION_FAILED, INTENT_CREATION_FAILED, TX_VERIFICATION_FAILED, TX_SUBMIT_FAILED, RELAY_TIMEOUT, RELAY_FAILED). So the submit-tx fallback wrapping (executionFailed/unknownFailed) is already representable — NO new error codes required for Bridge either. Bridge currently imports executionFailed but NOT unknownFailed from wrappers.",
+    "KEY GAP FOR BRIDGE: BackendApiService exposes ONLY `public readonly swaps: SwapsApiService` — there is NO `backendApi.bridge` client and no bridge submit-tx schemas/types. The swap refactor leaned on a pre-existing SwapsApiService. Bridge replication therefore additionally requires building a backend bridge submit-tx surface (a BridgeApiService or bridge endpoints with submitTx + getSubmitTxStatus, matching @sodax/types request/response types + valibot schemas) AND a corresponding server-side /bridge/submit-tx endpoint — unless an existing generic submit-tx endpoint is reused."
+  ],
+  "replication_recipe": [
+    "1. CONFIG TYPE (@sodax/types sodax-config.ts): mirror SwapsClientOptions. Add a client toggle reachable off SodaxOptions. Decision point: either add `useBackendSubmitTx?: boolean` to the existing BridgeOptions (the `bridge?:` data slot) OR add a parallel distinct key `bridgeOptions?: BridgeClientOptions` exactly like swap chose a distinct `swapsOptions` key to avoid colliding with the data slot. Recommended: follow the swap precedent with a distinct `bridgeOptions: { useBackendSubmitTx?: boolean }` (document it as a client-side runtime toggle, never merged into backend SodaxConfig).",
+    "2. BackendApiService + types: add a backend bridge submit-tx client. Create BridgeApiService (mirror SwapsApiService) exposing `submitTx(body): Promise<Result<BridgeSubmitTxResponse>>` (POST /bridge/submit-tx) and `getSubmitTxStatus(query): Promise<Result<BridgeSubmitTxStatusResponse>>` (GET /bridge/submit-tx/status?txHash=&srcChainKey=). Add @sodax/types wire types (BridgeSubmitTxRequest { txHash; srcChainKey; walletAddress; relayData: string } — NOTE bridge has no `intent` object, drop it; status types reuse the same SubmitSwapTxStatus picklist; result needs only dstIntentTxHash, NO intent_hash). Add valibot schemas mirroring swapsApiSchemas.ts. Expose `public readonly bridge: BridgeApiService` on BackendApiService (constructed in its ctor like `this.swaps`). NO new SodaxErrorCode — the client emits EXTERNAL_API_ERROR with feature:'backend' (already added).",
+    "3. BridgeService constructor: extend `BridgeServiceConstructorParams` with `backendApi: BackendApiService;` and `useBackendSubmitTx?: boolean;`. Add `readonly backendApi: BackendApiService;` + `readonly useBackendSubmitTx: boolean;`. In ctor: `this.backendApi = backendApi; this.useBackendSubmitTx = useBackendSubmitTx ?? false;`. Import `import type { BackendApiService } from '../backendApi/index.js';` and `DEFAULT_RELAY_TX_TIMEOUT` from '@sodax/types'. Add `unknownFailed` to the existing wrappers import.",
+    "4. Sodax.ts facade: resolve `const bridgeUseBackendSubmitTx = options?.bridgeOptions?.useBackendSubmitTx ?? false;` and pass `backendApi: this.backendApi, useBackendSubmitTx: bridgeUseBackendSubmitTx` into `new BridgeService({...})`. (`this.api` alias already added by the swap PR.)",
+    "5. Refactor bridge(): keep the trackResult('bridge','bridge', ..., {start,success,failure}) wrapper unchanged. Inside the closure: `const created = await this.createBridgeIntent(_params); if (!created.ok) return { ok:false, error: created.error };` then `const deadline = Date.now() + (_params.timeout ?? DEFAULT_RELAY_TX_TIMEOUT);` then `if (this.useBackendSubmitTx) { const submitted = await this.submitTx(_params, created.value, deadline); if (submitted.ok) return submitted; this.config.logger.warn('[bridge] backend submit-tx did not complete; falling back to the client-side relay', { error: submitted.error }); }` then `return this.fallbackBridgeSteps(_params, created.value, deadline);`. Keep the existing outer catch (`if (isBridgeOrchestrationError(error)) return {ok:false,error}; return executionFailed('bridge', error, baseCtx)`).",
+    "6. Extract fallbackBridgeSteps: `private async fallbackBridgeSteps<K extends SpokeChainKey>(_params: BridgeParams<K, false>, created: IntentTxResult<K, false>, deadline: number): Promise<Result<TxHashPair, BridgeOrchestrationError>>`. Move the current verifyTxHash + relayTxAndWaitPacket + return-TxHashPair logic verbatim, changing ONLY the relay timeout to `timeout: Math.max(deadline - Date.now(), 5_000)`. Returns { srcChainTxHash: created.tx, dstChainTxHash: packetResult.value.dst_tx_hash }. (Bridge keeps NO hub-source short-circuit — unchanged from today.)",
+    "7. Add submitTx: `private async submitTx<K extends SpokeChainKey>(_params: BridgeParams<K, false>, created: IntentTxResult<K, false>, deadline: number): Promise<Result<TxHashPair, BridgeOrchestrationError>>`. NEVER throws. `const submitTxFailed = (cause) => ({ ok:false, error: executionFailed('bridge', cause, { ...baseCtx, action:'bridge' }) });`. Call `this.backendApi.bridge.submitTx({ txHash: created.tx, srcChainKey, walletAddress: params.srcAddress, relayData: created.relayData.payload });` → if !ok return submitTxFailed(submitted.error). Reserve: `const reserveMs = Math.min(Math.ceil((deadline - Date.now()) / 3), 20_000); const pollDeadline = deadline - reserveMs; const pollIntervalMs = 1_000;`. Poll loop `while (Date.now() < pollDeadline)`: getSubmitTxStatus({txHash: created.tx, srcChainKey}); if ok, destructure {status, result, failureReason, abandonedAt}; on `status==='executed' && result?.dstIntentTxHash` return `{ ok:true, value: { srcChainTxHash: created.tx, dstChainTxHash: result.dstIntentTxHash } }` (NO intent_hash/solver step for bridge); on `status==='failed' || abandonedAt` return submitTxFailed(new Error(`backend submit-tx ${status}${reason}`)); else keep polling with `await new Promise(r => setTimeout(r, pollIntervalMs))`. After loop return submitTxFailed(new Error('backend submit-tx polling timed out before reaching executed')). Wrapping catch: `return { ok:false, error: unknownFailed('bridge', error, { ...baseCtx, action:'bridge' }) };`.",
+    "8. Error codes: NO change to errors/codes.ts beyond the already-merged 'backend' feature. Bridge reuses EXECUTION_FAILED + UNKNOWN (both already in BridgeOrchestrationErrorCode). Just ensure UNKNOWN stays in ORCHESTRATION_CODES (it does) and add the `unknownFailed` import.",
+    "9. Tests (BridgeService.test.ts): add a describe block mirroring 'Batch 7'. `const sodaxBE = new Sodax({ logger:'silent', bridgeOptions:{ useBackendSubmitTx: true } });`. Helper stubbing `sodaxBE.bridge.createBridgeIntent` (ok with {tx, relayData:{address,payload}}) + `sodaxBE.spoke.verifyTxHash` (ok:true), plus spies on `sodaxBE.api.bridge.submitTx` / `.getSubmitTxStatus`. Five cases: (a) backend 'executed' → TxHashPair from backend, assert relayTxAndWaitPacket NOT called; (b) submit POST rejected → falls back, assert getSubmitTxStatus NOT called; (c) terminal 'failed' → falls back; (d) flag OFF default instance → submitTx NOT called; (e) shared-timeout-budget with vi.useFakeTimers — stalled 'pending' backend → fallback relay timeout >0 and < overallTimeout.",
+    "10. Docs/skills: update bridge docs (mirror packages/sdk/docs/SWAPS_API.md → a BRIDGE_API.md), the bridge SKILL.md, and CONFIGURE_SDK.md for the new bridgeOptions.useBackendSubmitTx toggle; run pnpm check:ai. Also add dapp-kit hooks if the swap PR added a useSwapsApiSubmitTx/useSwapsApiSubmitTxStatus equivalent for bridge."
+  ],
+  "open_questions": [
+    "BIGGEST DEPENDENCY: there is no backend bridge submit-tx surface today (BackendApiService only has `.swaps`). The plan must decide whether to (a) build a full BridgeApiService + @sodax/types bridge submit-tx types + valibot schemas + a server-side /bridge/submit-tx + /bridge/submit-tx/status endpoint, or (b) reuse the generic swaps submit-tx machinery. The SwapService refactor itself is trivial to mirror; this backend client is the real net-new work.",
+    "CLIENT-OPTION KEY: swap added a NEW distinct `swapsOptions` key specifically to avoid colliding with the data `swaps` config slot. Bridge already has a `bridge?: BridgeOptions` data slot (partner fee). Decide whether useBackendSubmitTx goes onto a new distinct `bridgeOptions` key (recommended, matches swap intent) or onto existing BridgeOptions — confirm BridgeOptions contents before choosing.",
+    "Bridge has no solver/postExecution and no intent_hash, and bridge() never short-circuits hub-source. The backend bridge submit-tx status `result` only needs dstIntentTxHash (the hub/destination tx hash). Confirm the backend returns a dst tx hash usable as TxHashPair.dstChainTxHash, and confirm idempotency of bridge re-relay (the swap idempotency proof was swap-specific; bridge re-deposit/re-relay idempotency must be independently verified before relying on the fallback).",
+    "Catch-all code choice: swap's submitTx wrapping catch uses unknownFailed (UNKNOWN); bridge's existing bridge() catch uses executionFailed (EXECUTION_FAILED). Both are valid in BridgeOrchestrationErrorCode — pick one convention for the new bridge submitTx/fallback to stay internally consistent.",
+    "dapp-kit: the swap PR added many useSwapsApi* hooks (incl. useSwapsApiSubmitTx / useSwapsApiSubmitTxStatus) and demo components. Out of scope for this SwapService-domain dimension, but the Bridge feature plan should confirm whether parallel bridge hooks/demo are required."
+  ]
+}

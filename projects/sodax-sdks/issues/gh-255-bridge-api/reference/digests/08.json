@@ -1,0 +1,120 @@
+{
+  "dimension": "CURRENT BridgeService — the vault-backed cross-chain transfer domain service (packages/sdk/src/bridge) to be refactored for the Bridge API, plus its current Sodax-facade and dapp-kit exposure",
+  "files_read": [
+    {
+      "path": "/Users/sangnguyen/Documents/GitHub/sodax/sodax-sdks/packages/sdk/src/bridge/BridgeService.ts",
+      "lines": 850,
+      "role": "The domain service to be refactored. Defines BridgeParams/CreateBridgeIntentParams types and all public bridge methods. Orchestrates spoke deposit -> intent relay -> hub settlement."
+    },
+    {
+      "path": "/Users/sangnguyen/Documents/GitHub/sodax/sodax-sdks/packages/sdk/src/bridge/errors.ts",
+      "lines": 96,
+      "role": "Narrow per-method SodaxError unions + code-membership guards + bridgeInvariant factory for the bridge feature."
+    },
+    {
+      "path": "/Users/sangnguyen/Documents/GitHub/sodax/sodax-sdks/packages/sdk/src/bridge/index.ts",
+      "lines": 2,
+      "role": "Barrel: re-exports BridgeService.js and errors.js."
+    },
+    {
+      "path": "/Users/sangnguyen/Documents/GitHub/sodax/sodax-sdks/packages/sdk/src/bridge/BridgeService.test.ts",
+      "lines": 296,
+      "role": "Integration tests for bridge() error-path wrapping (createIntent/verify/relay/out-of-union) + Bitcoin USER-mode createBridgeIntent + getFee fallback. Uses a real Sodax instance + vi.spyOn collaborator stubs + hoisted vi.mock of relayTxAndWaitPacket."
+    },
+    {
+      "path": "/Users/sangnguyen/Documents/GitHub/sodax/sodax-sdks/packages/sdk/src/shared/entities/Sodax.ts",
+      "lines": 0,
+      "role": "Facade. Declares `public readonly bridge: BridgeService` (line 32) and constructs it (line 90) with {hubProvider, config, spoke}."
+    },
+    {
+      "path": "/Users/sangnguyen/Documents/GitHub/sodax/sodax-sdks/packages/sdk/src/shared/types/types.ts",
+      "lines": 39,
+      "role": "Defines TxHashPair {srcChainTxHash,dstChainTxHash} and IntentTxResult<K,Raw> {tx: TxReturnType<K,Raw>; relayData: RelayExtraData}."
+    },
+    {
+      "path": "/Users/sangnguyen/Documents/GitHub/sodax/sodax-sdks/packages/sdk/src/shared/types/relay-types.ts",
+      "lines": 0,
+      "role": "Defines RelayExtraData {address: Hex; payload: Hex}, PacketData (relay packet incl dst_tx_hash), IntentRelayRequest, OnDemandRelayData."
+    },
+    {
+      "path": "/Users/sangnguyen/Documents/GitHub/sodax/sodax-sdks/packages/sdk/src/shared/services/intentRelay/IntentRelayApiService.ts",
+      "lines": 0,
+      "role": "relayTxAndWaitPacket(params: RelayAndWaitParams): Promise<Result<PacketData>> — the CURRENT submission path (submitTransaction to intent-relay + poll). Also SubmitTxParams/SubmitTxResponse/RelayAndWaitParams."
+    },
+    {
+      "path": "/Users/sangnguyen/Documents/GitHub/sodax/sodax-sdks/packages/types/src/common/common.ts",
+      "lines": 0,
+      "role": "SpokeExecActionParams<K,Raw,P,E>, WalletProviderSlot<K,Raw> (raw:true => walletProvider?:never; raw:false => walletProvider required), TxReturnType<C,Raw>, BridgeLimit, TokenInfo."
+    },
+    {
+      "path": "/Users/sangnguyen/Documents/GitHub/sodax/sodax-sdks/packages/dapp-kit/src/hooks/bridge/useBridge.ts",
+      "lines": 38,
+      "role": "dapp-kit mutation hook wrapping sodax.bridge.bridge({...vars, raw:false}); UseBridgeVars = Omit<BridgeParams<K,false>,'raw'>; returns TxHashPair."
+    },
+    {
+      "path": "/Users/sangnguyen/Documents/GitHub/sodax/sodax-sdks/packages/dapp-kit/src/hooks/bridge/useBridgeApprove.ts",
+      "lines": 44,
+      "role": "Mutation hook wrapping sodax.bridge.approve raw:false; invalidates ['bridge','allowance']."
+    },
+    {
+      "path": "/Users/sangnguyen/Documents/GitHub/sodax/sodax-sdks/packages/dapp-kit/src/hooks/bridge/useBridgeAllowance.ts",
+      "lines": 50,
+      "role": "Read hook wrapping sodax.bridge.isAllowanceValid; refetchInterval 2000ms."
+    },
+    {
+      "path": "/Users/sangnguyen/Documents/GitHub/sodax/sodax-sdks/packages/dapp-kit/src/hooks/bridge/useGetBridgeableAmount.ts",
+      "lines": 40,
+      "role": "Read hook wrapping sodax.bridge.getBridgeableAmount(from,to)."
+    },
+    {
+      "path": "/Users/sangnguyen/Documents/GitHub/sodax/sodax-sdks/packages/dapp-kit/src/hooks/bridge/useGetBridgeableTokens.ts",
+      "lines": 38,
+      "role": "Read hook wrapping sodax.bridge.getBridgeableTokens(from,to,token)."
+    },
+    {
+      "path": "/Users/sangnguyen/Documents/GitHub/sodax/sodax-sdks/packages/dapp-kit/src/hooks/bridge/index.ts",
+      "lines": 5,
+      "role": "dapp-kit bridge hooks barrel."
+    }
+  ],
+  "key_findings": [
+    "BridgeService is a constructor-DI service. Constructor param type `BridgeServiceConstructorParams = { hubProvider: HubProvider; config: ConfigService; spoke: SpokeService }`. It holds three `public readonly` fields: `hubProvider`, `config`, `spoke`. `HubProvider = EvmHubProvider`.",
+    "Two core param types are defined in BridgeService.ts. (1) `CreateBridgeIntentParams<K extends SpokeChainKey = SpokeChainKey> = { srcAddress: string; srcChainKey: K; srcToken: string; amount: bigint; dstChainKey: SpokeChainKey; dstToken: string; recipient: string }` (recipient is a non-encoded address). (2) `BridgeParams<ChainKey extends SpokeChainKey, Raw extends boolean> = SpokeExecActionParams<ChainKey, Raw, CreateBridgeIntentParams<ChainKey>>`.",
+    "`SpokeExecActionParams<K,Raw,P,E=never> = { params: P; extras?: E; skipSimulation?: boolean; timeout?: number } & WalletProviderSlot<K,Raw>`. `WalletProviderSlot<K,Raw> = Raw extends true ? { raw: true; walletProvider?: never } : { raw?: false; walletProvider: GetWalletProviderType<K> }`. So the raw flag IS the sign-or-not switch: raw:true => returns unsigned/encoded tx and forbids a walletProvider; raw:false => requires a walletProvider and signs+broadcasts.",
+    "PUBLIC METHOD: `getFee(inputAmount: bigint): bigint` (synchronous). Returns 0n if no `config.bridgePartnerFee`; else `calculateFeeAmount(inputAmount, config.bridgePartnerFee)`. Fee in vault-token base units (18dp). config.bridgePartnerFee resolves `bridge.partnerFee ?? global fee` (test asserts global-fee fallback).",
+    "PUBLIC METHOD: `isAllowanceValid<S extends SpokeChainKey, Raw extends boolean>(_params: BridgeParams<S,Raw>): Promise<Result<boolean, BridgeAllowanceCheckError>>`. Validates amount>0 and srcToken non-empty via bridgeInvariant, then branches by chain-type: Hub => spoke.isAllowanceValid with spender = hubProvider.service.getUserRouter({address,chainId}); EVM spoke => spender = config.getChainConfig(srcChainKey).addresses.assetManager; Stellar => spoke.isAllowanceValid (no spender); all other chains => returns true. Wraps spoke failure as allowanceCheckFailed('bridge',...).",
+    "PUBLIC METHOD: `approve<K extends SpokeChainKey, Raw extends boolean>(_params: BridgeParams<K,Raw>): Promise<Result<TxReturnType<K,Raw>, BridgeApproveError>>`. Hub/EVM-spoke => validates EVM wallet provider (isOptionalEvmWalletProviderType), spender = (Hub? hubProvider.getUserHubWalletAddress : assetManager), calls spoke.approve<HubChainKey|EvmSpokeOnlyChainKey,Raw>. Stellar => validates Stellar provider, calls spoke.approve<StellarChainKey,boolean>. Other chains => bridgeInvariant(false, 'Approval only supported for EVM spoke chains and Stellar'). Honors raw flag (raw:true returns encoded tx; raw:false signs+broadcasts).",
+    "PUBLIC METHOD: `bridge<K extends SpokeChainKey>(_params: BridgeParams<K, false>): Promise<Result<TxHashPair, BridgeOrchestrationError>>`. HARDCODED raw:false (full sign+broadcast+relay only; no raw/unsigned mode). Body is wrapped in `this.config.analytics.trackResult('bridge','bridge', async () => {...}, { start, success, failure })`. Flow: (1) createBridgeIntent(_params); (2) spoke.verifyTxHash({txHash: txResult.value.tx, chainKey: srcChainKey}) -> verifyFailed on error; (3) relayTxAndWaitPacket({srcTxHash, data: relayData, chainKey, relayerApiEndpoint: config.relay.relayerApiEndpoint, timeout}) -> mapRelayFailure on error; returns `{ srcChainTxHash: txResult.value.tx, dstChainTxHash: packetResult.value.dst_tx_hash }`. Default timeout 120_000ms.",
+    "PUBLIC METHOD: `createBridgeIntent<K extends SpokeChainKey, Raw extends boolean>(_params: BridgeParams<K,Raw>): Promise<Result<IntentTxResult<K,Raw>, BridgeCreateIntentError>>`. THE submit-the-spoke-deposit step (supports both raw modes). Steps: resolve src/dst spoke tokens via config.getSpokeTokenFromOriginalAssetAddress; Bitcoin handling (raw:false only: getEffectiveWalletAddress, TRADING mode => radfi.ensureRadfiAccessToken; USER mode forces skipSimulation); derive hubWallet = hubProvider.getUserHubWalletAddress(walletAddress, srcChainKey); data = buildBridgeData(params, srcToken, dstToken, config.bridgePartnerFee); call `this.spoke.deposit({srcChainKey, srcAddress: walletAddress, to: hubWallet, token: srcToken, amount, data, skipSimulation, ...(raw?{raw:true}:{raw:false,walletProvider})})`. Returns `{ tx: TxReturnType<K,Raw>, relayData: { address: hubWallet, payload: data } }`. relayData is the RelayExtraData the caller must relay.",
+    "PUBLIC METHOD: `buildBridgeData(params: CreateBridgeIntentParams, srcToken: XToken, dstToken: XToken, partnerFee: PartnerFee | undefined): Hex`. Encodes the hub-router call batch via encodeContractCalls(calls: EvmContractCall[]): (1) if src not vault asset => Erc20Service.encodeApprove(hubAsset,vault,amount) + EvmVaultTokenService.encodeDeposit(vault,hubAsset,amount), translate decimals; (2) if partnerFee && fee>0 => Erc20Service.encodeTransfer(srcVault, partnerFee.address, feeAmount); (3) if dst not vault asset => EvmVaultTokenService.encodeWithdraw(vault,hubAsset,withdrawAmount); (4) destination: if dstChain is hub & dstToken is native S => wrappedSonicAbi withdrawTo(encodedRecipient, amount); else if hub => Erc20Service.encodeTransfer; else (spoke) => EvmAssetManagerService.encodeTransfer(hubAsset, encodedRecipient, amount, hubProvider.chainConfig.addresses.assetManager). encodeAddress(dstChainKey, recipient) encodes the recipient.",
+    "PUBLIC METHOD: `getBridgeableAmount(from: XToken, to: XToken): Promise<Result<BridgeLimit, BridgeLookupError>>`. BridgeLimit = { amount: bigint; decimals: number; type: 'DEPOSIT_LIMIT' | 'WITHDRAWAL_LIMIT' }. Uses EvmVaultTokenService.getTokenInfos + getVaultReserves on hubProvider.publicClient. spoke->hub => DEPOSIT_LIMIT (maxDeposit - deposited); hub->spoke => WITHDRAWAL_LIMIT (asset manager balance); spoke->spoke => min of the two (normalised by decimals).",
+    "PUBLIC METHOD: `isBridgeable({ from: XToken; to: XToken; unchecked?: boolean }): boolean`. Two tokens are bridgeable iff they resolve to the SAME hub vault (case-insensitive). Returns false on any error instead of throwing. `unchecked:true` skips the isValidSpokeChainKey guard.",
+    "PUBLIC METHOD: `getBridgeableTokens(from: SpokeChainKey, to: SpokeChainKey, token: string): Result<XToken[], BridgeLookupError>` (synchronous Result). Returns dst-chain tokens sharing the src token's vault via filterTokensWithSameVault.",
+    "PUBLIC METHOD: `filterTokensWithSameVault(tokens: Record<string,XToken>, to: SpokeChainKey, srcToken: XToken | undefined): XToken[]`. PUBLIC METHOD: `findTokenBalanceInReserves(reserves: VaultReserves, token: XToken): bigint` (used by getBridgeableAmount).",
+    "TRANSACTION MODEL — CURRENT bridge does NOT use a backend-API submit + fallback. Submission is direct: createBridgeIntent broadcasts the spoke deposit via spoke.deposit (when raw:false), then bridge() relays through `relayTxAndWaitPacket` which calls `submitTransaction(submitPayload, relayerApiEndpoint)` against the INTENT RELAY API (config.relay.relayerApiEndpoint), then polls waitUntilIntentExecuted. There is no `useBackendSubmitTx`, no BackendApiService bridge endpoint, and no raw-tx-to-backend path anywhere in the bridge feature today. grep for useBackendSubmitTx in dapp-kit returns nothing; backendApi has no bridge references.",
+    "raw-vs-signed split: `bridge()` is the only orchestrator and is locked to raw:false (sign+broadcast+relay). `createBridgeIntent()` and `approve()` accept Raw generic so a BACKEND caller can pass raw:true to get an unsigned/encoded TxReturnType without broadcasting; but there is no raw-mode end-to-end orchestrator, and dapp-kit only ever calls raw:false. This is the gap a Bridge API (mirroring Swaps API v2) would fill: a create-raw-intent + submit-to-API + relay-fallback split usable by FRONTEND (sign in browser, then submit) and BACKEND (build raw).",
+    "RETURN/RESULT TYPES: TxHashPair = { srcChainTxHash: string; dstChainTxHash: string }. IntentTxResult<K,Raw> = { tx: TxReturnType<K,Raw>; relayData: RelayExtraData }. RelayExtraData = { address: Hex; payload: Hex }. PacketData carries dst_tx_hash, status ('executed' when done), conn_sn, etc.",
+    "ERRORS (bridge/errors.ts): single user-facing action 'bridge'; read-only methods emit LOOKUP_FAILED partitioned by context.method. Narrow unions: BridgeOrchestrationErrorCode (VALIDATION_FAILED|INTENT_CREATION_FAILED|TX_VERIFICATION_FAILED|TX_SUBMIT_FAILED|RELAY_TIMEOUT|RELAY_FAILED|EXECUTION_FAILED|UNKNOWN); BridgeCreateIntentErrorCode=CreateIntentErrorCode; BridgeApproveErrorCode=ApproveErrorCode; BridgeAllowanceCheckErrorCode=AllowanceCheckErrorCode; BridgeLookupErrorCode=LookupErrorCode; plus aggregate BridgeErrorCode. Each has a guard isBridgeXError built via isCodeMember + matching code Set. bridgeInvariant = createInvariant('bridge'). Note CreateBridgeIntentErrorCode is a SUBSET of BridgeOrchestrationErrorCode so bridge() can propagate a createIntent error unchanged.",
+    "SODAX FACADE EXPOSURE (shared/entities/Sodax.ts): `import { BridgeService } from '../../bridge/BridgeService.js'` (line 4); field `public readonly bridge: BridgeService; // Bridge service enabling cross-chain transfers` (line 32); construction `this.bridge = new BridgeService({ hubProvider: this.hubProvider, config: this.config, spoke: this.spoke });` (line 90). Constructed from already-built shared providers/services, same pattern as other feature services.",
+    "DAPP-KIT EXPOSURE (packages/dapp-kit/src/hooks/bridge/): mutation hooks useBridge (sodax.bridge.bridge raw:false -> TxHashPair; invalidates ['shared','xBalances',srcChainKey] & dstChainKey) and useBridgeApprove (raw:false; invalidates ['bridge','allowance']); read hooks useBridgeAllowance (isAllowanceValid; refetchInterval 2000, gcTime 0), useGetBridgeableAmount (getBridgeableAmount), useGetBridgeableTokens (getBridgeableTokens). All use useSafeMutation/useQuery + unwrapResult. UseBridgeVars<K> = Omit<BridgeParams<K,false>,'raw'>. NO hook for createBridgeIntent / raw mode / backend-submit exists.",
+    "ANALYTICS: only `bridge()` is instrumented via config.analytics.trackResult('bridge','bridge', body, {start,success,failure}). start emits {srcChainKey,dstChainKey,srcToken,dstToken,amount,srcAddress,recipient}; success emits {srcChainTxHash,dstChainTxHash}; failure emits {code}. createBridgeIntent/approve/read-methods are NOT wrapped in trackResult.",
+    "SPOKE / HUB COLLABORATORS used: spoke.isAllowanceValid (3 chain-type param variants: SpokeIsAllowanceValidParamsHub/EvmSpoke/Stellar), spoke.approve<...,Raw>(SpokeApproveParams), spoke.deposit({srcChainKey,srcAddress,to,token,amount,data,skipSimulation, raw|walletProvider}), spoke.verifyTxHash({txHash,chainKey}), spoke.bitcoin.{getEffectiveWalletAddress,walletMode,radfi.ensureRadfiAccessToken}; hubProvider.getUserHubWalletAddress(addr,chainKey), hubProvider.service.getUserRouter({address,chainId}), hubProvider.publicClient, hubProvider.chainConfig.{nativeToken,addresses.assetManager}.",
+    "BRIDGE SEMANTICS: vault-backed cross-chain transfer. Deposit token into spoke vault on source -> cross-chain message relayed to Sonic hub -> hub does vault deposit/withdraw transforms + partner-fee transfer -> forwards to destination via asset manager (spoke dst) / direct ERC20 transfer (hub dst) / native S unwrap withdrawTo (hub dst native). Three directions: spoke->hub, hub->spoke, spoke->spoke. Bitcoin only supported with raw:false (Bound Exchange trading-wallet derivation)."
+  ],
+  "replication_recipe": [
+    "When mirroring Swaps API v2: BridgeService currently has NO backend-submit path. The refactor must add a way to (a) build a RAW/unsigned bridge intent (createBridgeIntent already supports raw:true returning TxReturnType<K,true> + relayData), and (b) submit a signed tx to an API with a relay fallback — analogous to whatever submit-tx-to-API + useBackendSubmitTx mechanism Swaps API v2 introduces. Today bridge() only does direct sign+broadcast+relayTxAndWaitPacket (intent relay), so the new API surface is additive, not a like-for-like replacement.",
+    "Preserve the existing param shape: keep `CreateBridgeIntentParams<K>` and `BridgeParams<K,Raw> = SpokeExecActionParams<K,Raw,CreateBridgeIntentParams<K>>`. Any new method should accept BridgeParams<K,Raw> and honor the WalletProviderSlot raw-flag contract (raw:true => no walletProvider, returns unsigned; raw:false => walletProvider required).",
+    "Mirror the Swaps create-intent/submit/relay split as bridge methods: likely a public method that returns the raw spoke tx + relayData (already = createBridgeIntent with raw:true), a method that submits an already-signed tx hash to the backend/relay API, and a fallback that uses relayTxAndWaitPacket. Reuse RelayExtraData ({address,payload}) and TxHashPair ({srcChainTxHash,dstChainTxHash}) as the return contracts; reuse IntentTxResult<K,Raw>.",
+    "Add new error codes to bridge/errors.ts only if the new submit path needs codes not already in BridgeOrchestrationErrorCode (TX_SUBMIT_FAILED already exists). Keep narrow per-method unions + isBridgeXError guards + bridgeInvariant. Reuse the existing wrapper helpers (intentCreationFailed, verifyFailed, executionFailed, approveFailed, allowanceCheckFailed, mapRelayFailure).",
+    "Wrap every new user-action method in `this.config.analytics.trackResult('bridge','<action>', body, {start,success,failure})` exactly like bridge() does, with start/success/failure data builders referencing _params.params fields.",
+    "Wire any new BridgeService capability through the Sodax facade the same way: it is already constructed at Sodax.ts line 90 as `new BridgeService({ hubProvider, config, spoke })` and exposed as `public readonly bridge`. No facade change needed unless a new shared dependency (e.g. a BackendApiService for submit) must be injected into the constructor — if so, add it to BridgeServiceConstructorParams and pass it from Sodax.ts.",
+    "Add matching dapp-kit hooks under packages/dapp-kit/src/hooks/bridge/ following the existing pattern (useSafeMutation + unwrapResult for mutations, useQuery for reads; default mutationKey before spreading options; mutationFn after the spread; register new mutation hooks in _mutationContract.test.ts). A new submit/raw hook should mirror whatever Swaps API v2 adds (e.g. a useBackendSubmitTx-style hook).",
+    "Extend BridgeService.test.ts with the same fixture pattern: real Sodax instance, vi.spyOn collaborators (createBridgeIntent, spoke.verifyTxHash, spoke.deposit), and hoisted vi.mock of relayTxAndWaitPacket / the new submit function. Cover the new submit + fallback branches and error-wrap paths.",
+    "Update packages/skills consumer docs (sodax-dapp-kit) and run pnpm check:ai when public BridgeService method signatures, new hooks, or examples change, per repo rules."
+  ],
+  "open_questions": [
+    "Does Swaps API v2 introduce a NEW BackendApiService submit endpoint + a useBackendSubmitTx hook that bridge must mirror, or does it reuse the existing intent-relay submitTransaction? The current bridge has no backend-submit code at all, so the exact 'submit tx to API + fallback' contract must come from the origin/feat/swaps-api-v2 branch (SwapService.ts / SolverApiService.ts / BackendApiService.ts) — needs a separate dimension read.",
+    "Will the Bridge API need a raw-mode end-to-end orchestrator (e.g. createAndSubmitBridge with raw:true) usable by the backend, or will it only expose createBridgeIntent(raw:true) + a separate submit method? bridge() is currently locked to raw:false.",
+    "Whether a backend submit path for bridge should reuse relayData ({address,payload}) as the submit body or define a new request DTO mirroring the Swaps API v2 submit request shape."
+  ]
+}
