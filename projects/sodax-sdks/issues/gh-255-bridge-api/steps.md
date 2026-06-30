@@ -21,6 +21,17 @@ updated: 2026-06-30
 
 ---
 
+## Phase 0.5 — Validate the core mechanism first (Node smoke test)
+
+> Confirms the key assumption (the backend builds a raw/unsigned bridge tx) against the
+> CURRENT SDK — no new bridge-api code needed. Do this before Phase 1.
+
+- [ ] **P0.1** Smoke-test raw bridge-tx build via Node — `apps/node/src/bridge-raw.ts` (**already written, compiles**) + `apps/node/package.json` (`bridge-raw` script added) · uses `sodax.bridge.createBridgeIntent({ raw: true, skipSimulation: true })` — **no wallet/funds**, read-only mainnet (derives hub wallet, needs network); auto-discovers a bridgeable pair (default ARBITRUM→BASE, override via `BRIDGE_SRC`/`BRIDGE_DST`/`SRC_ADDRESS`/`RECIPIENT` env) · run: `cd apps/node && pnpm bridge-raw` (if `@sodax/sdk` dist missing: `pnpm build:packages` first) · expect: prints `{ tx, relayData: { address, payload } }` then `✅ PASS` · (~10min)
+
+✅ **Gate:** `pnpm bridge-raw` prints a raw tx + relayData (proves BE-builds-raw works before building the API).
+
+---
+
 ## Phase 1 — `@sodax/types` (plan §1)
 
 - [ ] **P1.1** File header + imports + request/create DTOs — `types/src/backend/backendBridgeApiV2.ts` · mirror `backendApiV2.ts` header (1-37) + CreateIntentParamsV2 (299-346) · verify: `pnpm --filter @sodax/types checkTs` · (~25min) · `>` scaffold exists
