@@ -76,9 +76,17 @@ The SDK release is a one-directional blocking gate for the backend work.
 - `GET /swaps/quote?includeTxData=true` for a Bitcoin source is **broken today** — needs the
   same token threading (B4b), or an explicit descope.
 
-## Still need external confirmation
+## RadFi already answered (in their issue response comment)
 
-- 🔶 **RadFi:** byte-match the test vector; **whether a key-id header (`x-api-key`) is also
-  required** (critical); does `umsUrl` need signing; dual-key rotation.
+HMAC format (hex + ms + message structure + 60 s), headers = `x-api-signature` +
+`Authorization: Bearer` only (**no `x-api-key` key-id** — earlier concern retracted),
+credential scoped to the Sodax endpoints (so `umsUrl` not covered), user token unchanged.
+So the RadFi side is essentially settled.
+
+## Still genuinely open
+
+- 🔶 **RadFi (ops/non-blocking):** issue the **real `SECRET_KEY`/`SECRET_WORD`** pair; a
+  one-line byte-match of the test vector (their example used a placeholder); dual-key
+  rotation support.
 - 🔶 **SDK owner:** release branch (`release`) + that `rc.19` is the next number + who cuts it.
 - 🔶 **#831 / product:** thread vs descope `getQuote?includeTxData` for Bitcoin.

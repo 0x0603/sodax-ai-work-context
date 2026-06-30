@@ -273,17 +273,21 @@ Note: the signature binds **only** `secret_word + timestamp` — **not** the req
 URL. It is a time-boxed proof-of-possession of the credential, not a request-integrity MAC;
 do not assume it protects against body tampering. (This matches RadFi's stated scheme.)
 
+The format above is **confirmed by RadFi's response comment** on the issue: hex digest,
+`message = secret_word + "_" + timestamp`, `header = signature + "_" + timestamp`, 13-digit
+(ms) timestamp, 60 s window. The required headers are exactly **`x-api-signature` +
+`Authorization: Bearer <token>`** — RadFi lists **no key-id header** (e.g. `x-api-key`); the
+single dedicated Sodax credential is how their server selects the secret, so the signer
+returns `x-api-signature` only.
+
 **Pinned test vector** (independently verified via `node:crypto` + `openssl`) — assert this
-byte-for-byte in the signer unit test, and use it to confirm the format with RadFi:
+byte-for-byte in the signer unit test. RadFi's example used a placeholder digest, so this
+real vector is also worth a one-line sanity confirm with them:
 
 ```
 secret_key = "sk_abc123"   secret_word = "sw_xyz789"   timestamp = "1719396000000"
 x-api-signature = f1cc08944bf1f22ad840eb10253cbc0b3e0f7a871034e5e1c29ae15565f1553e_1719396000000
 ```
-
-⚠️ **Open with RadFi:** whether a companion **key-id header** (e.g. `x-api-key`) must also
-be sent so the server can select which `secret_key` to validate against. If yes, the signer
-closure returns that header too.
 
 ## Sequencing
 
@@ -310,8 +314,10 @@ closure returns that header too.
   mongo is stripped); never log the user token, the secret pair, or the computed
   `x-api-signature`; keep them out of `SodaxError`/`RadfiApiError` context + the
   error-mapper. (`logging.middleware.ts`/morgan logs only method/url/status — verified safe.)
-- **HMAC format mismatch** — wrong timestamp unit (ms vs s) or digest encoding (hex vs
-  base64) ⇒ every request 401s. Confirm with RadFi; encode it as the test contract.
+- **HMAC format mismatch** — low residual risk: RadFi's comment already specifies hex + ms +
+  the message structure, so the format is pinned in the test vector. Only a real-digest
+  byte-match with RadFi remains as a sanity check; the e2e staging call also catches any
+  mismatch.
 - **Replay window / clock skew** — 60 s validity ⇒ the backend host clock must be
   NTP-synced; drift silently breaks all Bitcoin builds.
 - **`chains.bitcoin` merge collision** — radfi override and any bitcoin RPC override both
@@ -319,12 +325,9 @@ closure returns that header too.
 - **Cross-repo coupling** — backend is blocked on the ~rc.19 publish; release from
   main/release, not `feat/bridge-api-v2` (which would also ship unreleased surface).
 - **Signer scope** — the signer runs on every `apiUrl` `request()` call, so it also signs
-  the unauthenticated `GET /wallets/details` (auth/refresh endpoints are short-circuited in
-  raw mode, so not on the build path). D3 keeps this deliberate; confirm RadFi tolerates the
-  extra header on the public GET (see "still need external confirmation").
-- **Key-id header** — if RadFi requires an `x-api-key`/key-id alongside the signature, the
-  current signer returns only `x-api-signature` and every request 401s until added. Resolve
-  the open RadFi question before the SDK release.
+  `GET /wallets/details`. That endpoint is itself a Sodax `apiUrl` endpoint (the credential is
+  "scoped to the Sodax endpoints"), so signing it is consistent; `umsUrl` and the
+  raw-skipped auth/refresh calls are unaffected (D3).
 
 ## Decisions — resolved internally (high confidence, code-backed)
 
@@ -335,17 +338,25 @@ closure returns that header too.
 - **D5 token transport** — request body, nested `bound: { accessToken }` (not a header).
 - **D7 secret provisioning** — raw env vars on swaps-api only via Coolify, redacted,
   fail-fast at boot; rotation = env change + redeploy (no SDK release).
-- **D1 HMAC format** — ms timestamp + lowercase hex; pinned test vector above. (Format is
-  high-confidence from RadFi's own example; still byte-confirm with RadFi — see below.)
+- **D1 HMAC format** — ms timestamp + lowercase hex; **confirmed by RadFi's response
+  comment** (hex + message structure + 13-digit ts + 60 s); pinned test vector above.
 - **D4 release** — `@sdks@2.0.0-rc.19` from the live `release` branch (procedure in A3).
+
+### RadFi answered these in their response comment (not open)
+
+- **Headers** — only `x-api-signature` + `Authorization: Bearer`; **no key-id / `x-api-key`**
+  (single dedicated Sodax credential). Earlier "critical x-api-key" concern → retracted.
+- **Format** — hex digest, `message = secret_word_timestamp`, ms timestamp, 60 s.
+- **Scope** — credential "scoped exclusively to the Sodax endpoints" → `umsUrl` not covered.
+- **User token** — unchanged; optional `Bearer <reason>:<token>` (server splits on `:`).
 
 ## Decisions — still need external confirmation
 
-- 🔶 **RadFi team:** (1) byte-match the pinned HMAC test vector (ms + hex, 60 s);
-  (2) **whether a key-id header (e.g. `x-api-key`) must accompany the signature** so the
-  server can pick the secret — *critical, changes the signer output*; (3) whether the
-  `umsUrl` endpoints need signing (we assume not); (4) dual key/word support for
-  zero-downtime rotation.
+- 🔶 **RadFi team (low/ops-only):** (1) issue the **real `SECRET_KEY`/`SECRET_WORD` pair**
+  (the actual blocker to running it end-to-end); (2) one-line sanity byte-match of the
+  pinned test vector (their example used a placeholder digest); (3) **dual key/word support
+  for zero-downtime rotation** — ops planning, non-blocking. Everything else in their scheme
+  is settled above.
 - 🔶 **SDK release owner:** confirm the release branch name (`release`), that `rc.19` is the
   correct next number, and who cuts/publishes it.
 - 🔶 **#831 / product owner:** is `GET /swaps/quote?includeTxData=true` a supported entry

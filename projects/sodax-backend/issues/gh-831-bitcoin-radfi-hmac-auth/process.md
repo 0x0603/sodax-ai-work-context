@@ -108,4 +108,11 @@ updated: 2026-06-30
   - Still external: RadFi byte-match + **possible `x-api-key` key-id header** (critical) +
     ums signing + dual-key rotation; SDK owner (branch/number); product (quote thread vs
     descope).
-- Implementation still not started; awaiting plan review + the external confirmations.
+- **2026-07-01** — Reconciled the "ask RadFi" list against RadFi's actual response comment
+  (re-read verbatim). RadFi already specified: hex digest, `message = secret_word_timestamp`,
+  ms timestamp, 60 s, and the required headers = `x-api-signature` + `Authorization: Bearer`
+  **only** (no `x-api-key`). Retracted the earlier "critical x-api-key key-id" flag — the
+  single dedicated Sodax credential is how their server selects the secret. RadFi side now
+  essentially settled; only the real credential pair, an optional test-vector byte-match, and
+  dual-key rotation remain. Updated `plan.md` + `README.md`.
+- Implementation still not started; awaiting plan review + the remaining decisions.
