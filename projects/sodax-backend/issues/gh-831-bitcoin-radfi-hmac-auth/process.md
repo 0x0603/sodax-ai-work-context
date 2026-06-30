@@ -90,4 +90,22 @@ updated: 2026-06-30
   3. Added the missing `@Type(() => BitcoinBoundExtrasDto)` for the nested `bound` DTO.
   Plus nits: concluded the umsUrl signing scope; justified flat env vars vs `*_CONFIG`;
   noted the rc.19 base must contain #237; added the HMAC body-independence security note.
-- Implementation still not started; awaiting plan review + the open decisions in `plan.md`.
+- **2026-07-01** — Researched the open decisions (2nd background workflow: 5 decision
+  agents + synthesis). Outcomes folded into `plan.md`:
+  - **D2 seam VERIFIED** (matches an independent read): the signer rides the runtime
+    `SodaxOptionalConfig.radfi` channel (like logger/analytics/fee) → `ConfigService` →
+    `BitcoinSpokeService` passes `config.radfiSigner` to `RadfiProvider`; 6 edit sites.
+    Not on the serializable `chains.bitcoin.radfi`.
+  - **D1** ms + lowercase hex; pinned test vector independently re-verified via `node:crypto`
+    AND `openssl`: `sk_abc123`/`sw_xyz789`/`1719396000000` → `f1cc0894…553e_1719396000000`.
+  - **D3** sign only `apiUrl` `request()`; `umsUrl` calls are dapp-kit UI-only.
+  - **D4** cut `@sdks@2.0.0-rc.19` from the live `release` branch (docs' `release/sdk` is
+    stale); latest published is rc.18.
+  - **D5** body-nested `bound.accessToken` confirmed by 3 code sources.
+  - **D7** raw env vars (not SHA digest — must replay the key), Coolify, fail-fast, redact.
+  - Two scope-widening finds: `forbidNonWhitelisted:true` makes the `bound` DTO mandatory;
+    `getQuote?includeTxData` for BTC source is broken today (added step B4b).
+  - Still external: RadFi byte-match + **possible `x-api-key` key-id header** (critical) +
+    ums signing + dual-key rotation; SDK owner (branch/number); product (quote thread vs
+    descope).
+- Implementation still not started; awaiting plan review + the external confirmations.

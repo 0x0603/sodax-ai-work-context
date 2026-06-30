@@ -50,16 +50,35 @@ The SDK release is a one-directional blocking gate for the backend work.
 ## Status
 
 - [x] Analyzed, researched, plan written (this folder).
-- [ ] Awaiting review (matterhorn) + a few decisions to confirm — see
-  "Open decisions" in `plan.md`.
-- [ ] SDK signer hook + release (~rc.19).
+- [x] Open decisions researched — most resolved internally (high confidence); see
+  "Decisions" in `plan.md`.
+- [ ] Awaiting review (matterhorn) + the few external confirmations below.
+- [ ] SDK signer hook + release (`rc.19`).
 - [ ] swaps-api wiring (bump, config/env, provider, DTO threading, docs, tests).
 
-## Confirm-before-coding shortlist
+## Resolved internally (code-backed)
 
-1. HMAC wire format with RadFi: timestamp **ms** + **hex** digest (RadFi's own example
-   implies this) — pin it in a test before publishing the SDK.
-2. Signer hook shape: return **headers** (recommended) vs inject a whole **`fetch`**.
-3. Scope of `x-api-signature`: only the Sodax `apiUrl` endpoints, or the `umsUrl`
-   calls too.
-4. SDK release ownership + branch (cut from main/release, **not** `feat/bridge-api-v2`).
+- **Signer hook (D2):** `signRequest(ctx) → headers`, on the runtime
+  `SodaxOptionalConfig.radfi` channel (seam verified, 6 edit sites).
+- **HMAC (D1):** ms timestamp + lowercase hex. Test vector verified (`node:crypto` +
+  `openssl`): `sk_abc123`/`sw_xyz789`/`1719396000000` →
+  `f1cc08944bf1f22ad840eb10253cbc0b3e0f7a871034e5e1c29ae15565f1553e_1719396000000`.
+- **Scope (D3):** sign only the `apiUrl` `request()` calls; `umsUrl` is dapp-kit-only.
+- **Transport (D5):** request body, nested `bound: { accessToken }`.
+- **Secret (D7):** raw env var on swaps-api only (Coolify), redacted, fail-fast; rotate via
+  env + redeploy.
+- **Release (D4):** `@sdks@2.0.0-rc.19` from the live `release` branch.
+
+## Two findings that widened scope
+
+- `forbidNonWhitelisted: true` on the global pipe ⇒ the `bound` DTO field is **mandatory**
+  (without it the client's token is 400'd before the service).
+- `GET /swaps/quote?includeTxData=true` for a Bitcoin source is **broken today** — needs the
+  same token threading (B4b), or an explicit descope.
+
+## Still need external confirmation
+
+- 🔶 **RadFi:** byte-match the test vector; **whether a key-id header (`x-api-key`) is also
+  required** (critical); does `umsUrl` need signing; dual-key rotation.
+- 🔶 **SDK owner:** release branch (`release`) + that `rc.19` is the next number + who cuts it.
+- 🔶 **#831 / product:** thread vs descope `getQuote?includeTxData` for Bitcoin.

@@ -88,50 +88,62 @@ per-request via `extras.bound`. SDK: a thin pass-through hook.
 
 ### Part A — SDK (`sodax-sdks`), publish ~rc.19 (BLOCKING GATE)
 
-**A1. Add the signer-hook type + seam**
-- ⚠️ **Verify the seam first (precondition).** The exact placement below is a *proposed*
-  shape, not yet confirmed against how `ConfigService` threads non-serializable runtime
-  options. Verified today: `logger`/`analytics`/`fee` are held on `ConfigService`
-  **outside** the swappable `SodaxConfig`; a per-feature `radfi` runtime slot is **not**
-  confirmed to thread cleanly to `BitcoinSpokeService`. Confirm the real seam (it may end
-  up a top-level option, or a different carrier) before writing A1.
-- `@sodax/types`: add an optional runtime hook, placed next to `logger`/`analytics`
-  runtime options, i.e. **outside** the serializable `SodaxConfig` (proposed:
-  `SodaxOptions.radfi.signRequest`). Type:
-  ```ts
-  export type RadfiSigner = (req: { url: string; method: string })
-    => Record<string, string> | Promise<Record<string, string>>;
-  ```
-  Do **not** add `secretKey`/`secretWord` to `RadfiConfig`.
-- `packages/sdk/src/shared/entities/btc/RadfiProvider.ts`: thread the signer to the
-  provider and call it in the central `request()` helper (`:628-636`):
-  ```ts
-  private async request(endpoint, options) {
-    const url = `${this.config.apiUrl}${endpoint}`;
-    const extra = this.signer ? await this.signer({ url, method: options?.method ?? 'GET' }) : undefined;
-    return fetch(url, { ...options,
-      headers: { 'Content-Type': 'application/json', ...(options?.headers || {}), ...extra } });
-  }
-  ```
-- Scope (concluded): `request()` covers the `apiUrl` Sodax endpoints (incl.
-  `GET /wallets/details` via `getTradingWallet` and `POST /sodax/transaction`). The two
-  `umsUrl` `fetch` calls (`RadfiProvider.ts:291` `getBalance`, `:409` utxos) bypass
-  `request()`; confirm the raw-build path (`createIntent({raw:true})`) does **not** touch
-  them — if so, leave them unsigned (RadFi scopes HMAC to the Sodax endpoints) and do not
-  route them through `request()`.
-- Wire `SodaxOptions.radfi.signRequest` → `ConfigService` → `BitcoinSpokeService`
-  (`:75-84`, where `new RadfiProvider(...)` is constructed) → `RadfiProvider`.
-- **Do not** seed any instance token here.
+**A1. Add the signer-hook type + seam** (seam VERIFIED — D2)
+
+The signer rides the **runtime channel** (like `logger`/`analytics`/`fee`), **not** the
+serializable `chains.bitcoin.radfi` data contract. `BitcoinSpokeService` already receives
+the whole `ConfigService` and reads `config.logger`, so it can read a new
+`config.radfiSigner` the same way. Six edit sites:
+
+1. `@sodax/types` `packages/types/src/sodax-config/sodax-config.ts`: add the types and a
+   `radfi?: RadfiOptions` field on **`SodaxOptionalConfig`** (the runtime, non-serializable
+   side — NOT `RadfiConfig`, NOT `chains.bitcoin.radfi`):
+   ```ts
+   export type RadfiSignContext = { method: string; path: string; body?: unknown };
+   export type RadfiSigner = (ctx: RadfiSignContext)
+     => Record<string, string> | Promise<Record<string, string>>;
+   export type RadfiOptions = { signRequest?: RadfiSigner };
+   ```
+2. `packages/sdk/src/shared/entities/Sodax.ts` (`:50-71`): resolve
+   `const radfiSigner = options?.radfi?.signRequest` next to `fee`, pass into `ConfigService`.
+3. `packages/sdk/src/shared/config/ConfigService.ts` (`:78-92,:109-114`): hold
+   `public readonly radfiSigner: RadfiSigner | undefined` outside the swappable `sodax`
+   (so `initialize()`'s dynamic-config swap never clobbers it).
+4. `packages/sdk/src/shared/services/spoke/BitcoinSpokeService.ts` (`:80`):
+   `new RadfiProvider(chainConfig.radfi, config.radfiSigner)`.
+5. `RadfiProvider` ctor: accept + store the optional signer.
+6. `RadfiProvider.request()` (`:628-636`): call it per request, merge its headers:
+   ```ts
+   private async request(endpoint, options) {
+     const url = `${this.config.apiUrl}${endpoint}`;
+     const signed = this.signer
+       ? await this.signer({ method: options?.method ?? 'GET', path: endpoint }) : undefined;
+     return fetch(url, { ...options,
+       headers: { 'Content-Type': 'application/json', ...(options?.headers || {}), ...signed } });
+   }
+   ```
+- Do **not** add `secretKey`/`secretWord` to `RadfiConfig`; do **not** seed any instance token.
+- Scope (D3 — concluded): `request()` covers the whole raw-build path — both
+  `GET /wallets/details` (via `getTradingWallet`) and `POST /sodax/transaction` (via
+  `createWithdrawTransaction`) route through it. The two `umsUrl` `fetch` calls
+  (`RadfiProvider.ts:291` `getBalance`, `:409` utxos) are **dapp-kit UI-only**, never on the
+  server-side raw path → leave them unsigned; do not route them through `request()`.
 
 **A2. Tests** (`RadfiProvider.test.ts`)
 - With a signer set: assert the exact header it returns is merged onto all targeted
   endpoints; with no signer: byte-identical to today (browser path unaffected).
 
-**A3. Release**
-- Changeset → publish unified **~`@sdks@2.0.0-rc.19`** from main/release. Cut it from a
-  base that already contains #237 (`a2395f07`) so the release carries the rc.15+
-  `extras.bound.accessToken` plumbing alongside the new signer hook. Update
-  `packages/skills` + RadfiProvider docs; run `pnpm check:ai`, `pnpm test/build/checkTs`.
+**A3. Release** (D4 — procedure verified against the live repo)
+- Latest published is **`@sdks@2.0.0-rc.18`**; cut **`@sdks@2.0.0-rc.19`** (unified, all 7
+  packages). Merge the signer change to `main`, then cut from the **live release branch
+  `release`** (the repo's actual line — `release/sdk` in `RELEASE_INSTRUCTIONS.md` is stale;
+  `main` carries the `0.0.1-rc.5` placeholder and must not be tagged; **not**
+  `feat/bridge-api-v2`). On `release`: `git pull --no-ff origin main` (brings #237
+  `a2395f07` → carries `extras.bound.accessToken`), bump via `scripts/bump-versions.sh`
+  (7 pkgs + `CONFIG_VERSION` — the publish workflow validates every `package.json` equals
+  the tag), commit/push, draft GitHub Release tag `@sdks@2.0.0-rc.19` as pre-release
+  (`.github/workflows/sdks-publish.yml` publishes under the `rc` dist-tag).
+- Update `packages/skills` + RadfiProvider docs; run `pnpm check:ai`, `pnpm test/build/checkTs`.
   **Backend work waits on this being on npm.**
 
 ### Part B — swaps-api (`sodax-backend`), after ~rc.19 is published
@@ -156,8 +168,16 @@ per-request via `extras.bound`. SDK: a thin pass-through hook.
 - `apps/swaps-api/src/config/config.service.ts`: add `get radfiConfig()`, and **extend the
   sensitive-field strip (~`:31`)** (which currently drops mongo configs) to also redact
   `radfiConfig` so secrets never reach the startup warn log.
-- `.env-example`: add the 4 vars with placeholders + a comment that the secret pair is a
-  Sodax-scoped HMAC credential, server-only, provisioned as a deployment secret (Coolify).
+- `.env-example` + `apps/swaps-api/example.env.dev`: add the 4 vars with REDACTED
+  placeholders under the Swaps API section + a comment that the secret pair is a
+  Sodax-scoped HMAC credential, server-only, provisioned as a deployment secret (Coolify),
+  same class as `MONGO_PASSWORD`/`INTENT_CANCELLER_PRIVATE_KEY`. Store **raw** (not a
+  SHA-256 digest — unlike `ADMIN_ACCESS_TOKENS`; the server must replay the raw key to
+  compute the HMAC).
+- **Fail-fast at boot** when Bitcoin/RadFi swaps are enabled but the secret pair is unset
+  (mirror how `RPC_CONFIG`/`SOLVER_CONFIG` validate), so a misconfigured deploy fails
+  loudly instead of 401-ing every Bitcoin build at runtime. Rotation = update the Coolify
+  env on swaps-api + redeploy (HMAC is per-request from env; no SDK release needed).
 
 **B3. Wire the signer into the provider**
 - `apps/swaps-api/src/shared/providers/sodax.provider.ts`: when `configService.radfiConfig`
@@ -200,6 +220,10 @@ per-request via `extras.bound`. SDK: a thin pass-through hook.
   bound?: BitcoinBoundExtrasDto;
   ```
   (`@Type` from `class-transformer`.)
+  ⚠️ **This DTO field is mandatory, not optional plumbing:** the global pipe runs
+  `forbidNonWhitelisted: true` (`validation.pipe.ts:8-11`), so until `bound` is a declared
+  property a client sending it is **400'd before the service runs**. No DTO field ⇒ the
+  token can never arrive.
 - `apps/swaps-api/src/api/swaps/swaps.service.ts` `buildRawIntentAction` (`:430-448`):
   when the source chain is Bitcoin and `dto.bound?.accessToken` is present, attach
   `extras: { bound: { accessToken } }` to the returned action. `createIntent` (`:184`) and
@@ -212,9 +236,22 @@ per-request via `extras.bound`. SDK: a thin pass-through hook.
   Mirror the existing guard pattern at `swaps.service.ts:117-119`
   (`srcAddress/dstAddress required when includeTxData`). Place the check on the
   createIntent path (Bitcoin source ⇒ token mandatory).
-- Decide separately whether the `getQuote` `includeTxData` inline `createIntent`
-  (`swaps.service.ts:121-137`) needs the same threading for Bitcoin-source quotes — likely
-  defer; note explicitly.
+**B4b. Fix `getQuote?includeTxData=true` for Bitcoin source** (D6 — broken today; product decision)
+- **Current state is broken**, not merely missing: a BTC-source quote-with-txData either
+  400s at validation (if a client sends the token — `forbidNonWhitelisted`) or fails with an
+  opaque Bound 401 deep in the SDK (if omitted — the inline `createIntent` at
+  `swaps.service.ts:121-137` is built with **no `extras`**, so the token defaults to the
+  server's empty RadFi token, `chains.ts:826 accessToken:''`). The existing guard
+  (`:117-119`) checks only address presence, never the token.
+- **Recommended (thread it):** add nested `bound` (and `srcPublicKey`) to `QuoteRequestDto`
+  (`quote.dto.ts:28-95`), widen the service `getQuote` input (`swaps.service.ts:83-95`), and
+  pass `extras: { bound: input.bound }` on the inline `createIntent` action
+  (`swaps.service.ts:121-137`) — same shape as B4. Matches the published `QuoteRequestV2`.
+- **Fallback (descope):** if BTC-source `includeTxData` is out of scope for #831, add an
+  explicit 400 guard rejecting Bitcoin/Stacks-source quote-with-txData and pointing callers
+  to `POST /swaps/intents`. (Contradicts the published `QuoteRequestV2`, so threading is
+  preferred.)
+- ⛳️ **Product decision required** (see Open decisions) before picking thread vs descope.
 
 **B5. Docs**
 - `apps/swaps-api/README.md` + `docs/SWAPS_V2_INTEGRATION.md`: document the Bitcoin-source
@@ -236,6 +273,18 @@ Note: the signature binds **only** `secret_word + timestamp` — **not** the req
 URL. It is a time-boxed proof-of-possession of the credential, not a request-integrity MAC;
 do not assume it protects against body tampering. (This matches RadFi's stated scheme.)
 
+**Pinned test vector** (independently verified via `node:crypto` + `openssl`) — assert this
+byte-for-byte in the signer unit test, and use it to confirm the format with RadFi:
+
+```
+secret_key = "sk_abc123"   secret_word = "sw_xyz789"   timestamp = "1719396000000"
+x-api-signature = f1cc08944bf1f22ad840eb10253cbc0b3e0f7a871034e5e1c29ae15565f1553e_1719396000000
+```
+
+⚠️ **Open with RadFi:** whether a companion **key-id header** (e.g. `x-api-key`) must also
+be sent so the server can select which `secret_key` to validate against. If yes, the signer
+closure returns that header too.
+
 ## Sequencing
 
 `A1 → A2 → A3 (publish ~rc.19, GATE) → B1 → {B2, B3, B4 in parallel, reviewed together} → B5 → deploy + real BTC raw-build e2e`
@@ -243,9 +292,9 @@ do not assume it protects against body tampering. (This matches RadFi's stated s
 ## Verification
 
 - SDK: `RadfiProvider.test.ts` — signer header merged on targeted endpoints; no-signer is
-  byte-identical to today; **seam test**: a hook passed via the chosen option actually
-  reaches `RadfiProvider` (guards the A1 unverified seam). `pnpm test/checkTs/build/check:ai`
-  green.
+  byte-identical to today; **seam test**: a hook passed via `SodaxOptions.radfi.signRequest`
+  actually reaches `RadfiProvider.request()`. **HMAC test vector** asserted byte-for-byte
+  (see contract). `pnpm test/checkTs/build/check:ai` green.
 - swaps-api unit: `radfi-config.spec.ts` (valid subset passes; unknown/null rejected at
   boot; startup log contains no secret); `sodax.provider.spec.ts` (radfi → `signRequest`
   passed; bitcoin rpc override + radfi both survive the merge; no radfiConfig → no hook);
@@ -269,16 +318,36 @@ do not assume it protects against body tampering. (This matches RadFi's stated s
   target `chains.bitcoin`; deep-merge, don't clobber.
 - **Cross-repo coupling** — backend is blocked on the ~rc.19 publish; release from
   main/release, not `feat/bridge-api-v2` (which would also ship unreleased surface).
-- **Signer scope** — if the signer runs on every `request()` call, it also signs the
-  unauthenticated `GET /wallets/details` and any auth/refresh calls; confirm RadFi
-  tolerates the extra header, or scope the hook to the authenticated Sodax POST(s).
+- **Signer scope** — the signer runs on every `apiUrl` `request()` call, so it also signs
+  the unauthenticated `GET /wallets/details` (auth/refresh endpoints are short-circuited in
+  raw mode, so not on the build path). D3 keeps this deliberate; confirm RadFi tolerates the
+  extra header on the public GET (see "still need external confirmation").
+- **Key-id header** — if RadFi requires an `x-api-key`/key-id alongside the signature, the
+  current signer returns only `x-api-signature` and every request 401s until added. Resolve
+  the open RadFi question before the SDK release.
 
-## Open decisions (need a human / RadFi / SDK owner)
+## Decisions — resolved internally (high confidence, code-backed)
 
-1. HMAC wire details with RadFi: ms vs s, hex vs base64 (example implies **ms + hex**).
-2. Signer hook shape: return **headers** (recommended) vs inject a whole **`fetch`**.
-3. `x-api-signature` scope: Sodax `apiUrl` endpoints only, or `umsUrl` too.
-4. SDK release ownership + line + target version (cut ~rc.19 from main/release).
-5. Token transport: DTO body `bound.accessToken` (recommended) vs header.
-6. `getQuote includeTxData` for Bitcoin-source: thread the token, or declare unsupported.
-7. Secret provisioning + rotation procedure (Coolify env vs secret manager).
+- **D2 signer hook** — shape (a) `signRequest(ctx) → headers`, on the runtime
+  `SodaxOptionalConfig.radfi` channel (seam verified — 6 edit sites in A1).
+- **D3 signature scope** — sign only the `apiUrl` `request()` chokepoint; leave the two
+  dapp-kit-only `umsUrl` calls unsigned.
+- **D5 token transport** — request body, nested `bound: { accessToken }` (not a header).
+- **D7 secret provisioning** — raw env vars on swaps-api only via Coolify, redacted,
+  fail-fast at boot; rotation = env change + redeploy (no SDK release).
+- **D1 HMAC format** — ms timestamp + lowercase hex; pinned test vector above. (Format is
+  high-confidence from RadFi's own example; still byte-confirm with RadFi — see below.)
+- **D4 release** — `@sdks@2.0.0-rc.19` from the live `release` branch (procedure in A3).
+
+## Decisions — still need external confirmation
+
+- 🔶 **RadFi team:** (1) byte-match the pinned HMAC test vector (ms + hex, 60 s);
+  (2) **whether a key-id header (e.g. `x-api-key`) must accompany the signature** so the
+  server can pick the secret — *critical, changes the signer output*; (3) whether the
+  `umsUrl` endpoints need signing (we assume not); (4) dual key/word support for
+  zero-downtime rotation.
+- 🔶 **SDK release owner:** confirm the release branch name (`release`), that `rc.19` is the
+  correct next number, and who cuts/publishes it.
+- 🔶 **#831 / product owner:** is `GET /swaps/quote?includeTxData=true` a supported entry
+  point for Bitcoin source in this issue → **thread** the token (B4b), or ship BTC-source
+  via `POST /swaps/intents` only → **descope** with a 400 guard?
