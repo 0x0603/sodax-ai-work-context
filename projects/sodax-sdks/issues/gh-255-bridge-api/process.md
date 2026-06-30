@@ -29,6 +29,40 @@ Tooling note: the raw workflow output (digests + plan + critique) was saved to t
 session scratchpad: `…/scratchpad/{PLAN.md,CRITIQUE.md,digests/00..12.json}`. The
 distilled, corrected version lives in this folder's `plan.md` + `analysis-notes.md`.
 
+### 2026-06-30 — Backend contract DECIDED (Q&A, still no code)
+
+Resolved all 13 backend-contract questions in a grounded Q&A (every answer traced
+against real swap/bridge source). Captured in `reference/backend-contract/`
+(`README` + `01-routes` + `02-request-response-dtos` + `03-confirm-checklist` +
+`04-decisions`). Priority locked: **SDK first (Phases 1–6), backend after** — the
+`/bridge/*` endpoints don't exist yet; `useBackendSubmitTx` ships default-OFF.
+
+Key findings (corrections to the original plan draft):
+
+- **relayData (Q7):** bridge `submit-tx` must send the FULL `relayData {address,
+  payload}`, not just `payload`. Swap relies on `intent.creator` as the relay
+  envelope address; bridge has no intent but `relayData.address` (= `hubWallet`,
+  `BridgeService.ts:495`) is that address. Dropping it breaks split-tx-chain relay
+  (`relay-swap-tx.ts:74-78`).
+- **Param naming (Q4):** chose **swaps convention** (`inputToken/outputToken/
+  inputAmount/srcAddress/dstAddress`) over SDK bridge names; SDK maps at the API
+  boundary. (Plan draft had recommended SDK-bridge names — flipped.)
+- **Idempotency (Q12):** the re-relay idempotency the fallback needs is the GENERIC
+  relay layer (shared `relayTxAndWaitPacket` + relayer dedupe
+  `IntentRelayApiService.ts:195` + `e2e-relay.test.ts` test 2), already proven; the
+  swap-only part (re-post intent) is exactly what bridge lacks/doesn't need. Lower
+  risk than plan's Open Q#6 implied — flag OFF only until a bridge-flavored re-relay
+  assertion is added.
+- **Refund/cancel (Q11):** bridge has no intent-expiry refund; drop
+  `relayedForRefundAt`/`intentCancelled`. Stuck bridge → `RecoveryService.withdrawHubAsset`
+  (generic, out of band).
+- **Bitcoin source (Q13):** feasible via Bound TRADING mode (raw PSBT from the Radfi
+  backend via `radfi.createWithdrawTransaction`, needs only `accessToken` — no
+  wallet). USER self-custody raw throws. Bridge must mirror swap's
+  `extras.bound.accessToken` plumbing (currently absent in `createBridgeIntent` /
+  `CreateBridgeIntentParams`); V2 mirror types `BitcoinBoundExtrasV2`/`SwapExtrasV2`
+  already exist. (Earlier I wrongly called Bitcoin-via-API infeasible — corrected.)
+
 ## Findings
 
 ### Key architectural facts (verified)
