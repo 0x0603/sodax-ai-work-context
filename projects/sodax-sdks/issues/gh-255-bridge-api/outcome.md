@@ -39,6 +39,12 @@ in `process.md` (2026-06-30 — Implementation Phases 1–4). Highlights:
 - `@sodax/dapp-kit`: 6 `hooks/bridgeApi/*` (filled + new `useBridgeApiTokens`), barrel,
   `hooks/index.ts`, `_mutationContract.test.ts`.
 
+## Code review (PR #261)
+
+Post-implementation adversarial review → [reference/pr-261-code-review.md](reference/pr-261-code-review.md) (verdict: request-changes;
+no blockers, several should-fix). Top: bridge host routing under `CustomApiConfig` (`apiConfig.ts:96`),
+`submitTx`/dispatcher reuse duplication, two dead demo files (`SelectChain.tsx`, `mappers.ts`).
+
 ## Follow-ups
 
 - After SDK work + PR: backend implementation, pointing its `package.json` at local

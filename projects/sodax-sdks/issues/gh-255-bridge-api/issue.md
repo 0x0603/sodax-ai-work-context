@@ -161,3 +161,5 @@ an `OrderStatus` poller).
   same V2 contract + valibot + raw-tx patterns).
 - Analysis artifacts in this folder: `plan.md` (full plan), `process.md` (how the
   analysis was done), `analysis-notes.md` (reference signatures + critic findings).
+- Post-implementation review: [reference/pr-261-code-review.md](reference/pr-261-code-review.md)
+  (PR #261 adversarial review — request-changes; the should-fix to-do list).

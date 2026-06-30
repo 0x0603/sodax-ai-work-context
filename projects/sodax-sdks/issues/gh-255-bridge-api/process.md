@@ -169,6 +169,26 @@ full-repo typecheck/lint/test/circular-deps + bridge e2e re-relay assertion + PR
   - Gate: `sodax-demo-v2 checkTs` + `lint` green (the 5 lint warnings are all pre-existing files, none
     in bridge-api). Not committed yet.
 
+### 2026-06-30 — Post-implementation code review of PR #261
+
+Ran an adversarial multi-agent review (9 reviewers per scope → verify each finding; 31 agents,
+~1.9M tokens). 22 raw → **16 survived, 6 refuted**. Verdict **request-changes** (no blockers; the
+default flat-config path ships fine). Full write-up: [reference/pr-261-code-review.md](reference/pr-261-code-review.md). Headline items:
+
+- **S1 (should-fix, correctness):** `apiConfig.ts:96` `resolveBridgeApiConfig` aliases
+  `resolveBaseApiConfig`, but `/bridge/*` is co-located with swaps → under `CustomApiConfig`
+  split-host, bridge calls route to the base host (wrong). Decision #1 was internally inconsistent
+  ("swaps host" comments vs base-host code). Fix: alias `resolveSwapsApiConfig` + fix the test that
+  codifies the wrong behavior + the docs.
+- **Reuse (the review priority):** `BridgeService.submitTx` duplicates `SwapService.submitTx` poll
+  loop; demo `signAndBroadcast.ts` is a verbatim copy of the swaps one → extract shared helpers.
+- **Dead demo files:** `bridge-api/SelectChain.tsx` (unused; inline selects show raw chain keys) +
+  `bridge-api/lib/mappers.ts` (`toXToken` unused).
+- Smaller: stale Bitcoin docstring (`BridgeService.ts:547`), missing `useBridgeApiTokensByChain`,
+  skills `AGENTS.md` router inventory missing `bridge-api`, JSON-safety guard / `BridgeExtras` dup.
+
+Not fixed yet — awaiting go-ahead.
+
 ## Findings
 
 ### Key architectural facts (verified)
