@@ -63,6 +63,33 @@ Key findings (corrections to the original plan draft):
   `CreateBridgeIntentParams`); V2 mirror types `BitcoinBoundExtrasV2`/`SwapExtrasV2`
   already exist. (Earlier I wrongly called Bitcoin-via-API infeasible — corrected.)
 
+### 2026-06-30 — plan.md reconciled to the 13 decisions (9-agent workflow)
+
+Ran a reconcile workflow (7 gather/verify agents grounded against real source +
+synthesize + adversarial critique; 9 agents, ~641K tokens, 111 tool calls). Applied 46
+verified edits to `plan.md` so it matches the locked contract:
+
+- `CreateBridgeIntentParamsV2` → swaps wire naming (`inputToken/outputToken/inputAmount/
+  srcAddress/dstAddress`) + `bound?`/`srcPublicKey?`; SDK maps domain→wire (new mapper).
+- submit-tx → FULL `relayData {address,payload}` (not `.payload`); `BridgeSubmitTxRequestV2`
+  uses `RelayExtraDataResponseV2`.
+- Tokens backend-served: `getTokens`/`getTokensByChain` on `IBridgeApiV2` + `useBridgeApiTokens`
+  (`bridgeApi/` = 6 hooks); bridgeable-amount stays client-side.
+- New §3 sub-step: Bitcoin-source-via-Bound plumbing (`BridgeExtras`, 4-arg `BridgeParams`,
+  `createBridgeIntent` accessToken/srcPublicKey, lift effective-wallet for raw).
+- Host #1: shared base — no `BridgeApiConfig` type / no `constants.ts` change;
+  `resolveBridgeApiConfig` = unconditional `resolveBaseApiConfig`.
+- Status #10/#11: 5-state, drop `intent_hash` + `relayedForRefundAt`/`intentCancelled`, tolerant schema.
+- Idempotency #12: reframed re-relay as safe-by-construction (shared `relayTxAndWaitPacket` +
+  relayer dedupe + generic e2e test 2); flag default-OFF + add a bridge e2e assertion.
+- Open Questions → Decided (#1,2,3,4,5,8); only #7 (backend endpoint timeline) genuinely open.
+- Dependency table flipped to ✅ (rebase DONE, scaffold `8fd58453`); Phase 0 marked done.
+
+Critique verified all 44 changeset anchors verbatim/unique + groundings accurate against
+source; folded the E15 wording fix (wallet-provider invariant scoped to `raw===false` for any
+Bitcoin mode; `ensureRadfiAccessToken` to TRADING sub-branch) + 2 missed-section fixes
+(dependency table, the `Extend (not duplicate)` block). Still SDK-first; no source code written yet.
+
 ## Findings
 
 ### Key architectural facts (verified)
