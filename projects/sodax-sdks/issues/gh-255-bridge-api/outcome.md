@@ -2,35 +2,42 @@
 type: outcome
 repo: sodax-sdks
 github: 255
-status: Not started
+status: In progress
 updated: 2026-06-30
 ---
 
 # Outcome
 
-- PR:
-- Commits:
-- Tests:
+- PR: https://github.com/icon-project/sodax-sdks/pull/261 (base `feat/swaps-api-v2`)
+- Commits (on `origin/feat/bridge-api-v2`): `e3d8343e` (Phases 1–4 SDK+dapp-kit) · `516466cb` (Phase 5 demo) · `d09e2ff1` (Phase 6 docs + Phase 7 e2e note)
+- Tests: sdk 1690 ✅ · dapp-kit 359 ✅ · demo checkTs+lint ✅ · `pnpm check:ai` ✅
+- Phase 7 full-repo gates ✅: build:packages + checkTs (10/10) + lint (10/10) + test (14/14) + circular-deps (no cycle).
+
+**Status: ALL PHASES 1–7 implemented + pushed.** Only the PR remains (gated on explicit request).
 
 ## Summary
 
-Code not started, but **unblocked**. Analysis + plan complete (`plan.md`), and the
-backend contract is now **decided** (`reference/backend-contract/04-decisions.md`,
-13/13). Status of the earlier gates:
+**SDK + dapp-kit (Phases 1–4) IMPLEMENTED, all gates green.** The priority-#1 SDK
+surface is done: `@sodax/types` bridge DTOs, `@sodax/sdk` `BridgeApiService`
+(`sodax.api.bridge.*`) + `BridgeService` backend-submit/fallback refactor + Bitcoin-Bound
+plumbing, and `@sodax/dapp-kit` 6 `bridgeApi/` hooks. `useBackendSubmitTx` ships
+**default-OFF**. Built to the decided contract (`reference/backend-contract/04-decisions.md`);
+the `/bridge/*` backend doesn't exist yet and implements to the same contract later.
 
-1. ✅ Phase 0 done — branch `feat/bridge-api-v2` is off `feat/swaps-api-v2`, so the
-   #210 runtime foundation is present; a WIP scaffold commit (`8fd58453`, 17 stub
-   files across all 5 packages) already exists.
-2. ✅ Backend `/bridge/*` routes + DTOs decided (mirror swaps; backend not built yet
-   — it implements to the decided contract LATER).
-3. ✅ All open questions resolved (host, naming, reads, status, idempotency, Bitcoin).
-
-**Next: implement the SDK (priority #1) — Phases 1–6 in `plan.md`**, against the
-decided contract, schemas tolerant, `useBackendSubmitTx` default-OFF. Backend follows.
+Remaining: Phase 5 (demo bridge-api page), Phase 6 (skills/docs), Phase 7 (full-repo
+build/typecheck/lint/test/circular-deps + bridge e2e re-relay assertion + PR).
 
 ## What Changed
 
-(nothing yet)
+Working tree on `feat/bridge-api-v2` (uncommitted). Per-phase file list + gate results
+in `process.md` (2026-06-30 — Implementation Phases 1–4). Highlights:
+
+- `@sodax/types`: `backend/backendBridgeApiV2.ts` (filled), `backend/index.ts`, `sodax-config.ts`.
+- `@sodax/sdk`: `backendApi/{bridgeApiSchemas,BridgeApiService}.ts` (filled) + `apiConfig.ts`,
+  `BackendApiService.ts`, `backendApi/index.ts`; `bridge/BridgeService.ts` refactor; `Sodax.ts`;
+  tests `BridgeApiService.test.ts`, `apiConfig.test.ts`, `bridge/BridgeService.test.ts`.
+- `@sodax/dapp-kit`: 6 `hooks/bridgeApi/*` (filled + new `useBridgeApiTokens`), barrel,
+  `hooks/index.ts`, `_mutationContract.test.ts`.
 
 ## Follow-ups
 

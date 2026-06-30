@@ -16,7 +16,7 @@ related_decisions: []
 - Assignee: 0x0603 (me)
 - Started: 2026-06-30
 - Reference PR: #210 (`feat/swaps-api-v2`) — the "prime example" to mirror
-- Bridge PR: TBD
+- Bridge PR: #261 (https://github.com/icon-project/sodax-sdks/pull/261) → base `feat/swaps-api-v2`
 
 ## Problem
 

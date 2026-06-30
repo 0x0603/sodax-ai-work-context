@@ -15,9 +15,26 @@ updated: 2026-06-30
 ## You are here
 
 - ✅ **Phase 0 done** — branch off #210 (`feat/swaps-api-v2`); scaffold commit `8fd58453` (17 stub files).
+- ✅ **Phase 1 done** (`@sodax/types`) — `checkTs` green.
+- ✅ **Phase 2 done** (`@sodax/sdk` HTTP client) — `checkTs` + `vitest src/backendApi` (194) green.
+- ✅ **Phase 3 done** (`@sodax/sdk` BridgeService refactor + Bitcoin-Bound) — `checkTs` + `sdk test` (1690) green.
+- ✅ **Phase 4 done** (`@sodax/dapp-kit` 6 `bridgeApi/` hooks) — `checkTs` + `dapp-kit test` (359) green.
+  **Phases 1–4 committed + pushed** as `e3d8343e` on `origin/feat/bridge-api-v2` (after a comment
+  cleanup pass that stripped all private-repo `Decision #N` refs from committed code).
+- ✅ **Phase 5 done** (`@sodax/demo` bridge-api page) — `sodax-demo-v2 checkTs` + `lint` green.
+  Approach (per user): BASE = existing bridge demo UI + WIRE the Bridge API in (not a swaps-api copy).
+  **Committed + pushed** as `516466cb` on `origin/feat/bridge-api-v2`.
+- ✅ **Phase 6 done** (skills/docs) — `pnpm check:ai` green (all 6 sub-checks). **Committed + pushed** as `d09e2ff1`.
+- ✅ **Phase 7 gates done** — `build:packages` + full-repo `checkTs` (10/10) + `lint` (10/10) + `test`
+  (14/14, sdk 1690) + `check:circular-deps` (no cycle) all green. P7.1 e2e: documented bridge re-relay
+  coverage in `e2e-relay.test.ts` docstring (a dedicated bridge assertion needs real already-relayed
+  bridge data — follow-up). Committed in `d09e2ff1`. **P7.7 PR NOT opened** (gated on explicit request).
+- ✅ **ALL PHASES 1–7 implemented + pushed** on `origin/feat/bridge-api-v2` (commits `e3d8343e`,
+  `516466cb`, `d09e2ff1`). Only the PR remains (open on explicit request, base `feat/swaps-api-v2`).
 - **Priority: SDK-first** (types → sdk → dapp-kit → demo → docs). `useBackendSubmitTx` ships **default-OFF**.
 - `> scaffold exists` = file already stubbed at `8fd58453`; you're **filling it in**, not creating.
 - At each phase end, run the **✅ Gate** before the next phase.
+- Detailed implementation log (env-install gotcha, madge-cycle mapper note, file-by-file) is in `process.md`.
 
 ---
 

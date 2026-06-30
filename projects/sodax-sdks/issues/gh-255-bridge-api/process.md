@@ -90,6 +90,85 @@ source; folded the E15 wording fix (wallet-provider invariant scoped to `raw===f
 Bitcoin mode; `ensureRadfiAccessToken` to TRADING sub-branch) + 2 missed-section fixes
 (dependency table, the `Extend (not duplicate)` block). Still SDK-first; no source code written yet.
 
+### 2026-06-30 — Implementation Phases 1–4 (SDK + dapp-kit) — all gates green
+
+Worked the locked plan one box at a time, top→bottom, running each `verify:` before
+ticking. Branch `feat/bridge-api-v2` (off `feat/swaps-api-v2`, scaffold `8fd58453`).
+
+Environment note: the fresh checkout had an INCOMPLETE pnpm install — `valibot` (and
+other catalog deps) were in the store but not symlinked into `packages/*/node_modules`,
+so `checkTs` failed with `Cannot find module 'valibot'` even on untouched swaps files.
+Fixed with `pnpm i --prefer-offline` (relinked; "Already up to date" but the symlinks
+were created). Not a code issue.
+
+**Phase 1 — `@sodax/types`** (gate `checkTs` ✅):
+- Filled `backend/backendBridgeApiV2.ts` (was a stub): `BridgeTokenV2` + token responses,
+  `CreateBridgeIntentParamsV2` (swaps wire names + `srcPublicKey?`/`bound?`), allowance/approve/
+  create-intent responses (`{tx, relayData}`, no intent), submit-tx + tolerant 5-state status
+  (`status` typed `string` to match the tolerant `v.string()` schema), `IBridgeApiV2` (7 methods),
+  `_AssertJsonSafe` guard re-declared module-private on `GetBridgeTokensByChainResponseV2`.
+- Exported from `backend/index.ts`; added `BridgeClientOptions` + `bridgeOptions?` to
+  `sodax-config.ts` (distinct from the data `bridge` partner-fee slot).
+
+**Phase 2 — `@sodax/sdk` HTTP client** (gate `checkTs` + `vitest src/backendApi` = 194 ✅):
+- `bridgeApiSchemas.ts` (reuses `RelayExtraDataResponseSchema` from swaps; status `v.string()`
+  tolerant; packet/result/status sub-schemas module-private).
+- `BridgeApiService.ts` (mirrors `SwapsApiService`, 7 routes, message `…bridge API…`) +
+  `toCreateBridgeIntentParamsV2` domain→wire mapper. NOTE: the mapper takes a STRUCTURAL input
+  (not `import type CreateBridgeIntentParams from ../bridge`) to avoid a `backendApi → bridge`
+  madge cycle (`check:circular-deps` follows `import type`).
+- `resolveBridgeApiConfig` (alias of `resolveBaseApiConfig`, Decision #1); wired `bridge` into
+  `BackendApiService` (+ `setHeaders` fan-out); barrel export.
+- Tests: `BridgeApiService.test.ts` (routing 7, happy paths, mapper, tolerant-status, validation,
+  transport, override, utils) + `resolveBridgeApiConfig` cases in `apiConfig.test.ts`.
+
+**Phase 3 — `@sodax/sdk` BridgeService refactor** (gate `checkTs` + `sdk test` = 1690 ✅):
+- ctor gained `backendApi` + `useBackendSubmitTx` (default off); wired in `Sodax.ts` via a distinct
+  `bridgeUseBackendSubmitTx = options?.bridgeOptions?.useBackendSubmitTx ?? false`.
+- `BridgeExtras<K>` (Stacks `srcPublicKey?` / Bitcoin `bound?` slots, NO partnerFee) + widened
+  `BridgeParams` to 4-arg.
+- `createBridgeIntent`: lifted `getEffectiveWalletAddress` out of the `raw===false` gate (derives the
+  Bitcoin trading wallet for raw too); kept provider-invariant + `ensureRadfiAccessToken` gated on
+  `raw===false`; added `srcPublicKey`/`accessToken` to `coreParams` (Decision #13).
+- Extracted `fallbackBridgeSteps` (verify + relay, shared-deadline floor 5s, no hub short-circuit);
+  added backend `submitTx` (FULL relayData envelope, terminal `executed && dstIntentTxHash`, no
+  `intent_hash`); refactored `bridge()` to createBridgeIntent → shared deadline → submit (if flag) →
+  fallback.
+- Tests: 5-case backend submit-tx batch + 3 Sodax bridgeOptions wiring assertions (19 bridge tests).
+
+**Phase 4 — `@sodax/dapp-kit`** (gate `checkTs` + `dapp-kit test` = 359 ✅):
+- 6 `bridgeApi/` hooks (allowance, approve, createBridgeIntent, submitTx, submitTxStatus, tokens).
+  Allowance queryKey uses WIRE names (`inputToken`/`inputAmount`, Decision #4 — the stub's old
+  `srcToken`/`amount` would not typecheck against the wire DTO). Status poller stops on
+  `executed`/`failed` (no `posting_execution`).
+- Barrel + `hooks/index.ts` export; registered the 3 mutation hooks in `_mutationContract.test.ts`.
+
+Remaining: Phase 5 (demo bridge-api page), Phase 6 (skills/docs), Phase 7 (build:packages +
+full-repo typecheck/lint/test/circular-deps + bridge e2e re-relay assertion + PR).
+
+### 2026-06-30 — Comment cleanup + push (Phases 1–4) + Phase 5 (demo)
+
+- **Comment cleanup (user feedback):** stripped ALL `Decision #N` / `04-decisions` / `backend-contract`
+  references from committed `sodax-sdks` code (they belong only to the private context repo) and
+  made verbose comments concise (notably the 5-line Bitcoin comment in `createBridgeIntent`).
+  Saved a feedback memory. Re-verified checkTs + tests green.
+- **Pushed Phases 1–4** as commit `e3d8343e` → `origin/feat/bridge-api-v2`. (commitlint requires a
+  lowercase subject start: `feat(bridge): add Bridge API client and backend submit-tx flow (gh-255)`.
+  husky `.husky/pre-commit` is empty; `.lintstagedrc` exists but isn't invoked. `dist/` is gitignored.)
+- **Phase 5 (demo) — approach corrected by user:** NOT a wholesale copy of the swaps-api demo. The
+  bridge-api page is the EXISTING bridge demo UI (BridgeManager + BridgeDialog UX: chain/token select,
+  max-bridgeable, route-availability gate, Bitcoin/Stellar/NEAR gating) with the Bridge API wired in
+  (allowance/approve/createBridgeIntent/submitTx via `bridgeApi/` hooks), mirroring how the swaps-api
+  demo is swap + API. Token discovery + bridgeable math stay CLIENT-SIDE (`useGetBridgeableTokens` /
+  `useGetBridgeableAmount` / `sodax.bridge.isBridgeable`) — no backend dependency.
+  - Filled `components/bridge-api/{lib/config,lib/mappers,lib/signAndBroadcast,SelectChain,OrderStatus,BridgeCard}.tsx`
+    + `pages/bridge-api/page.tsx`; wired route in `App.tsx` + nav in `components/shared/header.tsx`.
+  - submit-tx sends the FULL `relayData` object (not `.payload`). Bitcoin source routes via
+    `sodax.spoke.getSpokeService(BITCOIN).signAndSubmitRawTransaction` with the Bound accessToken
+    threaded into the create body.
+  - Gate: `sodax-demo-v2 checkTs` + `lint` green (the 5 lint warnings are all pre-existing files, none
+    in bridge-api). Not committed yet.
+
 ## Findings
 
 ### Key architectural facts (verified)
