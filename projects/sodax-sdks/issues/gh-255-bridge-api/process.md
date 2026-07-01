@@ -2,12 +2,114 @@
 type: process
 repo: sodax-sdks
 github: 255
-updated: 2026-06-30
+updated: 2026-07-01
 ---
 
 # Process
 
 ## Log
+
+### 2026-07-01 — Fixed dead Bitcoin dust-limit guard in SwapService.createIntent
+
+Spotted while reviewing `packages/sdk/src/swap/SwapService.ts` on `feat/bridge-api-v2`. The
+546-sat dust guard read `params.outputToken === 'BTC'`, but `outputToken` is an **original asset
+address** (native BTC is `'0:0'`), never the symbol string. Real callers pass the address
+(`dst.token.address`), so the guard never fired — dead code — and the only value that *would*
+satisfy it (`'BTC'`) failed the preceding `isValidOriginalAssetAddress` invariant anyway. The
+unit test only passed because a global `beforeEach` stubbed `isValidOriginalAssetAddress → true`
+and fed the literal `'BTC'`.
+
+- **FIX** resolve the token via `this.config.getSpokeTokenFromOriginalAssetAddress(dstChainKey,
+  outputToken)` and match on `.symbol === 'BTC'` instead of comparing the address to `'BTC'`.
+- **TEST** now passes the real BTC address (`spokeChainConfig[BITCOIN_MAINNET].supportedTokens.BTC
+  .address`) and asserts the dust-limit message — so it actually guards the regression.
+- **Verify:** `SwapService.test.ts` 155/155, `tsc` exit 0, Biome clean.
+- Committed + pushed → `sodax-sdks@feat/bridge-api-v2` `bda4111b`.
+- `sodax-frontend` has the same bug (`SwapService.ts:951`, v1 API on `main`) — left untouched,
+  awaiting user decision (would need a dedicated branch, not a direct `main` push).
+
+### 2026-07-01 — P0.1 Node smoke test for raw bridge-tx (created + ran)
+
+The steps.md P0.1 box said `bridge-raw.ts` was "already written, compiles" but it did NOT
+exist in the working tree — created it fresh, mirroring the existing raw-intent scripts
+(`stacks-raw-intent.ts` / `injective-raw-intent.ts`).
+
+- **CREATE** `apps/node/src/bridge-raw.ts` — `new Sodax()` (static defaults), calls
+  `sodax.bridge.createBridgeIntent({ params, raw: true, skipSimulation: true })`. No PK / wallet /
+  funds; read-only mainnet (derives hub wallet + resolves vault config, needs RPC).
+  - Auto-discovers a bridgeable pair: scans `sodax.config.spokeChainConfig[SRC].supportedTokens`,
+    keeps the first token whose `getBridgeableTokens(SRC, DST, addr)` is non-empty (same hub vault),
+    prefers USDC/bnUSD/SODA for readable output; skips `withdrawOnly` src / `depositOnly` dst.
+  - Env overrides: `BRIDGE_SRC`/`BRIDGE_DST` (default ARBITRUM→BASE), `SRC_ADDRESS`/`RECIPIENT`
+    (default sample EVM addr — any valid EVM addr works, hub-wallet derivation is deterministic),
+    `BRIDGE_AMOUNT` (default 0.01 of src token in base units).
+  - Chain-key env values narrowed via a runtime `isValidSpokeChainKey` guard (validated cast to
+    `SpokeChainKey`, no unsafe silencing).
+- **MODIFY** `apps/node/package.json` — added `"bridge-raw": "tsx src/bridge-raw.ts"`.
+- **Verify:** `bridge-raw.ts` typechecks clean (`pnpm checkTs` errors are all pre-existing in the
+  stale `sui.ts`, untouched by this change). **Ran `pnpm bridge-raw` → PASS:** auto-picked
+  USDC(Arbitrum)→USDC(Base), printed the unsigned EVM raw tx `{from,to,value,data}` +
+  `relayData {address:hubWallet, payload:0x…}`. Proves the BE-builds-raw assumption on the CURRENT
+  SDK before any bridge-api backend exists. Not committed (awaiting explicit request).
+
+### 2026-07-01 — Extended bridge-raw smoke test to ALL source-chain families
+
+User asked to cover NEAR / Injective / Solana / Stacks / Bitcoin sources too. Generalized
+`apps/node/src/bridge-raw.ts` into a **chain-aware** script: `BRIDGE_SRC=<chainKey>` picks the source;
+per-family sample address + extras are supplied automatically. Discovery scans the source chain's
+supported tokens for the first pair bridgeable to an EVM destination (so the recipient is a plain EVM
+address; default dst resolves to the `sonic` hub, which is EVM).
+
+Key facts learned (bridge raw deposit == swap raw deposit at the spoke; only the hub `data` differs):
+
+- **Type gotcha:** with `srcChainKey` typed as the `SpokeChainKey` UNION, `BridgeExtras<K>` collapses to
+  `never` (can't set `srcPublicKey`/`bound`). Stacks/Bitcoin each have ONE mainnet key → pass an explicit
+  type arg `createBridgeIntent<typeof ChainKeys.STACKS_MAINNET, true>({…})` to open the `extras` slot
+  (mirrors the existing `approve<…, false>` usage). Inlining params per branch alone was NOT enough.
+- **Stale-dist trap:** apps/node resolves `@sodax/sdk` → `packages/sdk/dist/index.mjs`. The Bitcoin-Bound
+  plumbing (Decision #13: `srcPublicKey`/`accessToken` in `coreParams`) was missing from the loaded
+  bundle, so Stacks/Bitcoin silently dropped `extras` (spoke threw "requires srcPublicKey" / "no token
+  set"). `pnpm build:packages` said FULL-TURBO-cached; a **clean rebuild** (`rm -rf packages/sdk/dist
+  .turbo && pnpm --filter @sodax/sdk build`) fixed it. Rule: rebuild the SDK before running node scripts
+  after any SDK source change.
+
+Results per source (against freshly-built dist):
+
+| Source | Raw build | Note |
+| --- | --- | --- |
+| EVM (Arbitrum) | ✅ PASS | `{from,to,value,data}` |
+| Solana | ✅ PASS | unsigned v0 tx (base64) + RPC blockhash |
+| NEAR | ✅ PASS | `NearRawTransaction` object, no network read |
+| Stacks | ✅ PASS | `{ payload }`; needs `extras.srcPublicKey` (sample pubkey↔address pair) |
+| Injective | ✅ PASS | raw build ALWAYS simulates gas (`getRawTransaction`, ignores skipSimulation) → Cosmos bank check → source address must HOLD ≥ amount of the exact deposit denom. Wallet `inj10ch5…` holds 0.236 **bnUSD** + 1.35 INJ; discovery defaulted to USDC (0 held → "insufficient funds"), so pin `SRC_TOKEN=factory/inj1d036…/bnUSD` → built the unsigned Cosmos SignDoc (bodyBytes 2906 B) + relayData. |
+| Bitcoin | ⚠️ Bound 403 | SDK now correctly forwards `accessToken` → Bound `getTradingWallet`; Bound edge returns HTTP 403 to plain Node server-to-server (documented in `bitcoin-raw-intent-check.ts`). Needs a valid non-expired token + browser origin. Mechanism OK. |
+
+**Injective address model (MetaMask Q):** `srcAddress` MUST be bech32 `inj1…` (Cosmos REST auth +
+`MsgExecuteContract.sender`). MetaMask's `0x` is the SAME 20-byte account re-encoded — `InjectiveWalletProvider.getWalletAddress()` runs `walletStrategy.getAddresses()` (returns `0x`) →
+`getInjectiveSignerAddress` → `inj1…`. So in a real dapp the connected account is already `inj1…`; in
+Node convert a raw `0x` via `getInjectiveAddress()` before passing.
+
+Added a **`SRC_TOKEN`** env to `bridge-raw.ts` — pins the source token by address so it matches what a
+given wallet actually holds (needed for the balance-gated Injective simulate).
+
+5/6 build read-only against a normal address (EVM/Solana/NEAR/Stacks with no funds; Injective needs the
+source wallet to hold the deposit denom, which `inj10ch5…`+bnUSD satisfies). Only Bitcoin stays gated by
+the Bound edge 403 (infra, needs browser origin). Not committed.
+
+**Default = run ALL:** `pnpm bridge-raw` (no arg) sweeps one representative source per family and prints a
+summary table; pass a network to run just one — accepts a chain key OR a friendly alias derived from the
+`ChainKeys` constant (`pnpm bridge-raw arbitrum|solana|injective|near|stacks|bitcoin`). Single-mode auto-
+applies the per-family hint (Injective → bnUSD). Removed the separate `bridge-raw:all` script. Sweep
+result: **5/6 PASS** (EVM/Solana/NEAR/Injective(bnUSD)/Stacks); Bitcoin ❌ only from the Bound edge 403. Confirms `createBridgeIntent` never throws for domain errors — even the deep
+Bitcoin `RadfiApiError` (403) came back as `result.ok === false` (the SDK's outer try/catch guard), so the
+`all` loop's defensive try/catch was NOT triggered.
+
+**Native-token coverage:** Bitcoin's case is already native BTC (`0:0`). Verified EVM native ETH via
+`BRIDGE_SRC=0xa4b1.arbitrum SRC_TOKEN=0x0000000000000000000000000000000000000000` — the native entry has a
+`sodaETH` vault (bridgeable ETH↔WETH), and the raw tx carries **`value: 0.01 ETH`** (the native path in
+`EvmSpokeService.deposit`: `value = token===nativeToken ? amount : 0n`) instead of an ERC20 transfer →
+PASS. Native sentinels for the other families (Solana `1111…1111`, Injective `inj`) can be pinned the same
+way via `SRC_TOKEN`; documented in the script header.
 
 ### 2026-06-30 — Analysis + planning (no code yet)
 

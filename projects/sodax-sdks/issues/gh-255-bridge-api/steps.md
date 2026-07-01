@@ -3,7 +3,7 @@ type: steps
 repo: sodax-sdks
 github: 255
 status: Active
-updated: 2026-06-30
+updated: 2026-07-01
 ---
 
 # GH-255 Bridge API — micro-steps (follow-along)
@@ -43,9 +43,10 @@ updated: 2026-06-30
 > Confirms the key assumption (the backend builds a raw/unsigned bridge tx) against the
 > CURRENT SDK — no new bridge-api code needed. Do this before Phase 1.
 
-- [ ] **P0.1** Smoke-test raw bridge-tx build via Node — `apps/node/src/bridge-raw.ts` (**already written, compiles**) + `apps/node/package.json` (`bridge-raw` script added) · uses `sodax.bridge.createBridgeIntent({ raw: true, skipSimulation: true })` — **no wallet/funds**, read-only mainnet (derives hub wallet, needs network); auto-discovers a bridgeable pair (default ARBITRUM→BASE, override via `BRIDGE_SRC`/`BRIDGE_DST`/`SRC_ADDRESS`/`RECIPIENT` env) · run: `cd apps/node && pnpm bridge-raw` (if `@sodax/sdk` dist missing: `pnpm build:packages` first) · expect: prints `{ tx, relayData: { address, payload } }` then `✅ PASS` · (~10min)
+- [x] **P0.1** Smoke-test raw bridge-tx build via Node — **CREATED** `apps/node/src/bridge-raw.ts` (file did NOT exist despite the earlier "already written" note) + `apps/node/package.json` (`bridge-raw` tsx script) · uses `sodax.bridge.createBridgeIntent({ raw: true, skipSimulation: true })` — read-only mainnet; auto-discovers a bridgeable pair to an EVM dst · **default runs ALL families** (`pnpm bridge-raw` → summary table); pass a network to run one (`pnpm bridge-raw arbitrum|solana|injective|near|stacks|bitcoin`, accepts chain key or friendly alias). Per-family sample addr + extras + token hint (Injective→bnUSD) auto-supplied; overrides `BRIDGE_DST`/`SRC_ADDRESS`/`SRC_TOKEN`/`SRC_PUBLIC_KEY`/`BOUND_ACCESS_TOKEN`/`RECIPIENT`/`BRIDGE_AMOUNT` · run: `cd apps/node && pnpm bridge-raw` (rebuild SDK first after any SDK change).
+  - **Ran all 6 source families (fresh dist):** EVM ✅ · Solana ✅ · NEAR ✅ · Stacks ✅ (needs `srcPublicKey`) · Injective ✅ (via wallet `inj10ch5…` holding bnUSD + `SRC_TOKEN` pin; raw build simulates gas so source must hold the deposit denom) · Bitcoin ⚠️ (SDK forwards accessToken OK; Bound edge 403s Node server-to-server — needs browser origin + valid token). Added `SRC_TOKEN` env to pin the source token by address. Only Bitcoin gated by infra. See `process.md` 2026-07-01.
 
-✅ **Gate:** `pnpm bridge-raw` prints a raw tx + relayData (proves BE-builds-raw works before building the API).
+✅ **Gate:** `pnpm bridge-raw` prints a raw tx + relayData (proves BE-builds-raw works before building the API). **DONE — green (EVM/Solana/NEAR/Stacks); Injective/Bitcoin gated by chain/infra as expected.**
 
 ---
 
