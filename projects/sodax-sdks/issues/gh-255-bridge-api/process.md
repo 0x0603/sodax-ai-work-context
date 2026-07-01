@@ -9,6 +9,23 @@ updated: 2026-07-02
 
 ## Log
 
+### 2026-07-02 — Native-BTC identity: match by address, one shared helper (not symbol)
+
+Review follow-up: `isNativeBitcoinTransfer` matched `token.symbol === 'BTC'`. Works, but `symbol` is
+display metadata, and `BitcoinSpokeService` already had a *separate* native-BTC check
+(`Set(['btc', nativeToken, supportedTokens.BTC?.address])`) — two definitions that could drift.
+
+- Added **one** `isNativeBitcoinToken(chainConfig, token)` in `@sodax/types` (`bitcoin/bitcoin.ts`,
+  next to `BITCOIN_DUST_SATS`): matches the config's own native identifiers ('btc', `nativeToken`
+  symbol, BTC address '0:0'), case-insensitive.
+- `isNativeBitcoinTransfer` now takes `config`, gates on `isBitcoinChainKeyType`, and matches by
+  **address** via the shared helper. `BitcoinSpokeService` dropped its local set to reuse it.
+- Gotcha found: the generic `isNativeToken(chainId, token)` in types can't be used for BTC — it
+  compares `token.address` to `nativeToken`, but Bitcoin's `nativeToken` is the symbol 'BTC' (not
+  the address '0:0'), so it returns false for the BTC XToken. Pre-existing config inconsistency,
+  left as-is (out of scope), documented here.
+- **Verify:** SDK `tsc` 0, full suite 1693/1693, Biome clean. Pushed → `feat/bridge-api-v2` `95ef35a1`.
+
 ### 2026-07-02 — Extended dust guard to input-side + bridge; centralized the constant in @sodax/types
 
 Follow-up to the 2026-07-01 output-side fix. The 546-sat dust rule applies to **any** native-BTC
