@@ -50,11 +50,16 @@ The SDK release is a one-directional blocking gate for the backend work.
 ## Status
 
 - [x] Analyzed, researched, plan written (this folder).
-- [x] Open decisions researched — most resolved internally (high confidence); see
-  "Decisions" in `plan.md`.
-- [ ] Awaiting review (matterhorn) + the few external confirmations below.
-- [ ] SDK signer hook + release (`rc.19`).
-- [ ] swaps-api wiring (bump, config/env, provider, DTO threading, docs, tests).
+- [x] Open decisions researched — most resolved internally; see "Decisions" in `plan.md`.
+- [x] **SDK signer hook implemented + tested** — `sodax-sdks` branch `feat/radfi-backend-signer`
+  (2 commits, all SDK tests green). Release `rc.19` still to be cut/published.
+- [x] **swaps-api wiring implemented + tested** — `sodax-backend` branch
+  `feat/swaps-api-radfi-hmac` (5 commits; checkTs 14/14, unit 247/247 green).
+- [ ] Review (matterhorn) → see `outcome.md` (⚠️ includes `--no-verify` disclosure + local-link caveats).
+- [ ] Publish SDK rc.19, then bump/install/push swaps-api + open PR. External confirms below.
+
+> **Implementation complete on local branches (unpushed, no PR).** Full status, commit list,
+> verification, and honest caveats in [`outcome.md`](./outcome.md).
 
 ## Resolved internally (code-backed)
 
