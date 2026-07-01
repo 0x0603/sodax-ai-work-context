@@ -2,12 +2,34 @@
 type: process
 repo: sodax-sdks
 github: 255
-updated: 2026-07-01
+updated: 2026-07-02
 ---
 
 # Process
 
 ## Log
+
+### 2026-07-02 — Extended dust guard to input-side + bridge; centralized the constant in @sodax/types
+
+Follow-up to the 2026-07-01 output-side fix. The 546-sat dust rule applies to **any** native-BTC
+amount that becomes a real Bitcoin output — the deposit when Bitcoin is the source, not just the
+delivery when it is the destination — so the guard was one-sided.
+
+- **swap** (`SwapService.createIntent`): now guards `inputAmount` (Bitcoin source + inputToken=BTC)
+  **and** `minOutputAmount` (Bitcoin dest + outputToken=BTC).
+- **bridge**: added the guard in `createBridgeIntent` — `bridge()` calls it internally, so one site
+  covers both entry points — checking `amount` for a native-BTC deposit (src) OR delivery (dst).
+- **Centralized the constant.** `isNativeBitcoinTransfer(chainKey, token)` (resolve token → match
+  symbol 'BTC') lives in `shared-utils`; `BITCOIN_DUST_SATS` moved to **@sodax/types**
+  (`bitcoin/bitcoin.ts`) as the single source of truth, re-exported through `@sodax/sdk`. Reused by
+  SwapService, BridgeService, and `BitcoinSpokeService` (which drops its local `DUST_THRESHOLD = 546`
+  for `Number(BITCOIN_DUST_SATS)` — its UTXO math is number-based).
+- Demo `mm/constants.ts` left as-is: `@sodax/sdk` is not a direct dep of `apps/demo` (it consumes
+  `@sodax/dapp-kit`), so importing the const there fails resolution — not worth widening deps.
+- **Verify:** `@sodax/types` checkTs clean; SDK `tsc` exit 0; **full SDK suite 1693/1693**; Biome
+  clean on changed sources. `BridgeService.ts` got a whole-file Biome reformat from format-on-save
+  (canonical, verified no logic drift via `git diff -w`) — hence the large line count.
+- Committed + pushed → `sodax-sdks@feat/bridge-api-v2` `250ff8d4`.
 
 ### 2026-07-01 — Fixed dead Bitcoin dust-limit guard in SwapService.createIntent
 
