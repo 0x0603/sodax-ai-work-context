@@ -3,7 +3,7 @@ type: outcome
 repo: sodax-sdks
 github: 255
 status: In progress
-updated: 2026-06-30
+updated: 2026-07-02
 ---
 
 # Outcome
@@ -44,6 +44,13 @@ in `process.md` (2026-06-30 — Implementation Phases 1–4). Highlights:
 Post-implementation adversarial review → [reference/pr-261-code-review.md](reference/pr-261-code-review.md) (verdict: request-changes;
 no blockers, several should-fix). Top: bridge host routing under `CustomApiConfig` (`apiConfig.ts:96`),
 `submitTx`/dispatcher reuse duplication, two dead demo files (`SelectChain.tsx`, `mappers.ts`).
+
+## Bridge vs Swaps parity audit (2026-07-02, post-merge)
+
+Multi-agent bridge-api ↔ swaps-api(main) audit → [reference/bridge-vs-swaps-api-audit.md](reference/bridge-vs-swaps-api-audit.md)
+(20 findings, all verified, 0 refuted). All 12 PR #261 items STILL unfixed; only real
+correctness bug remains S1 (`resolveBridgeApiConfig` base-vs-swaps host). New: N1 raw-Stacks
+`srcPublicKey` guard missing (overturns #261 refutation), N2 allowance-fires-per-keystroke.
 
 ## Follow-ups
 
