@@ -9,6 +9,37 @@ updated: 2026-07-02
 
 ## Log
 
+### 2026-07-02 — publication workflow confirmed
+
+The user confirmed the operational ownership and publication flow:
+
+- `sodax-sdks` and `sodax-document` are separate repositories. Merging an SDK
+  PR does not update `docs.sodax.com` automatically.
+- Runtime SDK changes and canonical package/detail Markdown are merged to
+  `sodax-sdks/main` first.
+- After the SDK PR merges, create a branch in `sodax-document`, run
+  `sync-sodax-sdks.sh`, commit both generated/copied files and the updated
+  submodule pointer, then open a PR to `sodax-document/main`.
+- GitBook Preview is reviewed before approval/merge. GitBook publishes
+  `docs.sodax.com` from `sodax-document/main` after that merge.
+- The `/developers/packages` overview is not copied by the sync script. Its
+  source is `sodax-document/developers/packages/README.md` and it must be edited
+  directly in the downstream docs PR.
+- The current local `sodax-sdks` checkout is on the deleted remote branch
+  `docs/ai-integration-guide` with untracked files. Future implementation must
+  not switch/reset that checkout; use a clean branch/worktree from
+  `origin/main`.
+
+The npm release flow is separate from docs publication:
+
+- Feature work merges to `sodax-sdks/main`.
+- For a release, `main` is merged into `release`, versions are bumped, and an
+  `@sdks@<version>` tag triggers the npm publishing workflow.
+- The latest observed release, `2.0.0-rc.19`, targets `release`.
+- `packages/RELEASE_INSTRUCTIONS.md` still refers to the removed
+  `release/sdk` branch. This is confirmed stale documentation and should be
+  corrected as part of the documentation audit or a clearly linked follow-up.
+
 ### 2026-07-02 — issue intake and source audit
 
 - Read issue #265 directly from GitHub. It has no comments or linked PRs yet.
@@ -147,4 +178,6 @@ technical fact.
 ## Changes During Work
 
 - Created this issue context and the implementation plan.
+- Updated the plan with the confirmed two-repository manual publication flow,
+  direct ownership of `/developers/packages`, and the actual npm release branch.
 - No files in `sodax-sdks` or `sodax-document` were changed.

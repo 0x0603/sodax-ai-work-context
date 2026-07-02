@@ -29,6 +29,40 @@ baseline in `process.md`, and repeat the inventory/diff steps below. Do not buil
 the implementation on the shared checkout's current branch if it is unrelated
 or dirty.
 
+## Confirmed repository ownership and publication flow
+
+This task spans two repositories but must be delivered sequentially:
+
+```text
+sodax-sdks/main
+  -> merge canonical SDK code/docs PR
+  -> new branch in sodax-document
+  -> run sync-sodax-sdks.sh
+  -> commit copied files + submodule pointer + direct docs edits
+  -> PR to sodax-document/main
+  -> review GitBook Preview
+  -> merge
+  -> GitBook publishes docs.sodax.com
+```
+
+Merging `sodax-sdks` does not publish or change a `docs.sodax.com` URL by
+itself. The downstream sync is manual and reviewed.
+
+Ownership exceptions are explicit:
+
+- `sodax-document/developers/packages/README.md` owns the
+  `/developers/packages` overview and is edited directly in the downstream PR;
+  it is not copied by the sync script.
+- `sodax-document/developers/faq.md` is currently downstream-owned according to
+  the docs repository guidance and sync script. Add the concise testnet answer
+  there unless a separate decision deliberately moves FAQ ownership upstream.
+- SDK detail pages, functional modules, How-to sources, wallet package docs, and
+  dapp-kit docs are corrected in `sodax-sdks` first and then copied downstream.
+
+The existing local SDK checkout must remain untouched because it is on a deleted
+remote branch with untracked files. Implementation should use a clean worktree
+or separate clone from `origin/main`; do not switch or reset the shared checkout.
+
 ## Non-goals
 
 - Do not implement the standalone Mintlify/API playground requested by #182.
@@ -38,6 +72,8 @@ or dirty.
   current behavior accurately here.
 - Do not promote `@sodax/libs` or `@sodax/assets` as consumer integration
   packages. The former is internal and the latter is private/static.
+- Do not treat npm publication as part of docs publication. The current release
+  path is `main` -> `release` -> version/tag -> npm workflow.
 - Do not add AI-tool attribution to commits or PR descriptions.
 
 ## Source-of-truth hierarchy
@@ -91,7 +127,8 @@ the existing public docs as evidence for another doc claim.
 | Analytics | Create `packages/sdk/docs/ANALYTICS.md` from `AnalyticsOption`, resolver behavior, event types, and instrumentation tests | How-to / Configure Analytics |
 | `@sodax/skills` | Audit/enrich `packages/skills/README.md`; reuse it rather than creating a duplicate | Experience Layer / `@sodax/skills` |
 | Testnet answer | Create `packages/sdk/docs/TESTNET.md` | How-to / Testnet Availability |
-| FAQ | Add `docs/faq.md` as canonical SDK-repo source, starting from the current audited FAQ and adding the concise testnet answer | `developers/faq.md` |
+| FAQ | Audit and edit the existing downstream-owned `sodax-document/developers/faq.md`; do not silently change ownership | `developers/faq.md` |
+| Packages overview | Edit the downstream-owned page directly; reconcile it with the audited package stack | `developers/packages/README.md` |
 
 ### Deliberately non-primary package pages
 
@@ -115,6 +152,7 @@ the existing public docs as evidence for another doc claim.
    - `packages/wallet-sdk-react/docs/`
    - `packages/dapp-kit/src/**/README.md`
    - `packages/skills/**`
+   - `packages/RELEASE_INSTRUCTIONS.md`
 4. Classify each file:
    - public current-version docs
    - migration/history docs (legacy names are expected)
@@ -139,6 +177,9 @@ old v1 names and prevents internal packages from being promoted accidentally.
 - Add the missing `dex`, `leverageYield`, `partners`, `recovery`, and Swaps API
   surfaces or link to their standalone pages.
 - Correct Node/package-manager requirements and repository/license links.
+- Correct the stale `release/sdk` instructions to the confirmed `release`
+  branch, or split that correction into a linked documentation follow-up if
+  release-process ownership requires separate review.
 - Avoid volatile hard-coded chain counts. If a chain list is valuable, derive it
   from `ChainKeys`/feature support data or point to a generated reference.
 
@@ -262,12 +303,12 @@ the issue). Code proves availability, not business rationale.
 
 #### 3.4 Canonical FAQ
 
-- Move/copy the current downstream FAQ into `sodax-sdks/docs/faq.md` and audit
-  its existing code claims in the same pass.
+- Keep `sodax-document/developers/faq.md` downstream-owned under the confirmed
+  current workflow; do not add an upstream copy that creates two canonical
+  sources.
+- Audit its existing SDK/code claims against the same selected SDK baseline.
 - Add a short testnet question near setup/integration questions:
   direct answer, protocol-vs-wallet distinction, and link to `TESTNET.md`.
-- Change downstream ownership documentation so future syncs do not overwrite a
-  manually edited FAQ unexpectedly.
 - Remove workshop/TODO prose before publication.
 
 ### Phase 4 — restore preventive documentation checks
@@ -304,26 +345,33 @@ submodule to its reviewed commit.
 In `icon-project/sodax-document`:
 
 1. Update `sync-sodax-sdks.sh` mappings for DEX, Leverage Yield/APR, Swaps API,
-   Logging, Recovery, Analytics, Testnet, Skills, and canonical FAQ.
+   Logging, Recovery, Analytics, Testnet, and Skills. Keep the FAQ out of the
+   copy list unless ownership is explicitly changed in a separate decision.
 2. Keep source filenames stable and map destination paths explicitly; do not
    depend on case-insensitive filesystems.
-3. Update `SUMMARY.md` under the existing Foundation/Connection/Experience and
+3. Edit `developers/packages/README.md` directly so the package landing page
+   reflects the audited Foundation/Connection/Experience stack. The sync script
+   does not own this file.
+4. Edit `developers/faq.md` directly with the short testnet answer and link to
+   the synced How-to page.
+5. Update `SUMMARY.md` under the existing Foundation/Connection/Experience and
    How-to groups.
-4. Update `CLAUDE.md` ownership lists: the FAQ becomes synced content, and all
-   new generated destinations must be listed as non-manual-edit pages.
-5. Make link rewriting idempotent and extend it only for real cross-repo path
+6. Update `CLAUDE.md` ownership lists for all new generated destinations while
+   retaining the packages overview and FAQ as direct downstream content.
+7. Make link rewriting idempotent and extend it only for real cross-repo path
    differences. Prefer correct absolute links in canonical sources where a link
    must work in both repositories.
-6. Run the sync from a clean clone/submodule state. A second run must produce no
+8. Run the sync from a clean clone/submodule state. A second run must produce no
    additional diff.
-7. Review generated changes, including deletion of obsolete copies and the
+9. Review generated changes, including deletion of obsolete copies and the
    submodule pointer, before committing.
 
 Recommended PR sequence:
 
 1. `sodax-sdks`: canonical docs, missing pages, and docs guards.
-2. `sodax-document`: sync-script/navigation changes plus generated output pinned
-   to PR 1's merged commit.
+2. After PR 1 merges, `sodax-document`: sync-script/navigation changes,
+   generated output pinned to PR 1's merged commit, and direct edits to the
+   packages overview and FAQ.
 
 Cross-link both PRs to issue #265. Do not hand-edit generated destination pages
 to fix content that belongs upstream.
@@ -380,6 +428,8 @@ pnpm build:packages
 - The current SDK does not advertise an unsupported end-to-end testnet, while
   still giving readers concrete ways to evaluate/integrate safely.
 - The FAQ answer links to the long How-to page.
+- The `/developers/packages` overview is updated directly in `sodax-document`
+  and is not assumed to be generated from the SDK repository.
 - The two-repository sync is reproducible, idempotent, previewed, and pinned to
   the audited SDK revision.
 - `check:docs` and existing AI/dev checks pass in CI.
