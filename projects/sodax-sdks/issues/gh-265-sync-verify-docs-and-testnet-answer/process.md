@@ -2,7 +2,7 @@
 type: process
 repo: sodax-sdks
 github: 265
-updated: 2026-07-02
+updated: 2026-07-03
 ---
 
 # Process
@@ -175,9 +175,45 @@ technical fact.
   but expanding the full Mintlify navigation should wait for #182/platform
   confirmation.
 
+### 2026-07-03 — plan verification pass
+
+Verified the plan's factual assumptions against live repo state before starting
+Phase 1. All core assumptions hold:
+
+- SDK baseline `c5953c82` is still `origin/main` HEAD after a fresh fetch on
+  2026-07-03 (no commits after the baseline) — no rebase needed yet.
+- Every doc the plan audits exists under `packages/sdk/docs/`; the three
+  create-targets (`RECOVERY.md`, `ANALYTICS.md`, `TESTNET.md`) are all absent.
+- Facade services `api`, `partners`, `recovery`, `dex`, `leverageYield` all
+  exist in `Sodax.ts`; `RecoveryService.ts` and `shared/analytics.ts` exist —
+  the create-targets are justified by real code surfaces.
+- `sodax-document` is a real public GitBook repo (default `main`) with
+  `sync-sodax-sdks.sh`, `SUMMARY.md`, `CLAUDE.md`; `developers/faq.md` and
+  `developers/packages/README.md` exist and are downstream-owned (the sync
+  script does not touch `faq`). SDK is embedded as the
+  `linked-repositories/sodax-sdks` submodule.
+- `check:docs` does not exist yet (Phase 4 introduces it); `check:ai` and
+  `check:ai-dev-files` exist.
+
+Two stale claims corrected in `plan.md`:
+
+1. The shared local `sodax-sdks` checkout is no longer on the deleted
+   `docs/ai-integration-guide` branch with untracked files. It is now on a
+   clean `main`, but that `main` is one commit **behind** `origin/main`
+   (missing #145) — `git pull` before auditing.
+2. Added a baseline-freshness note and a reminder to re-confirm the downstream
+   submodule pointer resolves to `ff3ef17f` before diffing.
+
+Scope note (not a plan defect): Phase 4 (a `pnpm check:docs` CI gate) goes
+beyond the literal issue ask (verify docs / create package docs / testnet
+answer). It is sound as drift-prevention but can be split into a follow-up if
+delivery needs to be smaller.
+
 ## Changes During Work
 
 - Created this issue context and the implementation plan.
 - Updated the plan with the confirmed two-repository manual publication flow,
   direct ownership of `/developers/packages`, and the actual npm release branch.
+- 2026-07-03: corrected two stale plan assumptions (local-checkout state and
+  baseline freshness) after a verification pass; bumped `plan.md` `updated:`.
 - No files in `sodax-sdks` or `sodax-document` were changed.

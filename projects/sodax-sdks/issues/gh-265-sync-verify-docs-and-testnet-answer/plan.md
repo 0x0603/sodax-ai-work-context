@@ -2,7 +2,7 @@
 type: plan
 repo: sodax-sdks
 github: 265
-updated: 2026-07-02
+updated: 2026-07-03
 ---
 
 # Plan
@@ -24,10 +24,18 @@ the next API change.
 - Public docs analysis baseline: `icon-project/sodax-document@f348e35b`
 - Last SDK revision synced downstream: `ff3ef17f` (2026-06-10)
 
+Baseline freshness re-verified 2026-07-03: a fresh `git fetch` leaves
+`origin/main` still at `c5953c82` (no commits after the baseline), so no rebase
+is required yet. The local checkout's `main` is one commit **behind**
+`origin/main` (sitting at `e2d7e263`, missing #145), so run `git pull` /
+`git fetch origin main` before auditing — otherwise the inventory misses #145.
+
 Before implementation, fetch/rebase onto the latest `origin/main`, record the new
 baseline in `process.md`, and repeat the inventory/diff steps below. Do not build
 the implementation on the shared checkout's current branch if it is unrelated
-or dirty.
+or dirty. Also re-confirm the downstream submodule pointer
+(`sodax-document/linked-repositories/sodax-sdks`) still resolves to `ff3ef17f`
+before diffing from the last synced revision.
 
 ## Confirmed repository ownership and publication flow
 
@@ -59,9 +67,11 @@ Ownership exceptions are explicit:
 - SDK detail pages, functional modules, How-to sources, wallet package docs, and
   dapp-kit docs are corrected in `sodax-sdks` first and then copied downstream.
 
-The existing local SDK checkout must remain untouched because it is on a deleted
-remote branch with untracked files. Implementation should use a clean worktree
-or separate clone from `origin/main`; do not switch or reset the shared checkout.
+As of 2026-07-03 the shared local SDK checkout is on a clean `main` (no untracked
+or dirty files), but that `main` is one commit behind `origin/main`. Still prefer
+a clean worktree or separate clone created from the latest `origin/main` for the
+audit, and `git pull` first; do not audit against the stale local `main` or reset
+the shared checkout out from under other work.
 
 ## Non-goals
 
