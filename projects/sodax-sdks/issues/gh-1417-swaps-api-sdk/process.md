@@ -278,6 +278,39 @@ updated: 2026-06-26
   `9914a643` (example app slippage + approval wait), `a37789b5` (dispatcher
   groundwork).
 
+### 2026-07-02 — PR #254 review (5-dimension, adversarially verified)
+
+- Reviewed OPEN PR #254 against #1417 via a multi-agent workflow (direction,
+  package core, schemas/contract, example app, tests/packaging); each finding
+  re-verified against the PR HEAD worktree. Full report: `reference/pr-254-review.md`.
+- **Decisive technical check:** trial-merged current `main` (post-#210, which
+  changed `tx: unknown` → `tx: RawTxReturnType` and added its own in-SDK
+  `rawTxSchemas`) into the PR. Only conflict is the `valibot` catalog line
+  (1.2.0 vs 1.4.1). After `pnpm --filter @sodax/types build`, the package's
+  `checkTs` PASSES and 69/69 tests PASS → the `Extends`-relaxed drift guards hold;
+  the package survives the #210 contract change. (First run showed spurious
+  `TS2344` drift errors — a cascade from `@sodax/types` not being built, not a
+  real drift.)
+- **Direction (user-corrected):** the overlap with #210's `SwapsApiService`
+  (in-SDK, `Result<T>`) is **intentional** — the standalone throwing package is a
+  deliberate second product for lightweight consumers, matching #1417 literally.
+  Not a defect; needs a maintainer sign-off + anti-drift plan recorded on the PR.
+  Also dropped: the "Closes #1417 is cross-repo/broken" finding — user confirms
+  it's intentional (manual/linked close).
+- **Verdict:** direction sound + engineering high-quality, but a WIP not ready to
+  merge. Package core is solid (no high/blocker correctness bug). Real gaps:
+  missing `sodax-swaps-api-publish.yml` (un-releasable), README says "not shipped
+  yet" while it exports the full client, dead `lib/signAndBroadcast.ts` +
+  `EVM_CHAIN_KEYS` (apps/* has no knip gate), example drives 8/21 methods,
+  CONFLICTING merge state, zero human reviews. Edge-case bugs (all low/med):
+  Bitcoin raw-tx → permissive fallback (no bigint transform), Injective
+  `BytesFromIndexRecord` accepts gaps/out-of-range, `Content-Type` header merge
+  can corrupt a caller header, `BigintFromString` coerces `''`→`0n`. Action list
+  in the review doc.
+- Review harness artifacts (git worktrees `pr254-wt` / `pr254-mergetest`, fetched
+  branch `pr-254-review` in the local sodax-sdks clone) were scratch-only and
+  cleaned up after.
+
 ## Findings
 
 - The GitHub source issue is in `icon-project/sodax-frontend`, but the work

@@ -2,9 +2,10 @@
 type: issue
 repo: sodax-sdks
 github: 1417
-status: Active
-tags: [swaps-api, sdk, valibot, backend-api-v2]
-updated: 2026-06-26
+pr: 254
+status: In Review
+tags: [swaps-api, sdk, valibot, backend-api-v2, pr-254]
+updated: 2026-07-02
 related_decisions: [0001-swaps-api-throwing-minimal]
 ---
 
@@ -14,7 +15,11 @@ related_decisions: [0001-swaps-api-throwing-minimal]
 - Source repo: `icon-project/sodax-frontend`
 - Work repo: `sodax-sdks`
 - Started: 2026-06-25
-- Related PR:
+- Related PR: https://github.com/icon-project/sodax-sdks/pull/254 (OPEN, in review)
+- Review: `reference/pr-254-review.md`
+- Direction note (2026-07-02): the overlap with #210's in-SDK `SwapsApiService`
+  is **intentional** — standalone minimal package (this PR) vs integrated
+  `Result<T>` client (#210). Still needs a maintainer sign-off recorded on the PR.
 
 ## Problem
 
