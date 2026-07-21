@@ -365,3 +365,20 @@ Not fixed yet — awaiting go-ahead.
 ## Changes During Work
 
 (none — planning only; no source changes in `sodax-sdks` yet)
+
+---
+
+## 2026-07-21 — backend-parity discovery methods + dapp-kit hooks
+
+(Consolidated result in [outcome.md](outcome.md) "2026-07-21" section; this is the chronological note.)
+
+- Question from user: "sdk có hỗ trợ hết API của bridge chưa?" → gap = the 3 backend discovery endpoints
+  (`/bridge/fee`, `/bridge/bridgeable-amount`, `/bridge/bridgeable/check`, added backend-side in `4ea80020`)
+  had no SDK client method. User: "thêm 3 cái nhé".
+- Added `getFee`/`getBridgeableAmount`/`isBridgeable` to `BridgeApiService` (+ types, valibot schemas, tests),
+  reversing the earlier planning decision to keep bridgeable-amount client-side-only (that decision predated
+  the backend endpoints). Then "for all 10 endpoints. bỏ fixed số nhé" → de-hardcoded surface counts.
+- Extended dapp-kit with 3 query hooks + updated all skills + `packages/sdk/docs/` + demo + JSDoc.
+- Adversarial-review Workflow (9 agents) found 6 completeness misses (all in `packages/sdk/docs/` + demo +
+  JSDoc that my `packages/sdk/src`-only sweep skipped); fixed all 6, re-swept clean.
+- Committed `df0690d1` (amended to fold the fixes); NOT pushed. `config.ts` localhost artifact left out.

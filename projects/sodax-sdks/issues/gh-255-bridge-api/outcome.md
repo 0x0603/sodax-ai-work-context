@@ -2,13 +2,14 @@
 type: outcome
 repo: sodax-sdks
 github: 255
-status: In progress
-updated: 2026-07-02
+related_issues: [268]
+status: In Review (PR #261 opened)
+updated: 2026-07-21
 ---
 
 # Outcome
 
-- PR: https://github.com/icon-project/sodax-sdks/pull/261 (base `feat/swaps-api-v2`)
+- PR: https://github.com/icon-project/sodax-sdks/pull/261 (base `main` — auto-retargeted after swaps-api-v2 merged; Ready for review 2026-07-03)
 - Commits (on `origin/feat/bridge-api-v2`): `e3d8343e` (Phases 1–4 SDK+dapp-kit) · `516466cb` (Phase 5 demo) · `d09e2ff1` (Phase 6 docs + Phase 7 e2e note)
 - Tests: sdk 1690 ✅ · dapp-kit 359 ✅ · demo checkTs+lint ✅ · `pnpm check:ai` ✅
 - Phase 7 full-repo gates ✅: build:packages + checkTs (10/10) + lint (10/10) + test (14/14) + circular-deps (no cycle).
@@ -82,9 +83,70 @@ failing gate: `pnpm lint` = `biome lint` (lint-only) passes at 0 errors / 65 war
 CI-enforced. Running `biome format --write` repo-wide would touch 139 files and is a maintainer call,
 not part of these findings.
 
+## Claude PR-review "USER_REJECTED regression" — FALSE POSITIVE (2026-07-03)
+
+@0xmilktea ran `@claude pr review` on #261; the bot flagged one 🔴 Must-fix: this PR
+"silently reverts USER_REJECTED (#145)" — codes.ts/wrappers.ts/isUserRejectedError.ts
+gone on the branch. Verified against git: **not a real regression, and the bot's root
+cause is wrong.**
+
+- Timeline: #145 (`c5953c82`, USER_REJECTED) landed on `origin/main` 2026-07-02 17:56
+  and is main's HEAD. The branch's last main-merge (`62d6a10`, main-parent `09f7b116`
+  = #260) predates it — so the merge could not have "dropped #145 in conflict
+  resolution"; #145 didn't exist yet. Branch was simply behind main.
+- Impact: `git merge-tree origin/main origin/feat/bridge-api-v2` → **no conflicts**,
+  USER_REJECTED fully preserved (codes.ts 7, wrappers.ts 11, isUserRejectedError.ts
+  present) AND branch's `api:'bridge'` kept. Merge base `09f7b116` has 0 USER_REJECTED,
+  so three-way merge keeps main's addition — merging #261 does NOT un-ship the feature.
+- Bot's mistake: used two-dot `git diff origin/main..HEAD`, which shows the feature as
+  "removed on branch" purely because the branch is behind; that is not what a merge applies.
+
+Resolution: merged `origin/main` into the branch anyway (clean) to silence the misread and
+exercise CI against USER_REJECTED. Merge `de7c684c`, pushed to `origin/feat/bridge-api-v2`.
+Gates after rebuild: `build:packages` ✅ · checkTs 10/10 ✅ · lint 10/10 ✅ · sdk 1719 tests ✅ ·
+dapp-kit ✅. (Note: dapp-kit checkTs first failed on stale `@sodax/sdk` dist — must run
+`pnpm build:packages` before checkTs so the built types include `.bridge` + USER_REJECTED.)
+
+## 2026-07-21 — backend-parity discovery methods + dapp-kit hooks (commit `df0690d1`, NOT pushed)
+
+Once the backend ([[gh-268 outcome|../../sodax-backend/issues/gh-268-bridge-api/outcome]], PR #975) added the
+3 discovery endpoints (`/bridge/fee`, `/bridge/bridgeable-amount`, `/bridge/bridgeable/check`), the SDK stack
+was extended to mirror them. **This REVERSES the original "keep bridgeable-amount client-side, no backend
+endpoint" decision** (planning critic #1 / the 6-hook `bridgeApi/` surface): the endpoints now exist, so the
+client mirrors them for HTTP parity — client-side via `sodax.bridge.*` stays the preferred (no-round-trip) path.
+(User confirmed they authored the SDK and the endpoint was simply missing at the time — I added the backend
+endpoints in `4ea80020`, after the SDK types were first written.)
+
+- **`@sodax/types`** `backendBridgeApiV2.ts`: `BridgeFeeRequest/Response V2`, `BridgeQuoteRequest V2`,
+  `BridgeLimit V2`, `BridgeableAmount/CheckResponse V2`; +3 methods on `IBridgeApiV2`
+  (`getFee`/`getBridgeableAmount`/`isBridgeable`).
+- **`@sodax/sdk`** `BridgeApiService`: `getFee` (POST /bridge/fee) · `getBridgeableAmount`
+  (POST /bridge/bridgeable-amount) · `isBridgeable` (POST /bridge/bridgeable/check) — each `Promise<Result<T>>`,
+  valibot-validated (`bridgeApiSchemas.ts`); +3 routing tests (30 pass).
+- **`@sodax/dapp-kit`**: 3 query hooks (query-over-POST, mirror `useBridgeApiAllowance`) —
+  `useBridgeApiFee` · `useBridgeApiBridgeableAmount` · `useBridgeApiIsBridgeable` + barrel → now **9**
+  `bridgeApi/` hooks. (Queries, so NOT registered in `_mutationContract.test.ts`.)
+- **Docs synced everywhere** — skills tree (querykey-conventions, hooks-index, auxiliary-services, sodax-sdk
+  `bridge-api.md` + `bridge-api/SKILL.md` + `SKILL.md`) + **`packages/sdk/docs/`** (`BRIDGE_API.md`,
+  `BACKEND_API.md`) + demo `BridgeCard.tsx` comments + `useBridgeApiTokens.ts` JSDoc — dropping every stale
+  "no backend endpoint / bridgeable-amount stays client-side" claim and the hardcoded surface counts
+  ("6 hooks", "7 endpoints").
+
+**Verification.** checkTs (types/sdk/dapp-kit) = 0 · lint = 0 · dapp-kit contract test 336 pass ·
+BridgeApiService 30 pass · **`pnpm check:ai` = 0** (its `keys` check cross-validated the 3 new query keys
+against source). Ran an **adversarial-review Workflow** (9 agents, 3 dims: hook-fidelity / doc-accuracy /
+completeness) — it caught **6 completeness misses** I had skipped (my stale-claim sweep covered
+`packages/sdk/src` but NOT `packages/sdk/docs`, nor the demo / JSDoc); all 6 verified real + fixed, then a
+repo-wide re-sweep came back clean. See [[workflow-verify-stale-checkout]].
+
+**Commit `df0690d1`** on `feat/bridge-api-v2` (amended to fold the 6 review fixes) — **NOT pushed** (awaiting
+the user). ⚠️ `apps/demo/src/components/bridge-api/lib/config.ts` is left UNCOMMITTED — a local-test artifact
+(`baseURL: 'http://localhost:3009'`; its own comment says "revert before committing"); revert to the canary
+URL before any push.
+
 ## Follow-ups
 
 - After SDK work + PR: backend implementation, pointing its `package.json` at local
-  `dist/` (`pnpm build:packages`).
+  `dist/` (`pnpm build:packages`). — DONE: backend is [[gh-268 outcome|../../sodax-backend/issues/gh-268-bridge-api/outcome]], PR #975.
 - Independently verify bridge re-relay idempotency before enabling `useBackendSubmitTx`
   anywhere (it ships default-OFF).

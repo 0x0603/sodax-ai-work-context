@@ -3,16 +3,79 @@ type: outcome
 repo: sodax-backend
 github: 268
 related_issues: [255, 269]
-tags: [bridge-api, backend, option-a, relay-only, drainer, tests, admin, infra]
-status: Active
-updated: 2026-07-16
+tags: [bridge-api, backend, option-a, relay-only, drainer, per-row-claim, discovery-endpoints, tests, admin, infra]
+status: In Review (PR #975)
+updated: 2026-07-21
 ---
 
 # GH-268 Bridge API — outcome
 
 > Result of the plan in [[plan]] (Option A — standalone `apps/bridge-api`, port 3009). Full
-> chronology in [[process]]. **Code-complete for P1–P3, all gates green, on the single
-> `feat/bridge-api` branch in `sodax-backend`. Awaiting the user's explicit commit/push.**
+> chronology in [[process]]. **Committed + pushed on `feat/bridge-api`; PR
+> [#975](https://github.com/icon-project/sodax-backend/pull/975) OPEN (base `development`).
+> ⚠️ The "What shipped" / "Design decisions" below describe the ORIGINAL P1–P3 (2026-07-16). The
+> [2026-07-21 superseding update](#2026-07-21--superseding-update-full-parity-drainer--discovery-endpoints--pr-975)
+> right below replaces the P2 drainer with the swaps-parity 2-lane per-row-claim mechanism, flips the
+> RELAY_TIMEOUT rule, renames the collection, and adds fee/bridgeable discovery endpoints — read it first.**
+
+## 2026-07-21 — Superseding update (full-parity drainer + discovery endpoints + PR #975)
+
+Everything below "What shipped" was the 2026-07-16 state (code-complete P1–P3, single-step drainer with a
+`STATEFUL_LOCK_MANAGER` lease, collection `stateful_submit_bridge_tx_v2`, "RELAY_TIMEOUT consumes"). Between
+07-16 and 07-21 the drainer was rebuilt to full swaps parity (user: *"chung cơ chế với swap"* → Full parity),
+discovery endpoints were added, the branch was committed + reviewed + merged up-to-date, and **PR #975** was
+opened. Commits on `feat/bridge-api` (bottom-up):
+
+- `088af9fb` — **2-lane per-row-claim drainer (swaps parity)** — SUPERSEDES the P2 lease drainer.
+- `4ea80020` — scope-conformance: **collection rename** + **fee/bridgeable discovery endpoints** + docs.
+- `074a8228` — **PR-review fixes**: never-abandon relay bug (HIGH) + discovery filter + doc accuracy.
+- `4eeec3c8` — merged `origin/development` (up-to-date; swaps-api tsc still 0 — merge didn't break swaps).
+
+**1. Drainer replaced (`088af9fb`).** The P2 single-relay-step drainer + `STATEFUL_LOCK_MANAGER` lease are
+GONE. Now the ACTUAL swaps 2-lane per-row-claim mechanism (ported verbatim in shape):
+- Fast lane (`runDriver`, insert-driven, `activeDrivers`/`inFlightDrivers` semaphore, ≤ `FAST_LANE_CONCURRENCY`)
+  + sweeper worker-pool (`runSweeper`, `SUBMIT_BRIDGE_TXS_CONCURRENCY` workers, continuous `while{claimNext→step}`).
+- Mutual exclusion = atomic per-row `claimNext`/`claimSpecific` (`findOneAndUpdate` on a claimable filter) +
+  `nextEligibleAt` visibility timeout (`BRIDGE_TX_CLAIM_TTL_MS`; a leaked claim reappears after the TTL).
+  **NO collection-wide lease** → both prod deployments drain the shared queue CONCURRENTLY (≈2× bandwidth),
+  correctness by idempotency of each bounded step.
+
+**2. RELAY_TIMEOUT rule flipped — SUPERSEDES "RELAY_TIMEOUT consumes".** Relay is split into an idempotent
+notify + a single bounded packet poll. A poll timeout now means "packet not landed *yet*" → **REFUND-while-
+awaiting** (`keepAwaitingRelay`: net-zero the claim's `+1`, stay `relaying`, re-poll on the short cadence) —
+a slow-but-healthy delivery never burns the cap. Give-up is now the **relay-age gate**
+(`classifyTerminallyUnprocessable`): a spoke-origin row whose packet hasn't landed within
+`BRIDGE_TX_MAX_RELAY_AGE_MS` of its FIRST relay attempt (anchored on `relayStartedAt`, NOT `createdAt`;
+hub-origin exempt) is retired via a permanent-failure cap-jump → the alerter abandons + pages.
+
+**3. Collection renamed (`4ea80020`).** `stateful_submit_bridge_tx_v2` → **`stateful_submit_bridge_tx`** (no
+legacy predecessor — clean). Terminal `executed` = **hub-settled** (source→hub relay packet landed ON THE HUB,
+`result.dstIntentTxHash` set) — NOT a destination-chain delivery confirmation for hub→spoke / spoke→spoke
+(corrects the earlier "destination packet landed" wording). `relayed` reserved / never-written.
+
+**4. Discovery endpoints added (`4ea80020`).** `POST /bridge/fee` (delegates to SDK core
+`sodax.bridge.getFee(amount)` — config-driven partner fee), `POST /bridge/bridgeable-amount`,
+`POST /bridge/bridgeable/check`. `/bridge/tokens` now EXCLUDES leverage-yield vault tokens (`lsoda*`),
+matching `RecoveryService` (`isAddress(hubAsset) && !leverageVaultAddresses.has(hubAsset.toLowerCase())`).
+These 3 endpoints are exactly what the SDK client + dapp-kit hooks mirror — see [[gh-255 outcome|../../sodax-sdks/issues/gh-255-bridge-api/outcome]].
+
+**5. PR-review fixes (`074a8228`).** Adversarial review (workflow); I hand-verified + fixed the real ones:
+- **HIGH never-abandon bug**: `handleRelay` gate `=== 'pending'` → `!== 'relaying'`. A row that failed BEFORE
+  stamping `relayStartedAt` never re-stamped it → the age-gate never fired → the row could never be abandoned.
+  Now every non-`relaying` relay attempt stamps `relayStartedAt` (via `$ifNull`) and recovers a transient
+  `failed` back to `relaying` while the packet is still in flight.
+- Leverage-token exclusion in discovery (`projectBridgeTokens` filter, above).
+- `resolveXToken` dead-branch (scan `supportedTokens` by address — it is keyed by SYMBOL, not address).
+- Doc accuracy (from-hub, CLAUDE.md wording, `getToProcess` comments).
+- **Refuted 1 false finding**: reviewer claimed the swaps-parity comment was "inverted" — the PR does NOT touch
+  `apps/swaps-api` (merge-base..feat diff empty there); reviewer misread a 2-dot diff of the 32 development
+  commits the branch was behind. See [[dont-edit-others-issue-bodies]] / [[workflow-verify-stale-checkout]].
+
+**Status:** PR **#975** OPEN (base `development`). SDK re-linked LOCALLY for demo testing only — the backend
+still runs published `@sodax/sdk@rc.18` over the `/bridge/*` HTTP contract; the link is dev-only, not committed.
+
+**Remaining (unchanged):** HAProxy `/v1/bridge/*` external route; empirical P0 end-to-end (EVM-spoke + split-tx
+deposit — needs a real relayer round-trip, the one thing not smokeable locally).
 
 ## What shipped
 

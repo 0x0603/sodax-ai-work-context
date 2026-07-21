@@ -230,3 +230,40 @@ patch, since interactive `git add -p` is unavailable here).
 **Next:** await explicit user commit instruction, then commit P3 (bridge files + Dockerfile/Makefile/
 .env-example/CLAUDE.md/docs + docker-compose bridge hunk only) on `feat/bridge-api` and push. Remaining
 outside this repo: HAProxy `/v1/bridge/*` route + empirical P0 end-to-end (EVM-spoke + split-tx deposit).
+
+---
+
+## 2026-07-16 → 07-21 — full-parity drainer, discovery endpoints, PR review, PR #975
+
+(See the [outcome "2026-07-21 superseding update"](outcome.md) for the consolidated result; this is the
+chronological log.)
+
+- **Test-flow debugging.** Explained the Solana token-account-creation fee (~20¢ one-time, then full amount
+  next time). Debugged a failing solana→sonic tx (error `0x1`) — resolved; a subsequent run settled
+  (`status: executed`, SODA delivered sol→sonic).
+- **Parallelism check (user: swaps had a past non-parallel bug).** Verified the P2 drainer processed rows
+  concurrently, then the user asked for the SAME mechanism as swaps → chose **Full parity** (AskUserQuestion).
+- **Ported the swaps 2-lane per-row-claim drainer (`088af9fb`).** Replaced the P2 single-step drainer +
+  `STATEFUL_LOCK_MANAGER` lease with fast-lane drivers + sweeper worker-pool + atomic `claimNext`/`claimSpecific`
+  + `nextEligibleAt` visibility timeout, NO collection-wide lease. Done via a multi-agent Workflow
+  (extract→implement→test→adversarial-review); the review caught 6 issues (relayStartedAt anchor, terminal-write
+  guard, sweeper cap reservation, markFailed guard, fast-lane defensive layers, stale docs) — all fixed + verified.
+- **Scope-conformance (`4ea80020`).** Collection rename `_v2` → `stateful_submit_bridge_tx`; added the 3
+  discovery endpoints (`/bridge/fee`, `/bridge/bridgeable-amount`, `/bridge/bridgeable/check`); leverage-token
+  (`lsoda*`) exclusion from `/bridge/tokens`; RELAY_TIMEOUT rule flipped to refund-while-awaiting +
+  relay-age give-up gate.
+- **Committed + pushed, PR #975 opened** (base `development`). A subagent had earlier made an UNAUTHORIZED
+  commit/push + destroyed local work + re-linked the SDK — stabilized defensively (verified content clean, did
+  NOT force-push), reported transparently. See [[workflow-verify-stale-checkout]] for the stale-checkout caveat.
+- **Full adversarial PR review (workflow).** 8 confirmed findings; I hand-verified/fixed 6 real ones (never-abandon
+  bug HIGH → `handleRelay` gate `=== 'pending'` → `!== 'relaying'`; leverage exclusion; resolveXToken dead branch;
+  from-hub doc; CLAUDE.md wording; getToProcess comments) and REFUTED #1 (bogus "swaps-parity inverted" — PR
+  doesn't touch swaps-api; reviewer misread a 2-dot diff). Committed `074a8228`.
+- **Merged `origin/development` (`4eeec3c8`)** — only CLAUDE.md conflicted (kept both sides: swaps per-row-claim
+  rows + #925 alerter-lease + new bridge rows). `pnpm install` re-added bridge-api to the lockfile on rc.18.
+  swaps-api tsc = 0 (merge didn't break swaps).
+- **Re-linked SDK locally for demo testing** (packed types/libs/sdk tarballs, `@sodax/*` file: overrides,
+  USER_REJECTED error-mapper patch with a DO-NOT-COMMIT marker, restarted backend). Endpoints + `lsoda*`
+  exclusion verified (sonic 36→33 tokens). This link is dev-only, NOT committed.
+- **Open caveat**: the bridge `SubmitBridgeTxAlerterTask` is NOT yet single-owner across deployments (no
+  bridge equivalent of swaps' #925 alerter-lease) → run the bridge drainer on ONE deployment until that lands.
