@@ -1,7 +1,7 @@
 ---
 type: plan
 status: Active
-updated: 2026-07-20
+updated: 2026-07-21
 related_issues: [700, 1555, 1556, 1557, 1558, 1559, 1560, 1561, 1448, 1197]
 related_decisions: []
 tags: [security-audit, tracker, sodax-frontend, sodax-sdks]
@@ -79,6 +79,7 @@ across **sodax-frontend** (`apps/web`, `apps/node`) and **sodax-sdks**
 | Run | Date | Scope | Result |
 | --- | --- | --- | --- |
 | Blind re-audit (Claude, ultracode workflow) | 2026-07-17 | `apps/web` | **No new critical.** Independently rediscovered SEC-01 and hand-verified the full chain (incl. better-auth `dist/` internals); re-confirmed **P0 live on origin/main**. Two possibly-uncovered findings → #1556 / #1559. Evidence: `projects/sodax-frontend/issues/task-apps-web-security-audit/` |
+| Web2 / supply-chain audit (Claude, ultracode workflow) | 2026-07-20 | `apps/web` + infra/CI config | **33 verified · 31 NEW** (surface #700 didn't cover). Top: CSP no `connect-src`; `claude.yml` PAT exfil via prompt-injection; Actions on mutable tags + `pull_request_target`; `.npmrc` runs dep install-scripts; swap tx signed without intent verification; Alchemy key in client bundle; registrar/Vercel infra hardening. Evidence: `projects/sodax-frontend/issues/task-web2-supply-chain-audit/` |
 
 ## Key findings / gotchas to remember
 
