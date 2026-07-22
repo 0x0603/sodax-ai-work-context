@@ -89,3 +89,24 @@ updated: 2026-07-22
   The page's flat "No — mainnet-only" answer stands as-is; no doc change needed.
 - PR status check (2026-07-22): sodax-sdks #279 and sodax-document #21 both still
   OPEN, no review yet (9 days).
+
+### 2026-07-22 — Re-verified PR #279 against current origin/main (d78cff77)
+
+- Main gained 3 commits since the PR (hana→stacks connector, token logos,
+  wallet-sdk-react security fix). PR is MERGEABLE (no conflicts), state BLOCKED
+  (awaiting review) only.
+- Spot-verified every factual claim in the #279 diff against origin/main — all
+  hold: SwapErrorCode union (10 codes incl. EXECUTION_FAILED/RELAY_TIMEOUT),
+  SwapCreateIntentError rename, RELAY_POLLING_FAILED in RelayCode,
+  OnDemandRelayData/pollTxHash/selectPacket, IConfigApiV1/V2 + SubmitTx*V2 types,
+  analytics types, sodax.leverageYield + hubProvider: HubProvider (Sodax.ts:38,41),
+  lsodaJITOSOL + exact DefiLlama poolId, all 9 leverageYield hooks + new
+  bitcoin/partner/NEAR-storage hooks + resolveNearStorageGate exist,
+  valibot = regular dep, no testnet prop, useEthereumChainId not exported,
+  engines node >=20.12.0, ChainKeys = 21 mainnet / 0 testnet,
+  IntentTxResult.tx (ESTIMATE_GAS fix), GetQuoteParams.partnerFee payload field,
+  swaps-api README method table = ISwapsApiV2 1:1 (21 methods).
+- Two optional follow-ups (post-PR main changes, nothing in #279 is wrong):
+  token-logo support in @sodax/types is undocumented; wallet-sdk-react
+  ARCHITECTURE.md hydration section doesn't mention the new sanitize-on-hydrate
+  merge from the security fix.
