@@ -12,7 +12,7 @@ related_decisions: []
 
 - Source: https://github.com/icon-project/sodax-sdks/issues/310
 - Started: 2026-07-24
-- Related PR: (branch `feat/chain-agnostic-get-asset-balance`, pushed; PR TBD)
+- Related PR: https://github.com/icon-project/sodax-sdks/pull/311 (branch `feat/chain-agnostic-get-asset-balance`)
 - Author: R0bi7 · Assignee: 0x0603 · Labels: enhancement · Milestone: New World (In progress)
 
 ## Problem

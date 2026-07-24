@@ -78,3 +78,7 @@ this, reverting the 5 chain files it touched and renaming the hand-written EVM/S
 Reviewed every delegated diff by hand. Confirmed: ICON's hardcoded multicall address is FAITHFUL to
 `IconXService.ts:63` (not invented). Injective correctly needed a new indexer client (WASM api can't read
 bank balances). Sui bnUSD remap ported verbatim. Near/Stacks reuse the spoke services' own helpers.
+- 2026-07-24 (machine 2): opened PR #311 from the pushed branch (base main, `Closes #310`); body from
+  the commit message. Vercel preview deployed. Issue/PR had no human follow-up on GitHub; the real
+  follow-up lived in this repo (outcome.md + review.md), pulled in via HTTPS fetch because SSH auth
+  (publickey) fails on this machine — the SessionStart sync hook could not pull/push here.

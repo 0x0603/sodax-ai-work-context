@@ -2,13 +2,13 @@
 type: outcome
 repo: sodax-sdks
 github: 310
-status: Implemented (pushed; PR not yet opened)
+status: Implemented (PR #311 open)
 updated: 2026-07-24
 ---
 
 # Outcome
 
-- PR: open at https://github.com/icon-project/sodax-sdks/pull/new/feat/chain-agnostic-get-asset-balance
+- PR: https://github.com/icon-project/sodax-sdks/pull/311 (opened 2026-07-24, closes #310)
 - Branch: `feat/chain-agnostic-get-asset-balance` (from `main`)
 - Commits: `7e45a438` feat(sdk,dapp-kit,demo): chain agnostic get asset balance
 - Tests: SDK 1723 pass (11 new); dapp-kit 362 pass (8 new); demo `checkTs` clean; skills `check:ai` green
@@ -46,7 +46,9 @@ errors vs `origin/main` — warnings are pre-existing).
   duplication across 6 chain services; (B) error-handling parity — the new readers are mostly
   fail-loud vs the old resilient wallet-SDK path, and Stacks is inconsistent (still swallows → 0n).
   Decision this pass: record only, no code change.
-- Open the PR from the branch (URL above); title `feat(sdk,dapp-kit,demo): chain agnostic get asset balance`.
+- ~~Open the PR from the branch~~ — done: [#311](https://github.com/icon-project/sodax-sdks/pull/311),
+  title `feat(sdk,dapp-kit,demo): chain agnostic get asset balance`, body from the commit message,
+  `Closes #310`. Vercel preview deployed green; no human review yet.
 - Manual QA: run the demo (`pnpm --filter sodax-demo-v2 dev`, :3000) and confirm balances render on
   swap / money-market / dex / leverage-yield for an EVM + at least one non-EVM wallet.
 - Out-of-scope follow-up: make `wallet-sdk-react` `XService.getBalances` delegate to the SDK reader to
