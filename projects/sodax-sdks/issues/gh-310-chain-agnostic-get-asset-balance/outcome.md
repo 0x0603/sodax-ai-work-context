@@ -41,6 +41,11 @@ errors vs `origin/main` — warnings are pre-existing).
 
 ## Follow-ups
 
+- **Quality review:** see [`review.md`](./review.md) — adversarial multi-agent review, 18 raw → 14
+  confirmed (all low/nit). Two clusters worth a future cleanup pass: (A) extractable fan-out
+  duplication across 6 chain services; (B) error-handling parity — the new readers are mostly
+  fail-loud vs the old resilient wallet-SDK path, and Stacks is inconsistent (still swallows → 0n).
+  Decision this pass: record only, no code change.
 - Open the PR from the branch (URL above); title `feat(sdk,dapp-kit,demo): chain agnostic get asset balance`.
 - Manual QA: run the demo (`pnpm --filter sodax-demo-v2 dev`, :3000) and confirm balances render on
   swap / money-market / dex / leverage-yield for an EVM + at least one non-EVM wallet.
