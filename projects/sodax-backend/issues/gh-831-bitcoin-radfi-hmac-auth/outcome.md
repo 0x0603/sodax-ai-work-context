@@ -2,23 +2,22 @@
 type: outcome
 repo: sodax-backend
 github: 831
-status: PRs open (SDK #322 ready, BE #1027 draft) — two BE branches to reconcile first
+status: PRs open — SDK #322 ready, BE #1028 draft (blocked on the SDK publishing)
 updated: 2026-07-28
 ---
 
 # Outcome
 
-> **Read "Session 2026-07-28" at the bottom first.** A second implementation pass was run
-> four weeks later without noticing the 2026-07-01 branches, so there are now **two BE
-> branches solving the same issue with different env-var names and different coverage**.
-> They must be reconciled before either merges.
+> The duplicate-branch fork described below has been **resolved**. One branch and one PR per
+> repo now. See "Reconciliation" at the bottom for what was kept from each and why.
 
 - PRs: [sodax-sdks#322](https://github.com/icon-project/sodax-sdks/pull/322) (ready),
-  [sodax-backend#1027](https://github.com/icon-project/sodax-backend/pull/1027) (draft).
-- Branches (all pushed as of 2026-07-28):
+  [sodax-backend#1028](https://github.com/icon-project/sodax-backend/pull/1028) (draft).
+  [#1027](https://github.com/icon-project/sodax-backend/pull/1027) was the duplicate — closed.
+- Branches:
   - SDK: `feat/radfi-backend-signer` — the 2026-07-01 branch, merged with `main` and extended.
-  - BE: `feat/swaps-api-radfi-hmac` (2026-07-01, 5 commits) **and**
-    `feat/bound-backend-hmac-auth` (2026-07-28, 2 commits) — overlapping, neither a superset.
+  - BE: `feat/swaps-api-radfi-hmac` — the 2026-07-01 branch, merged with `development` and
+    extended. `feat/bound-backend-hmac-auth` (2026-07-28) is deleted, local and remote.
 - Tests: see "Verification" — all green where runnable.
 
 ## Summary
@@ -226,3 +225,51 @@ and fails DNS — needs `directConnection=true`.
    five live in SDK code the backend does not own. The fix is to drop the
    `= this.radfi.accessToken` defaults in `BitcoinSpokeService` (:392, :509) and require the
    token per call — a separate, browser-breaking PR.
+
+---
+
+# Reconciliation 2026-07-28 — one branch, one PR
+
+The duplicate BE branch is gone. `feat/swaps-api-radfi-hmac` (2026-07-01) was merged with
+`development` (60 commits behind) and everything worth keeping from `feat/bound-backend-hmac-auth`
+folded in; that branch and PR #1027 are closed and deleted. New PR: **#1028**.
+
+## What each side contributed
+
+| Kept from 07-01 | Kept from 07-28 |
+|---|---|
+| `SODAX_API_SECRET_KEY`/`_WORD` — matches Bound's own naming in the issue | `docker-compose.yml` passthrough for all four env vars |
+| `radfiConfig` **optional** (`@ValidateIf`) rather than required | `getQuote?includeTxData` Bitcoin token guard |
+| `RADFI_API_URL`/`RADFI_UMS_URL` staging overrides | DTO validator on `CreateIntentParamsDto.srcChainKey` |
+| | the end-to-end run against Bound |
+
+Two 07-01 decisions were **dropped**, both for the same reason — they were claims about a
+codebase that had since moved:
+
+- The hard 400 blocking Bitcoin on `getQuote?includeTxData`. Correct when written (that branch
+  was itself introducing the token threading, which `getQuote` lacked), but the threading landed
+  independently via #854, so the block would break a working path. Replaced with a guard that
+  requires the token — the case that genuinely still failed.
+- `assertBitcoinBoundToken`, a service-level guard, in favour of the DTO validator. The
+  validator runs at the HTTP boundary and `CreateLimitOrderParamsDto` inherits it through
+  `OmitType`, so limit orders are covered without a second call site. Trade-off: a direct
+  `SwapsService.createIntent()` call now bypasses it. Only the controller calls it today.
+
+The 07-01 shape was better on the two things that mattered most. `radfiConfig` being optional
+is the clearer model — an unconfigured deployment is a valid state, not an error — and it is
+why the rpc-config/solver-config fixtures never needed the 9-test patch the 07-28 branch
+required. The env names matching Bound's spec removes a translation step for whoever
+provisions the secrets.
+
+## Final state
+
+`swaps-api`: 321 unit tests, `tsc` clean, `biome` clean, verified against a local build of
+sodax-sdks#322. 13 files changed vs `development`.
+
+## Method note
+
+Both times the comparison had to be re-derived from current `development`, not from the branch
+diff. Reading a stale branch's diff alone produced the wrong conclusion twice — first that the
+07-28 branch had a gap it didn't, then that the 07-01 guard was worth keeping. **Before
+carrying a decision forward from an old branch, check whether the thing it was working around
+still exists.**

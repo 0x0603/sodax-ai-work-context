@@ -161,3 +161,12 @@ updated: 2026-07-28
   runs `pnpm test` monorepo-wide and `packages/incident-manager`'s `unique_active_per_target`
   test fails whenever its three integration files share a `mongodb-memory-server` (2/2
   reproducible; 81/81 in isolation). Unrelated to the diff; left unfixed to keep it scoped.
+- **Reconciled the fork the same day.** `feat/swaps-api-radfi-hmac` merged with `development`
+  (60 commits behind; 4 conflicts, all resolvable by taking `development` plus re-applying the
+  branch's signer block), the 07-28 additions folded in, `feat/bound-backend-hmac-auth` and
+  PR #1027 deleted/closed. New PR: **#1028**. Full breakdown in `outcome.md`.
+- Two decisions from the 07-01 branch were dropped as stale — the `getQuote?includeTxData`
+  Bitcoin block (superseded by #854's token threading) and `assertBitcoinBoundToken` (replaced
+  by a DTO validator that limit orders inherit via `OmitType`). Both had been correct when
+  written. **Method: check whether the thing an old branch works around still exists before
+  carrying its decision forward.** Reading the branch diff alone gave the wrong answer twice.

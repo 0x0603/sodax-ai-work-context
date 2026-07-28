@@ -14,9 +14,8 @@ related_decisions: []
 - Started: 2026-06-30
 - Related PRs:
   - SDK: https://github.com/icon-project/sodax-sdks/pull/322 (ready)
-  - BE: https://github.com/icon-project/sodax-backend/pull/1027 (draft — CI red until the SDK publishes)
-- ⚠️ Two BE branches solve this issue (2026-07-01 and 2026-07-28); reconcile before merging.
-  See the comparison table in `outcome.md`.
+  - BE: https://github.com/icon-project/sodax-backend/pull/1028 (draft — CI red until the SDK publishes)
+  - BE #1027 was a duplicate implementation; closed and folded into #1028.
 
 ## Problem
 
