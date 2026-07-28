@@ -2,7 +2,7 @@
 type: process
 repo: sodax-backend
 github: 831
-updated: 2026-06-30
+updated: 2026-07-28
 ---
 
 # Process
@@ -116,3 +116,48 @@ updated: 2026-06-30
   essentially settled; only the real credential pair, an optional test-vector byte-match, and
   dual-key rotation remain. Updated `plan.md` + `README.md`.
 - Implementation still not started; awaiting plan review + the remaining decisions.
+- **2026-07-01 (later)** — Implemented both sides. SDK `feat/radfi-backend-signer` (2 commits),
+  BE `feat/swaps-api-radfi-hmac` (5 commits). Neither pushed, no PR (per instruction). See
+  `outcome.md`.
+
+### 2026-07-28 — second pass (duplicate), then reconciliation + PRs
+
+- **Re-implemented the whole issue from scratch without noticing the 2026-07-01 branches.**
+  The session read the issue and the source, but never ran `git branch -r` and never opened
+  this folder. `origin/feat/radfi-backend-signer` was in the remote list under an obvious
+  name. Caught only when the user asked "which branch did you cut from?" — after both halves
+  had been written, tested and reviewed. **Check remotes and this folder first.**
+- The second pass's SDK design put `secretKey`/`secretWord` directly on `RadfiConfig`. That
+  is worse than the 07-01 signer hook and was discarded: `ConfigService.initialize()` assigns
+  `this.sodax = next`, replacing `chains.bitcoin.radfi` wholesale, so a credential parked
+  there is both clobberable and serializable into any config dump. Same conclusion the 06-30
+  design discussion had already reached — re-derived the hard way.
+- Rebase → merge. The 07-01 SDK branch was 25 commits behind `main`. A rebase was done first,
+  then undone in favour of `git merge origin/main` so the push stayed fast-forward and no
+  force-push was needed (user's standing rule). Two conflicts, both additive: `Sodax.ts`
+  (`useBackendSubmitTx` from main vs `radfiSigner` from the branch — keep both) and
+  `ConfigService.ts` (main had commented out the `api`/`userConfig` fields under
+  `TODO(config-v2)`, so the branch's `this.api = api;` had to go).
+- Local-link method that worked, and the two that did not:
+  - ✗ Symlinking `node_modules/@sodax/sdk` at the SDK workspace — pulls the SDK repo's
+    `node_modules` into the BE module graph; vitest then hits the `@coral-xyz/anchor`
+    extensionless-ESM bug (same failure the 07-01 session hit).
+  - ✗ Building the Docker image against the local SDK — the Dockerfile COPYs fixed paths, so
+    `.local-sodax/*.tgz` never enters the build context.
+  - ✓ `pnpm pack` all four packages → `pnpm.overrides` → `pnpm install` → **then
+    `git checkout package.json pnpm-lock.yaml` without reinstalling**. `node_modules` keeps
+    the local build while the tracked files stay clean, so `checkTs` passes and the commit
+    carries no local paths.
+  - Scoping matters: overriding `@sodax/types` monorepo-wide breaks `apps/api`, which pins it
+    to v1 (`1.3.1-beta-rc1`) deliberately. Use `@sodax/sdk>@sodax/types` instead.
+- **First real call to Bound** (see `outcome.md` for the full result):
+  `sodax.apiSignatureMismatch` with placeholder secrets — header received, parsed and
+  verified by Bound. The IP barrier is confirmed gone.
+- Ran swaps-api natively (port 3009) against the Dockerised Mongo/Redis. The Mongo replica
+  set advertises members by Docker hostname, so a host client seeded at `127.0.0.1` is
+  redirected to `sodax-mongo` and fails DNS — `directConnection=true` is required.
+- PRs opened: sodax-sdks#322 (ready), sodax-backend#1027 (draft, CI red until the SDK
+  publishes). BE committed with `--no-verify` at the user's direction — the pre-commit hook
+  runs `pnpm test` monorepo-wide and `packages/incident-manager`'s `unique_active_per_target`
+  test fails whenever its three integration files share a `mongodb-memory-server` (2/2
+  reproducible; 81/81 in isolation). Unrelated to the diff; left unfixed to keep it scoped.

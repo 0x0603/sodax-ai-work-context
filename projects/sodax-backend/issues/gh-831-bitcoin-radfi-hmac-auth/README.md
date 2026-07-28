@@ -5,6 +5,16 @@
 > [`process.md`](./process.md) (research + design-decision trail) ·
 > [`outcome.md`](./outcome.md) (result, once done).
 
+> **Status 2026-07-28 — read `outcome.md` before touching this.**
+> PRs are open: [sdks#322](https://github.com/icon-project/sodax-sdks/pull/322) (ready),
+> [backend#1027](https://github.com/icon-project/sodax-backend/pull/1027) (draft).
+> Bound has been reached for real — a Bitcoin `createIntent` now returns
+> `sodax.apiSignatureMismatch` with placeholder secrets, i.e. the `x-api-signature` header is
+> received and verified and the IP barrier is gone. Two things block the merge: **two BE
+> branches implement this issue** (2026-07-01 `feat/swaps-api-radfi-hmac` and 2026-07-28
+> `feat/bound-backend-hmac-auth`, neither a superset — comparison table in `outcome.md`), and
+> the SDK must publish before the BE can typecheck.
+
 ## The one-paragraph version
 
 `swaps-api` builds Bitcoin swap intents via `@sodax/sdk` `createIntent({ raw: true })`.

@@ -4,7 +4,7 @@ repo: sodax-backend
 github: 831
 status: Active
 tags: [swaps-api, bitcoin, radfi, bound, hmac, auth, sdk, cross-repo]
-updated: 2026-06-30
+updated: 2026-07-28
 related_decisions: []
 ---
 
@@ -12,7 +12,11 @@ related_decisions: []
 
 - Source: https://github.com/icon-project/sodax-backend/issues/831
 - Started: 2026-06-30
-- Related PR:
+- Related PRs:
+  - SDK: https://github.com/icon-project/sodax-sdks/pull/322 (ready)
+  - BE: https://github.com/icon-project/sodax-backend/pull/1027 (draft — CI red until the SDK publishes)
+- ⚠️ Two BE branches solve this issue (2026-07-01 and 2026-07-28); reconcile before merging.
+  See the comparison table in `outcome.md`.
 
 ## Problem
 
