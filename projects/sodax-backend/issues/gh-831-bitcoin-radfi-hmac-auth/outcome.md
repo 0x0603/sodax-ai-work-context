@@ -143,15 +143,37 @@ writing code on an issue that already has a work folder.**
 |---|---|---|
 | Env names | `SODAX_API_SECRET_KEY`/`_WORD` — matches Bound's own naming in the issue | `BOUND_API_SECRET_KEY`/`_WORD` |
 | Optional `RADFI_API_URL`/`_UMS_URL` staging overrides | yes | no |
-| Bitcoin guard on `getQuote?includeTxData` | yes (400, points at `POST /swaps/intents`) | **missing** |
+| `getQuote?includeTxData` + Bitcoin | blocks it with a 400 — **now stale, see below** | requires `bound.accessToken`, otherwise allows it |
 | `docker-compose.yml` env passthrough | **missing** | yes |
 | `rpc-config`/`solver-config` fixture fix for the new required config field | **missing** | yes |
-| Bitcoin-without-token → 400 | yes (in `swaps.service.ts`) | yes (validator on `CreateIntentParamsDto.srcChainKey`) |
+| Bitcoin-without-token → 400 on `POST /swaps/intents` | yes (in `swaps.service.ts`) | yes (validator on `CreateIntentParamsDto.srcChainKey`) |
 
-**Recommendation:** keep 07-01 as the base (better env naming, wider coverage) and graft in
-the docker-compose passthrough + fixture fixes from 07-28. The `docker-compose.yml` gap is
-not cosmetic: the `sodax-swaps-api` service lists every env var explicitly, so without it a
+**The `getQuote` row reversed on inspection.** The 07-01 branch descoped Bitcoin on
+`getQuote?includeTxData` with a hard 400, correctly *at the time*: that branch was itself
+introducing the token threading, and `getQuote` did not have it. But the threading has since
+landed on `development` independently (the per-request swap-extras work, #854) —
+`swaps.service.ts` now calls `toSdkSwapExtras(input)` and forwards `bound` on the
+`includeTxData` path, and `QuoteRequestDto extends SwapExtrasDto` so the field exists. A
+Bitcoin quote with `includeTxData` and a token **works today**. Merging the 07-01 guard would
+break a working path.
+
+What was actually missing is the *guard*, not the block: omitting the token there still
+produced the SDK's opaque 401. Fixed on the 07-28 branch (`cf8c6def`) by requiring
+`bound.accessToken` when `tokenSrcChainKey` is Bitcoin and `includeTxData` is set. It lives in
+`getQuote` rather than in a DTO validator because class-validator cannot see `includeTxData`
+(a query option, not a body field) and the quote DTO names the chain field
+`tokenSrcChainKey`, not `srcChainKey`.
+
+**Recommendation:** keep 07-01 as the base for the env naming and the `RADFI_API_URL`
+overrides; take from 07-28 the docker-compose passthrough, the config-fixture fixes, and the
+`getQuote` guard; **drop** 07-01's `getQuote` block. The `docker-compose.yml` gap is not
+cosmetic: the `sodax-swaps-api` service lists every env var explicitly, so without it a
 deployment can set the secrets and still boot unsigned, with Bitcoin blocked silently.
+
+**Method note.** That row was first written from the branch diff alone, without checking what
+`development` looks like now — which inverted the conclusion. A four-week-old branch's
+descoping decisions are claims about a codebase that has moved; re-verify them against `main`
+/ `development` before carrying them forward.
 
 ## First real end-to-end run against Bound
 
