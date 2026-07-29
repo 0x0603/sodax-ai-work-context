@@ -2,7 +2,7 @@
 type: process
 repo: sodax-sdks
 github: 255
-updated: 2026-07-02
+updated: 2026-07-29
 ---
 
 # Process
@@ -382,3 +382,26 @@ Not fixed yet — awaiting go-ahead.
 - Adversarial-review Workflow (9 agents) found 6 completeness misses (all in `packages/sdk/docs/` + demo +
   JSDoc that my `packages/sdk/src`-only sweep skipped); fixed all 6, re-swept clean.
 - Committed `df0690d1` (amended to fold the fixes); NOT pushed. `config.ts` localhost artifact left out.
+
+## 2026-07-29 — conflict resolution (main #324 link gate)
+
+- #261 went CONFLICTING after main's #324 (GitBook absolute-link gate). Single
+  hunk: CONFIGURE_SDK.md constructor paragraph (`swapsOptions`/`bridgeOptions`
+  toggles vs absolutized LOGGING.md link). Resolved in merge `ea7fe144`: PR
+  wording + absolute link.
+- The new gate then flagged 4 relative links #261 had added in mirrored docs
+  (BRIDGE.md ×2, BACKEND_API.md, CONFIGURE_SDK.md — all pointing at the
+  unmirrored BRIDGE_API.md or a moved-doc anchor); absolutized all four →
+  `check:doc-links` green (26 files / 253 links).
+- Local suite: build:packages / build / checkTs / lint / circular-deps /
+  check:ai / check:ai-dev-files all green. wallet-sdk-react tests fail LOCALLY
+  only: Node 26's experimental `localStorage` global (undefined without
+  `--localstorage-file`) shadows happy-dom's, so bare `localStorage.getItem`
+  reads behind a `typeof window` guard throw (`BitcoinHanaXConnector.ts:200`,
+  also XverseXConnector). Pre-existing environment issue — CI (Node 24) was
+  green on the exact pre-merge tip and the merge's only delta in that package
+  is markdown. Not fixed here (out of scope for the conflict resolution).
+- Pushed; PR MERGEABLE (BLOCKED = awaiting review/CI). After #279 lands, one
+  more main merge is needed (CONFIGURE_SDK + MONETIZE_SDK combined wording —
+  see the gh-265 2026-07-29 entry).
+- `stash@{0}` "local bridge-raw draft before pull" left untouched.

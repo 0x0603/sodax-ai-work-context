@@ -2,7 +2,7 @@
 type: process
 repo: sodax-sdks
 github: 265
-updated: 2026-07-22
+updated: 2026-07-29
 ---
 
 # Process
@@ -110,3 +110,25 @@ updated: 2026-07-22
   token-logo support in @sodax/types is undocumented; wallet-sdk-react
   ARCHITECTURE.md hydration section doesn't mention the new sanitize-on-hydrate
   merge from the security fix.
+
+## 2026-07-29 — conflict resolution + review re-request
+
+- #279 went CONFLICTING after main's #324 (GitBook link gate: relative → absolute
+  links in mirrored docs + `pnpm check:doc-links` CI step). All 4 hunks
+  (dapp-kit README ×2, CONFIGURE_SDK, RELAYER_API_ENDPOINTS) were #324's link
+  rewrite racing #279's content additions in the same regions.
+- Resolved in merge `a36465a5` (merge, not rebase — keeps reviewed SHAs valid):
+  PR content in #324's absolute-link style. dapp-kit README: kept HEAD superset,
+  absolutized all 42 `](src/…` links; verified resolved file == stage2+sed except
+  2 lines where the auto-merge correctly kept main's better versions
+  (`/tree/main/` directory link, absolutized LICENSE link).
+- Re-verified vs current main before resolving: all 9 newly documented hooks,
+  `RELAY_POLLING_FAILED`, `analytics`, and the `leverageYield` slot still exist.
+- `check:doc-links` (26 files / 273 links) + `check:ai` green. Pushed, posted a
+  findings-summary comment, re-requested R0bi7 (review was CHANGES_REQUESTED;
+  all 4 findings were already fixed in `fb6403a4`). PR now MERGEABLE (BLOCKED =
+  awaiting review).
+- Cross-conflict with #261 on CONFIGURE_SDK.md + MONETIZE_SDK.md: whichever PR
+  lands second re-merges main once more; combined wording = analytics +
+  per-feature slots + `swapsOptions`/`bridgeOptions` toggles (CONFIGURE), and
+  getQuote payload-object phrasing + bridge `extras.partnerFee` (MONETIZE).
