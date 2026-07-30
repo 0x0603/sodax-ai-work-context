@@ -2,7 +2,7 @@
 type: plan
 repo: sodax-backend
 github: 831
-updated: 2026-07-01
+updated: 2026-07-30
 ---
 
 # Plan — Bitcoin RadFi backend auth (HMAC) + user token pass-through
@@ -362,3 +362,49 @@ x-api-signature = f1cc08944bf1f22ad840eb10253cbc0b3e0f7a871034e5e1c29ae15565f155
 - 🔶 **#831 / product owner:** is `GET /swaps/quote?includeTxData=true` a supported entry
   point for Bitcoin source in this issue → **thread** the token (B4b), or ship BTC-source
   via `POST /swaps/intents` only → **descope** with a 400 guard?
+  **(2026-07-30: the shipped code THREADS it — the "descope" wording in `outcome.md` /
+  the BE README / commit `4b74b138` is stale. Pick one and make the three agree; see F6.)**
+
+---
+
+## Follow-up — review fixes (2026-07-30)
+
+Both PRs re-reviewed file-by-file **against the source**, not against the PR bodies.
+Verdict: **the approach holds, no redesign** — the signer-hook design is still the right
+call. What came out: one behaviour regression, two release blockers, the rest docs/ops
+polish. Findings trail + an audit of which review points survived scrutiny: `process.md`
+(2026-07-30 section).
+
+Do them in this order — F1 is the only one that changes behaviour, F2–F3 gate the release.
+
+| # | Repo | Fix | Why here | Anchor |
+|---|---|---|---|---|
+| F1 | BE | Move the "Bitcoin needs `bound.accessToken`" rule off the DTO and into `createIntent` + `createLimitOrderIntent`, sharing one helper with the existing `getQuote` guard | **Only item that breaks working behaviour** — the DTO validator also fires on `/swaps/allowance/check` and `/swaps/approve`, which never call Bound | `create-intent.dto.ts:32`, `swaps.service.ts:117` |
+| F2 | SDK | Delete `body?: unknown` from `RadfiSignContext` (never populated — `request()` passes `{method, path}` only) | Public type: once published, removing a field is breaking. Must land **before** the release | `sodax-config.ts:79`, `RadfiProvider.ts:637` |
+| F3 | SDK | Add the changeset + document `radfi` in `CONFIGURE_SDK.md` (with a "server-side only, never ship a credential to a browser bundle" note) | No changeset ⇒ no version bump ⇒ BE can never leave draft. Mechanical blocker | `.changeset/` (only `config.json`+`README.md`), `packages/sdk/docs/CONFIGURE_SDK.md` |
+| F4 | BE | Exactly one of the two secrets set → **throw at boot** (unambiguous misconfig, and it is what D7 says); both unset → `logger.warn` naming the vars. Today both cases are silent | Reconciles D7's "fail-fast" with not turning a Bitcoin-only gap into a full-service outage | `configuration.ts:82`, `sodax.provider.ts` |
+| F5 | SDK | Classify a Bound auth failure (401/403 / `apiSignatureMismatch`) as `EXTERNAL_API_ERROR` instead of `INTENT_CREATION_FAILED` | Today our own credential failure returns **422** to the client (`error-mapper.ts:9`), i.e. dressed as the user's fault. One fix in the SDK covers every BE consumer | `RadfiProvider.ts:38` (`RadfiApiError.code`), BE `error-mapper.ts:9` |
+| F6 | BE | Make README + commit message match the code: Bitcoin `quote?includeTxData` **is** supported, it just requires the token | Public README currently tells integrators the opposite of what ships | `apps/swaps-api/README.md` |
+| F7 | BE | Log a masked RadFi summary (`{apiUrl, umsUrl, secretKey:'[set]', secretWord:'[set]'}`) instead of dropping the whole block; fix the PR body, which already claims this | PR body describes a log line the code does not emit (leftover from #1027); ops cannot see which Bound host is configured | `config.service.ts:33` |
+| F8 | SDK | Fix the PR-body claim "kept … rather than inside `this.sodax`" | `deepMerge` iterates `Object.keys(source)`, so `radfi` **does** land on `instanceConfig`. Harmless (closure holds the secret; `JSON.stringify` drops functions) but the sentence is wrong | `deepMerge.ts:13` |
+| F9 | SDK | One comment on `RadfiProvider` stating the signer covers `apiUrl` only and why (credential scoped to the Sodax endpoints — D3) | `RadfiProvider` **is** public API (`entities/index.ts` → `btc/index.ts`), so third parties can wire a signer and be surprised by the two `umsUrl` calls | `RadfiProvider.ts:296`, `:414` |
+| F10 | SDK | Optional: `new RadfiProvider(config, { signer })` instead of a positional 2nd arg | Public class; parameters will keep accreting. Pure ergonomics | `RadfiProvider.ts:120` |
+
+**Still the real gate to closing #831:** one run against the **production credential**. No
+code change substitutes for it, and it should happen before the SDK release — a misread of
+Bound's spec otherwise costs another release cycle.
+
+### Raised in review, then dropped (do not re-raise)
+
+- **"Sign the `umsUrl` calls too."** Contradicts **D3**, already settled 07-01: the Bound
+  credential is scoped to the Sodax endpoints, so signing UMS is unverified and possibly
+  meaningless. Only F9 (a comment) survives.
+- **"Rename `RadfiSigner` → `OutboundRequestSigner` for reuse."** Premature abstraction for
+  a second consumer that does not exist.
+- **"Expose only `radfiSigner` from `CustomConfigService`, keep the secrets private."**
+  ~No real boundary — the values come from `process.env`, readable in-process regardless.
+- **"Use `BITCOIN_CHAIN_KEYS_SET.has(...)`."** One Bitcoin key exists, and the BE already
+  uses `=== ChainKeys.BITCOIN_MAINNET` in four places; changing it would break local idiom.
+- **"Stop the signer overriding `Authorization`."** Real footgun, zero exploit path (our
+  signer returns one header), and the author documented + pinned it deliberately. Author's
+  call, not a blocker.

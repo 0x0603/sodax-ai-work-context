@@ -2,14 +2,20 @@
 type: outcome
 repo: sodax-backend
 github: 831
-status: PRs open — SDK #322 ready, BE #1028 draft (blocked on the SDK publishing)
-updated: 2026-07-28
+status: PRs open — SDK #322 ready, BE #1028 draft (blocked on the SDK publishing); reviewed 07-30, fixes pending
+updated: 2026-07-30
 ---
 
 # Outcome
 
 > The duplicate-branch fork described below has been **resolved**. One branch and one PR per
 > repo now. See "Reconciliation" at the bottom for what was kept from each and why.
+
+> **2026-07-30 — both PRs reviewed against the source.** The design holds; no redesign.
+> One behaviour regression (the Bitcoin token rule also fires on `/swaps/allowance/check`
+> and `/swaps/approve`, which never call Bound), two release blockers (no changeset, dead
+> `body` field on a public type) and some doc-vs-code drift. Ordered fix list: "Follow-up —
+> review fixes" in [`plan.md`](./plan.md); trail + audit in [`process.md`](./process.md).
 
 - PRs: [sodax-sdks#322](https://github.com/icon-project/sodax-sdks/pull/322) (ready),
   [sodax-backend#1028](https://github.com/icon-project/sodax-backend/pull/1028) (draft).
@@ -56,6 +62,10 @@ Implemented issue #831 end-to-end across both repos, per `plan.md`:
   `buildRawIntentAction` → `extras.bound.accessToken`; Bitcoin-source-without-token → 400
   guard; **B4b: Bitcoin `getQuote?includeTxData` descoped with a clear 400** (see decision);
   `swaps.service.spec.ts` (+3).
+  > **Correction (2026-07-30):** the shipped code does **not** descope that path — it
+  > *threads* the token and 400s only when the token is missing (`swaps.service.ts:117`,
+  > with a test asserting it forwards to `createIntent`). The "descoped" wording here, in
+  > the BE README and in the commit message is stale. → `plan.md` F6.
 - `chore(swaps-api): bump @sodax/sdk pin to 2.0.0-rc.19` (`61d4ba8b`) — intent; gated on
   publish (see below).
 - `docs(swaps-api): document RadFi/Bound backend auth…` (`1b50a369`) — `.env-example` +

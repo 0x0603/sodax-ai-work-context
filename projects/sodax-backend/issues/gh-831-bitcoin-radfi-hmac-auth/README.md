@@ -5,6 +5,13 @@
 > [`process.md`](./process.md) (research + design-decision trail) ·
 > [`outcome.md`](./outcome.md) (result, once done).
 
+> **Status 2026-07-30 — both PRs reviewed; fixes pending, nothing merged.**
+> Design holds, no redesign. **1 regression** (the Bitcoin `bound.accessToken` rule sits on
+> `CreateIntentParamsDto`, so it also fires on `/swaps/allowance/check` + `/swaps/approve`,
+> which never call Bound), **2 release blockers** (no changeset; dead `body` field on the
+> public `RadfiSignContext`), plus doc-vs-code drift. Ordered fix list F1–F10 →
+> "Follow-up — review fixes" in `plan.md`; trail + audit of the review → `process.md`.
+>
 > **Status 2026-07-28 — read `outcome.md` before touching this.**
 > PRs: [sdks#322](https://github.com/icon-project/sodax-sdks/pull/322) (ready),
 > [backend#1028](https://github.com/icon-project/sodax-backend/pull/1028) (draft).
@@ -65,6 +72,8 @@ The SDK release is a one-directional blocking gate for the backend work.
 - [x] **swaps-api wiring implemented + tested** — `sodax-backend` branch
   `feat/swaps-api-radfi-hmac` (5 commits; checkTs 14/14, unit 247/247 green).
 - [ ] Review (matterhorn) → see `outcome.md` (⚠️ includes `--no-verify` disclosure + local-link caveats).
+- [x] **Self-review of both PRs (2026-07-30)** — F1–F10 in `plan.md`; audit in `process.md`.
+- [ ] Apply F1–F4 (regression + release blockers), then F5–F10.
 - [ ] Publish SDK rc.19, then bump/install/push swaps-api + open PR. External confirms below.
 
 > **Implementation complete on local branches (unpushed, no PR).** Full status, commit list,

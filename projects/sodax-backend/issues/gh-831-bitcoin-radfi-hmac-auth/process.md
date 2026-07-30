@@ -2,7 +2,7 @@
 type: process
 repo: sodax-backend
 github: 831
-updated: 2026-07-28
+updated: 2026-07-30
 ---
 
 # Process
@@ -170,3 +170,73 @@ updated: 2026-07-28
   by a DTO validator that limit orders inherit via `OmitType`). Both had been correct when
   written. **Method: check whether the thing an old branch works around still exists before
   carrying its decision forward.** Reading the branch diff alone gave the wrong answer twice.
+
+### 2026-07-30 — full re-review of both PRs, then an audit of that review
+
+Reviewed sdks#322 and backend#1028 file-by-file against the checked-out branches (both repos
+were already on the PR branch), deliberately **not** trusting either PR body. Actionable
+output → the "Follow-up — review fixes" table in `plan.md`. What is worth keeping here is the
+one thing the implementation missed, and the parts of the review that did **not** survive
+scrutiny.
+
+**The miss: the DTO validator over-applies to two endpoints that never call Bound.**
+
+`IsBoundAccessTokenPresentForBitcoin` is attached to `srcChainKey` on `CreateIntentParamsDto`
+(`create-intent.dto.ts:32`) — and that DTO is the request body of **four** routes, not one:
+
+| Route | Service | Reaches Bound? | After the PR |
+|---|---|---|---|
+| `POST /swaps/allowance/check` | `isAllowanceValid` | **No** — `SwapService.isAllowanceValid` falls through to `{ok:true, value:true}` for Bitcoin (`SwapService.ts:678`) | 400s without the token — **false rejection** |
+| `POST /swaps/approve` | `approve` | No (Bitcoin has no approve) | 400s, wrong reason |
+| `POST /swaps/intents` | `createIntent` | Yes | correct |
+| `POST /swaps/limit-orders` | `createLimitOrderIntent` | Yes | correct |
+
+Evidence: `swaps.controller.ts:207` and `:225` both take `CreateIntentParamsDto`. So a client
+checking allowance for a BTC source before the user has logged in to Bound now gets
+`bound.accessToken is required` on a call that would have answered `{valid:true}` without
+touching Bound.
+
+Irony worth remembering: the 07-28 pass **moved** this rule from a service-level guard to a
+DTO validator (recorded above as a stale-decision cleanup) — and that move is exactly what
+over-applied it. Correct home is `createIntent` + `createLimitOrderIntent` sharing one helper
+with the `getQuote` guard. **Not** `buildRawIntentAction` — `isAllowanceValid` and `approve`
+call that too.
+
+**Audit — review points that were wrong or overreaching.** Recorded so they are not re-raised:
+
+- ❌ *"The signer misses the two `umsUrl` calls; route all three through one helper."*
+  Contradicts **D3**, settled on 07-01 in this very folder: the Bound credential is scoped to
+  the Sodax endpoints, so signing UMS is unverified and possibly meaningless. Reviewing from
+  the diff without re-reading `plan.md`'s Decisions re-derived a settled call as a "bug".
+  **Method: read the recorded decisions before reviewing the diff that implements them.**
+  Only a clarifying comment survives (F9) — and it is worth writing because `RadfiProvider`
+  **is** public API (`packages/sdk/src/index.ts` → `shared/index.js` → `entities/index.ts` →
+  `btc/index.ts` → `RadfiProvider.js`), so third parties can hit the same confusion.
+- ❌ *"A credential failure returns 422 and no alert fires."* The 422 is real
+  (`error-mapper.ts:9`), but the alerting half is wrong: `throwSdkError` logs at
+  `logger.error`, and the file's own comment says error-level blocks are forwarded to the
+  pager. Residual issue is HTTP semantics, 5xx metrics and client UX only → kept as F5, not as
+  a high-severity finding.
+- ❌ *"Throw at boot whenever the credential is missing."* That converts a Bitcoin-only
+  degradation into an outage for a service that fronts 10+ chains. Reconciled with D7's
+  "fail-fast" as: throw only when **exactly one** of the pair is set (unambiguous typo), warn
+  when both are unset (F4).
+- ❌ *"Keep the secrets private in `CustomConfigService`, expose only the signer."* Near-zero
+  benefit — the values live in `process.env` and stay readable in-process either way.
+- ❌ *"Use `BITCOIN_CHAIN_KEYS_SET.has(...)`."* One Bitcoin key exists and the BE already uses
+  `=== ChainKeys.BITCOIN_MAINNET` in four places; the change would break local idiom.
+- ❌ *"Rename the type to `OutboundRequestSigner` so a second provider can reuse it."*
+  Premature abstraction; no second consumer.
+
+**Findings that did hold** (details + anchors in `plan.md`): the dead `body?: unknown` field
+on the public `RadfiSignContext`; the missing changeset and the missing `radfi` entry in
+`CONFIGURE_SDK.md`; the silent half-set-credential path; three doc-vs-code mismatches
+(BE README + `outcome.md` say `quote?includeTxData` is descoped while the code threads it;
+the BE PR body describes a masked `boundConfig` log line the code does not emit; the SDK PR
+body says the signer is kept out of `this.sodax` while `deepMerge` copies it in).
+
+**Safety properties verified as correct** (no action needed, do not re-audit): the per-user
+Bound token is threaded per request and never seeded onto the shared `RadfiProvider.accessToken`
+— no cross-request token bleed on the Sodax singleton; `bound.accessToken` never reaches the
+Redis cache (the cache is only on the `submitTx` path); morgan's `common`/`dev` formats do not
+log request bodies.
