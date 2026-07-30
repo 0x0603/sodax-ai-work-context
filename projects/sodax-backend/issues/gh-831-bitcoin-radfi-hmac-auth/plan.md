@@ -390,6 +390,19 @@ Do them in this order — F1 is the only one that changes behaviour, F2–F3 gat
 | F9 | SDK | One comment on `RadfiProvider` stating the signer covers `apiUrl` only and why (credential scoped to the Sodax endpoints — D3) | `RadfiProvider` **is** public API (`entities/index.ts` → `btc/index.ts`), so third parties can wire a signer and be surprised by the two `umsUrl` calls | `RadfiProvider.ts:296`, `:414` |
 | F10 | SDK | Optional: `new RadfiProvider(config, { signer })` instead of a positional 2nd arg | Public class; parameters will keep accreting. Pure ergonomics | `RadfiProvider.ts:120` |
 
+> **F1 done 2026-07-30** — `ad5be1bc` on `feat/swaps-api-radfi-hmac` (pushed, in PR #1028).
+> Validator deleted
+> from `create-intent.dto.ts` (replaced by a NOTE explaining why the rule cannot live there);
+> the rule is now `SwapsService.assertBoundAccessTokenForBitcoin(srcChainKey, bound, condition)`,
+> called from `createIntent`, `createLimitOrderIntent` and `getQuote` (`includeTxData` branch
+> only) — the `condition` string keeps both 400 messages byte-identical to before. Verified:
+> swaps-api unit **327/327**, `tsc --noEmit` clean, biome clean on the 4 changed files.
+> Test split worth knowing: the actual regression pin is in `swap-extras.dto.spec.ts` (a Bitcoin
+> body with no token must now **resolve** through the pipe — that test failed before the fix);
+> the new `isAllowanceValid`/`approve` service tests would have passed before too, so they are
+> forward guards against the rule creeping back onto a shared path (a DTO validator again, or
+> `buildRawIntentAction`, which both of those methods call).
+
 **Still the real gate to closing #831:** one run against the **production credential**. No
 code change substitutes for it, and it should happen before the SDK release — a misread of
 Bound's spec otherwise costs another release cycle.
