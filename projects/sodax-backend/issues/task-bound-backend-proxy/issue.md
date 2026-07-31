@@ -78,5 +78,6 @@ cannot be proxied and domain whitelisting stays for sign-in.
 
 - Knowledge:
 - Decisions: recorded in this folder's `plan.md`
-- Cross-repo: SDK-side inventory + config switch → `artifacts/sdk-issue-draft.md`
-  (to be filed in `icon-project/sodax-sdks`)
+- Cross-repo: SDK-side inventory + config switch →
+  [sodax-sdks#330](https://github.com/icon-project/sodax-sdks/issues/330)
+  (filed 2026-07-31; body kept in `artifacts/sdk-issue-draft.md`)

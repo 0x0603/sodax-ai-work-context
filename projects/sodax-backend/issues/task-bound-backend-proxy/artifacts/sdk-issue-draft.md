@@ -1,8 +1,8 @@
-# Draft — issue for `icon-project/sodax-sdks`
+# Issue body — `icon-project/sodax-sdks`
 
-Copy the body below. Title:
-
-> **Bitcoin/Bound: inventory of Bound Exchange endpoints the SDK calls**
+**Filed 2026-07-31 as [sodax-sdks#330](https://github.com/icon-project/sodax-sdks/issues/330)**
+— "Bitcoin/Bound: inventory of Bound Exchange endpoints the SDK calls". Kept here as the
+source copy; edit GitHub and this file together.
 
 ---
 
