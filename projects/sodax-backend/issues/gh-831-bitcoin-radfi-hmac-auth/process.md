@@ -310,6 +310,50 @@ status column in `plan.md`). Two things worth carrying forward from doing them:
   (the signer ternary from `be891fc5c`). CI runs `biome lint`, which passes, so it is invisible
   there; reformatting it now would only add noise to the PR diff.
 
+**F13b was written, then dropped — and the question that killed it found something bigger.**
+The user pushed back on the masked-summary log ("the strip is already concise and leaks nothing —
+isn't fixing the PR body enough? how are the other keys handled?"). Checking *how the other keys
+are handled* is what settled it. `CustomConfigService` strips exactly two things — `mongoConfig`
+and `statefulMongoConfig` — and logs the rest of the config verbatim at `warn` on every boot,
+including:
+
+- `cacheConfig.uri` = `redis://:${REDIS_PASSWORD}@host:port` (`configuration.ts:107`) — the Redis
+  password, in cleartext
+- `telegramConfig` — the raw `TELEGRAM_CONFIG` JSON, which carries a bot token
+- `discordWebhookUrls` — webhook URLs are themselves credentials
+- `rpcConfig` — per-chain RPC URLs, and providers routinely embed an API key in the URL
+
+The file's own TODO says as much: *"in the future if we have API keys in the config, we should
+remove them from the logs"*. Meanwhile `sodax.provider.ts` follows a third pattern — it logs
+`Object.keys(...)` of the RPC/solver overrides, never values.
+
+So there is no masking convention to be consistent with: it is strip-or-raw, and F13b would have
+been the one masked value in the file — while four genuinely sensitive values next to it go out
+raw. Its only real payload was "which Bound host is live", which an operator reads from the
+deployment env anyway. Dropped; F17's triage step 2 was rewritten to point at the env.
+
+**The leak is out of scope for #831, pre-existing, and the user chose to leave it** (2026-07-31) —
+no PR comment, no issue. Recorded here only so a future pass doesn't rediscover it as news. If it
+is ever picked up, the fix is an allowlist projection (list what may be logged) rather than the
+current denylist of two keys: a denylist silently leaks every field added after it.
+
+**What #831 itself does with its own credential was audited and is clean**, and that audit is
+worth not repeating. The pair is read in exactly two places (`configuration.ts:80-90`,
+`sodax.provider.ts:51-55`) and reaches no logger. Every plausible escape was checked: the startup
+config log (destructured out, test-pinned), the provider's four log lines (string literals and
+`Object.keys` only), the boot-time validation error (`validateUtil` throws `errors.toString()`,
+and class-validator's `ValidationError.toString()` prints class/property/constraint **names**,
+never `this.value` — verified against the installed source, not from memory), the missing-credential
+message (var names only), the runtime error log (`cause` is Bound's *response* body, never the
+request), and `service_runtime_flags` (two RUN_* booleans). `.env.dev` holding the real pair is
+gitignored (`.gitignore:14`) and untracked.
+
+The structural reason it stays clean: the secret lives in the `signRequest` **closure**, not in any
+serializable object. Dumping the whole `SodaxOptions` or `sodax.instanceConfig` yields
+`[Function: signRequest]` — captured variables are not reachable, `JSON.stringify` drops functions.
+That is the payoff of the signer-hook design over putting `secretKey`/`secretWord` on `RadfiConfig`:
+safety by construction rather than by remembering to redact.
+
 **Checked and found fine** (recorded so the next pass skips them): `RadfiApiError` sets
 `this.name = 'RadfiApiError'` as a string **literal** and `packages/sdk/tsup.config.ts` does not
 minify, so `error-mapper`'s `name === 'RadfiApiError'` shape match is safe across the published

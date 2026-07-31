@@ -5,6 +5,12 @@
 > [`process.md`](./process.md) (research + design-decision trail) ·
 > [`outcome.md`](./outcome.md) (result, once done).
 
+> **Status 2026-07-31 (latest) — tier 3 done too (F15, F13b, F17), uncommitted.**
+> Everything in the round-2 list is now applied except **F12b** (blocked on the 2.1.0 publish) and
+> **F16** (the statelessness PR, deliberately deferred). Critical path is no longer code: #322 needs
+> a **reviewer**, the release owner needs to confirm 2.1.0 + the `latest` dist-tag, and the Bound
+> credential must be provisioned in Coolify before #1028 merges.
+>
 > **Status 2026-07-31 (later) — round-2 tiers 1–2 applied.** F13a + F18 (both PR bodies rewritten
 > against the code) and F12a (`rc.19` → `2.1.0`) are live on GitHub. **F11** (placeholder
 > credential in `test/vitest.setup.ts` — e2e back to 9/9 files, 256 tests) and **F14** (UMS
