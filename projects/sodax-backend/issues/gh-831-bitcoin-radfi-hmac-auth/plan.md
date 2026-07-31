@@ -516,8 +516,8 @@ promoted out of `outcome.md`'s "Still open". Evidence for every claim: `process.
 | **F13** | BE | Fix PR #1028's body, or apply F7 for real | Body still names `SODAX_API_SECRET_KEY/_WORD` (renamed to `BOUND_API_SECRET_*` in `0307564f`) and still claims a `boundConfig: {secretKey:"[set]"…}` startup log. Shipped code strips `radfiConfig` **entirely** from the config log and the provider logs only `Applying RadFi backend signer (HMAC) configuration` — so ops cannot see **which Bound host** (`RADFI_API_URL`) is live | `config.service.ts:32`, `sodax.provider.ts` (log line), PR #1028 body |
 | F14 | SDK | F9 leftover: one line at the two `umsUrl` call sites saying they are intentionally unsigned (D3) | The class-level comment says "per outbound `apiUrl` request", but the surprise lives at the call sites. `RadfiProvider` is public API | `RadfiProvider.ts:291` (`getBalance`), `:407` (`getExpiredUtxos`) |
 | F15 | SDK | F10 leftover: `new RadfiProvider(config, { signer })` instead of the positional 2nd arg | Cheapest **before** the signer arg is in a published class | `RadfiProvider.ts:124` |
-| F16 | SDK | Promoted from `outcome.md` "Still open" #5 — drop the `= this.radfi.accessToken` defaults and require the token per call | Confirmed still present on the branch: `accessToken` is a public mutable field, `setRadfiAccessToken` is public, and both Bitcoin build paths silently default to it. One `Sodax` singleton serves every user in swaps-api. Separate PR (breaks browser callers) | `RadfiProvider.ts:121`, `:201`; `BitcoinSpokeService.ts:392`, `:509` |
-| F17 | BE/ops | A runbook page for `radfiAuthFailure: true` | The signature is `Date.now()`-based inside Bound's 60 s window, so **host clock drift alone** turns every Bitcoin build into a 502 + page. Runbook should name the three causes — wrong/rotated secret, clock drift, Bound-side change — and that rotation is env + redeploy | `docs/runbooks/` |
+| ~~F16~~ | SDK | **Dropped 2026-07-31 at the user's call — not worth the cost.** Kept below only as a documented limitation, not a planned change |
+| ~~F17~~ | BE | **Reshaped 2026-07-31**: written as a runbook, then dropped as a file and folded into the `error-mapper.ts` comment instead |
 | F18 | SDK | F8 leftover: the PR #322 sentence "…rather than inside `this.sodax`" | `deepMerge` iterates `Object.keys(source)`, so `radfi` **does** land on `instanceConfig` as well. Harmless, wrong as written | PR #322 body |
 
 **Verified correct, do not re-audit:** `RadfiApiError` sets `this.name` to a string **literal**
@@ -540,7 +540,35 @@ free, the log line is code).
 | 4 | ✅ **F11** — placeholder `BOUND_API_SECRET_*` in `test/vitest.setup.ts` | ~15 min | **very low** — test-only file, `??=` never overrides a real env | **Done 2026-07-31, uncommitted.** With the env explicitly unset: unit **337/337**, e2e **9 files / 256 tests all passing** (was 5 files failing at import). `biome check` + `tsc --noEmit` clean |
 | 5 | ✅ **F14** — comments at the two `umsUrl` call sites | ~5 min | **none** (comments) | **Done 2026-07-31, uncommitted.** `@sodax/sdk` 1738/1738, `RadfiProvider.test.ts` 18/18, `checkTs` clean (needs `pnpm --filter @sodax/types build` first after a branch switch — a stale `types/dist` reports the signer types as missing), `biome lint` clean |
 | 6 | ❌ **F13b** — masked RadFi summary in the startup log | — | — | **Dropped 2026-07-31 at the user's call, after being written and then reverted.** It was the only *masked* value in a file whose convention is strip-or-raw, and the file leaks worse things raw (see `process.md`). The strip is already safe; the one thing F13b added — which Bound host is live — an operator reads from the deployment env. F17 step 2 now points there instead. Reverted `config.service.ts` + the added test; kept the `ConfigClass.radfiConfig` comment fix (it claimed the field is present only when the env is set — F4 made it always present) |
-| 7 | ✅ **F17** — `docs/runbooks/radfi-auth-failure.md` | ~40 min | **none** | **Done 2026-07-31, uncommitted.** Opens by separating the two signals (`radfiAuthFailure` error/502 vs `radfiUserTokenRejected` warn/401) because Bound's 401 does not distinguish them; states up front that this is a notify-level log, not an incident-manager flow (no `incidents` row, no admin reset); triage puts **clock drift before credential** — same symptom, cheaper to rule out; carries the signer + classifier source and an `openssl` line to recompute a digest; ends with the boot-failure case, a "what this is not" table and what to bring to Bound. Indexed in the repo `CLAUDE.md` |
+| 7 | ⚠️ **F17** — reshaped, not shipped as a runbook | ~40 min | **none** | **The file was written, then deleted at the user's call.** `docs/runbooks/` is one-runbook-per-incident-manager-flow: both members key on a flow constant (`MM_LIQUIDATION_GIVE_UP`, `INTENT_DELIVERY_GIVE_UP`) and share a 7-section skeleton — *What the incident contains* / *Resolving the incident* / admin-endpoint recovery. This alert has no flow, no `incidents` row, no latch, no reset, so 4 of those 7 sections had nothing to put in them: a second category in a folder with one consistent pattern. The three non-obvious facts (clock drift as a cause, `radfiAuthFailure` vs `radfiUserTokenRejected`, rotation = env + redeploy) now live in the `error-mapper.ts` comment above `radfiFailureKind`, next to the code that produces the signal. Verified: unit 337/337, tsc + biome clean |
 | 8 | ✅ **F15** — `RadfiProvider` options bag | ~20 min | **low**, was deadline-bound | **Done 2026-07-31, uncommitted.** New exported `RadfiProviderOptions` (`{ signer? }`); `constructor(config, options?)`. Call sites: `BitcoinSpokeService:82` + 6 in the test. `new RadfiProvider(config)` unchanged, and the positional signer never shipped, so nothing published breaks. `@sodax/sdk` **1738/1738**, `checkTs` + `biome lint` clean; no doc referenced the constructor |
 | 9 | **F12b** — bump the pin to the published 2.1.0, drop the `.local-sodax` link, refresh `pnpm-lock.yaml`, run the real suites | ~1 h | **medium** — first run against a real published artifact instead of a local tarball | **Blocked** on #322 merging + publishing |
-| 10 | **F16** — require the Bound token per call (drop the `= this.radfi.accessToken` defaults) | ~half day | **highest** — changes public SDK behavior, breaks browser callers (dapp-kit / demo / frontend), needs a cross-repo call-site sweep and its own version decision | Separate PR, after everything above. Safe to defer: swaps-api is protected today by the 400 guard + `raw: true` |
+| ~~10~~ | ~~**F16**~~ | — | — | **Dropped.** Cost (cross-repo call-site sweep, breaks browser callers, its own version decision) judged out of proportion to a hazard that is not reachable today. See the standing caveat below |
+
+### Why two of the round-2 items ended up dropped rather than shipped
+
+F13b and F17 were both written, verified and then removed — for the same reason, found twice by the
+same question: **what does the rest of the repo already do here?** F13b would have been the only
+masked value in a file whose convention is strip-or-raw; F17 would have been the only non-incident
+runbook in a folder keyed on incident flows. Neither was wrong on its own terms; both would have
+introduced a second pattern into a place that had exactly one, and a lone pattern is what later
+readers mis-generalise from. The durable content survived in both cases — as a decision record here,
+and as a comment next to the code that produces the signal. **Check the local convention before
+adding a good idea to a file you are already changing.**
+
+### Standing caveat — the deferred `RadfiProvider` session state (ex-F16)
+
+`RadfiProvider.accessToken` is a public mutable field, `setRadfiAccessToken` is public, and both
+Bitcoin build paths (`BitcoinSpokeService.ts:392`, `:509`) default to it. One `Sodax` singleton
+serves every user in swaps-api, so *if that field were ever populated*, a request arriving without
+its own token would borrow the previous user's.
+
+It is **not reachable today**, and that is the reason F16 was dropped rather than the reason it was
+raised: the backend never calls `setRadfiAccessToken`, never passes `radfi.accessToken`, uses
+`raw: true` only (and `ensureRadfiAccessToken` is gated behind `raw === false`), never calls
+`initialize()`, and the 400 guard makes the per-request token always present. Four of those five
+live in SDK code the backend does not own.
+
+So this is a **review trigger, not a task**: if a future change makes swaps-api call
+`setRadfiAccessToken`, pass `radfi.accessToken` on the shared instance, or use `raw: false`, the
+cross-user bleed becomes real and F16 has to come back first.
