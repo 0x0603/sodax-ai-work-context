@@ -2,7 +2,7 @@
 type: process
 repo: sodax-backend
 github: 831
-updated: 2026-07-30
+updated: 2026-07-31
 ---
 
 # Process
@@ -240,3 +240,79 @@ Bound token is threaded per request and never seeded onto the shared `RadfiProvi
 — no cross-request token bleed on the Sodax singleton; `bound.accessToken` never reaches the
 Redis cache (the cache is only on the `submitTx` path); morgan's `common`/`dev` formats do not
 log request bodies.
+
+### 2026-07-31 — post-fix pass: F4 broke CI, and the release numbers went stale
+
+Re-checked both branches after F1–F6 landed (BE `feat/swaps-api-radfi-hmac` = `origin`, 10
+commits over `development`; SDK `feat/radfi-backend-signer` = PR #322, **not draft, CI green,
+awaiting review**). F1–F6 are in and hold up. Two new blockers, both **consequences of things
+that changed after the round-1 review**, not of the design. Round-2 fix list → `plan.md`
+("Follow-up — round 2"). Method note that mattered: the CI item was found by *running* the
+suites with the env unset, not by reading the diff — the diff looks harmless.
+
+**1. F4's hard-required credential kills the e2e suite (and CI).** `configuration.ts` calls
+`buildRadfiConfig()` at **module scope** (`:132`), and `require('dotenv').config()` on line 1
+only finds a `.env` in cwd — which CI does not have and `apps/swaps-api/` does not ship
+(`example.env.dev` only). So every module that transitively imports `configuration.ts` throws
+on **import**. Reproduced with the credential env explicitly unset:
+
+```
+apps/swaps-api $ env -u BOUND_API_SECRET_KEY -u BOUND_API_SECRET_WORD npx vitest run
+  → Test Files 17 passed (17) · Tests 337 passed (337)          # unit: fine
+
+apps/swaps-api $ env -u … npx vitest run --config ./vitest.e2e.config.ts
+  → Test Files 5 failed | 4 passed (9)
+    Error: Missing required RadFi/Bound backend credential: BOUND_API_SECRET_KEY, BOUND_API_SECRET_WORD
+      ❯ buildRadfiConfig src/config/configuration.ts:86:11
+      ❯ src/config/configuration.ts:132:16
+```
+
+Failing: `health.admin-guards`, `swaps-admin.controller`, `submit-swap-tx-heartbeat.service`,
+`submit-swap-txs.fast-lane`, `submit-swap-txs.task` — they reach it via `bearer.guard.ts:3`
+(`ADMIN_ACCESS_TOKENS`) and `submit-swap-tx-heartbeat.service.ts:7` (`ORIGIN`), i.e. through
+ordinary app imports, not through anything RadFi-related. `apps/swaps-api` `test` is
+`vitest run && pnpm run test:e2e` and `ci.yml` sets only `MONGOMS_VERSION`, so `pnpm test`
+in CI is red. `test/vitest.setup.ts` (shared by both configs) was **not** touched by the branch
+— it already stubs `buildMongoConfig`/`buildStatefulMongoConfig` for exactly this class of
+module-eval-time env dependency, which is where the placeholder pair belongs.
+Why the earlier "336/336 green" claim missed it: that was the **unit** run, and unit specs do
+not import `configuration.ts` (only `radfi-config.spec.ts` does, and it seeds its own env in a
+`vi.hoisted()` block).
+Same root cause, second consequence: local dev / any deployment now needs the pair to boot at
+all — `docker-compose.yml` passes `${BOUND_API_SECRET_KEY:-}`, so an un-provisioned deploy
+crash-loops swaps-api for all 10+ chains. That is the trade-off the user accepted when choosing
+hard-required; the CI half is not.
+
+**2. The release numbers this folder is written around no longer exist.** npm today:
+`@sodax/sdk` `latest` = **2.0.0** (stable shipped), `rc` = **2.0.0-rc.21**. The changeset on
+#322 is `minor` for both `@sodax/types` and `@sodax/sdk` ⇒ the hook lands as **2.1.0**, not the
+`rc.19` written everywhere here. `61d4ba8b` ("bump pin to rc.19") was silently undone by the
+merge with `development`: `apps/swaps-api/package.json` now pins `2.0.0-rc.21`, which has no
+`radfi.signRequest` — so #1028's CI stays red by construction until #322 publishes and the pin
+is re-bumped. Also worth knowing before trusting any local green run: `apps/swaps-api/node_modules/@sodax/sdk`
+is a symlink to a **local tarball `2.0.0-rc.17`** built from `.local-sodax/` (untracked), so
+local `checkTs`/tests are validating a build CI will never install.
+
+**Tiers 1–2 of the round-2 order applied the same day** (F13a, F18, F12a, F11, F14 — see the
+status column in `plan.md`). Two things worth carrying forward from doing them:
+
+- **Both PR bodies had drifted further than the round-1 review caught.** #1028 still described
+  the DTO validator F1 deleted and still said an unset credential is valid, which F4 reversed —
+  i.e. the body documented the *pre-fix* behaviour on two separate points, either of which would
+  mislead a reviewer into approving the wrong shape. #322 still ended with "no changeset yet".
+  Fixing only the sentence the review flagged would have left both. **When a PR body is stale
+  once, re-read it whole against the diff rather than patching the flagged line.**
+- **A branch switch invalidates `packages/types/dist`.** `pnpm --filter @sodax/sdk checkTs`
+  reported `RadfiSigner` / `radfi` as missing purely because `dist` was still the other branch's
+  build; `pnpm --filter @sodax/types build` cleared all three errors. Rebuild types before
+  believing a type error on this branch.
+- Unrelated, noted not fixed: `RadfiProvider.ts:643` is not biome-**format** clean on this branch
+  (the signer ternary from `be891fc5c`). CI runs `biome lint`, which passes, so it is invisible
+  there; reformatting it now would only add noise to the PR diff.
+
+**Checked and found fine** (recorded so the next pass skips them): `RadfiApiError` sets
+`this.name = 'RadfiApiError'` as a string **literal** and `packages/sdk/tsup.config.ts` does not
+minify, so `error-mapper`'s `name === 'RadfiApiError'` shape match is safe across the published
+bundle; Bound's step 3 (`POST /sodax/transaction/sign`) is browser-side, so swaps-api's
+`submitTx` queue path never needs a Bound token (it only stores + relays); the unit suite is
+env-independent.

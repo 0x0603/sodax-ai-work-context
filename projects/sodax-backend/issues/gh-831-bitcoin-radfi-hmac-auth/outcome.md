@@ -109,12 +109,12 @@ Implemented issue #831 end-to-end across both repos, per `plan.md`:
 
 ## Follow-ups (to actually ship)
 
-1. **SDK**: land `feat/radfi-backend-signer` on `main`, cut/publish `@sdks@2.0.0-rc.19` from
+1. **SDK**: land `feat/radfi-backend-signer` on `main`, cut/publish `@sdks@2.1.0` from
    the live `release` branch. Confirm with RadFi: byte-match the pinned HMAC vector; that no
    `x-api-key` key-id header is needed (their spec lists only `x-api-signature`); dual-key rotation.
-2. **swaps-api**: once rc.19 is on npm — `pnpm install` (replaces the local link), update
+2. **swaps-api**: once 2.1.0 is on npm — `pnpm install` (replaces the local link), update
    `pnpm-lock.yaml`, run the real `pnpm test`, push, open PR. Provision
-   `SODAX_API_SECRET_KEY`/`SODAX_API_SECRET_WORD` as Coolify secrets.
+   `BOUND_API_SECRET_KEY`/`BOUND_API_SECRET_WORD` as Coolify secrets (renamed 2026-07-30).
 3. Product: confirm the B4b getQuote descope (or request threading).
 
 ---

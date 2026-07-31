@@ -2,7 +2,7 @@
 type: plan
 repo: sodax-backend
 github: 831
-updated: 2026-07-30
+updated: 2026-07-31
 ---
 
 # Plan — Bitcoin RadFi backend auth (HMAC) + user token pass-through
@@ -52,7 +52,7 @@ Why, vs the alternatives (full rationale in `process.md`):
   nothing extra here.
 - **Monkey-patch `globalThis.fetch`** in the backend: rejected for production — global
   process mutation, fragile to SDK internals, violates the repos' "no escape hatches"
-  rule. Acceptable only as a *temporary* dev bridge while ~rc.19 is pending, never
+  rule. Acceptable only as a *temporary* dev bridge while the release is pending, never
   shipped.
 
 ## Cross-repo + version model (verified)
@@ -86,7 +86,7 @@ per-request via `extras.bound`. SDK: a thin pass-through hook.
 
 ## Steps
 
-### Part A — SDK (`sodax-sdks`), publish ~rc.19 (BLOCKING GATE)
+### Part A — SDK (`sodax-sdks`), publish 2.1.0 (BLOCKING GATE)
 
 **A1. Add the signer-hook type + seam** (seam VERIFIED — D2)
 
@@ -134,23 +134,26 @@ the whole `ConfigService` and reads `config.logger`, so it can read a new
   endpoints; with no signer: byte-identical to today (browser path unaffected).
 
 **A3. Release** (D4 — procedure verified against the live repo)
-- Latest published is **`@sdks@2.0.0-rc.18`**; cut **`@sdks@2.0.0-rc.19`** (unified, all 7
-  packages). Merge the signer change to `main`, then cut from the **live release branch
+- Latest published is **`@sdks@2.0.0`** (`rc` dist-tag: `2.0.0-rc.21`); cut **`@sdks@2.1.0`**
+  (unified, all 8 packages — `types libs swaps-api wallet-sdk-core sdk wallet-sdk-react dapp-kit
+  skills`). Merge the signer change to `main`, then cut from the **live release branch
   `release`** (the repo's actual line — `release/sdk` in `RELEASE_INSTRUCTIONS.md` is stale;
   `main` carries the `0.0.1-rc.5` placeholder and must not be tagged; **not**
   `feat/bridge-api-v2`). On `release`: `git pull --no-ff origin main` (brings #237
   `a2395f07` → carries `extras.bound.accessToken`), bump via `scripts/bump-versions.sh`
   (7 pkgs + `CONFIG_VERSION` — the publish workflow validates every `package.json` equals
-  the tag), commit/push, draft GitHub Release tag `@sdks@2.0.0-rc.19` as pre-release
-  (`.github/workflows/sdks-publish.yml` publishes under the `rc` dist-tag).
+  the tag), commit/push, draft GitHub Release tag `@sdks@2.1.0`. Note the dist-tag is derived
+  from the tag string in `.github/workflows/sdks-publish.yml`: a hyphenless version publishes
+  under **`latest`**, only an `-rc.N` tag lands on `rc`. Confirm with the release owner that the
+  signer hook should go straight to `latest`.
 - Update `packages/skills` + RadfiProvider docs; run `pnpm check:ai`, `pnpm test/build/checkTs`.
   **Backend work waits on this being on npm.**
 
-### Part B — swaps-api (`sodax-backend`), after ~rc.19 is published
+### Part B — swaps-api (`sodax-backend`), after 2.1.0 is published
 
 **B1. Bump the SDK pin**
-- `apps/swaps-api/package.json`: `@sodax/sdk` `2.0.0-rc.14` → `~rc.19`; update
-  `pnpm-lock.yaml` (rc.14 currently at ~`:3809`). `pnpm --filter swaps-api checkTs`.
+- `apps/swaps-api/package.json`: `@sodax/sdk` → `2.1.0` (the pin is `2.0.0-rc.21` today —
+  `development` moved it while this branch was open); update `pnpm-lock.yaml`. `pnpm --filter swaps-api checkTs`.
   (This bump also brings `extras.bound.accessToken`.)
 
 **B2. Env + config plumbing** (mirror the existing `SolverConfigClass` pattern)
@@ -159,8 +162,9 @@ the whole `ConfigService` and reads `config.logger`, so it can read a new
   an `IsRadfiConfig` validator, and a `radfiConfig?` field on `ConfigClass` guarded with
   `@ValidateIf((o) => o.radfiConfig !== undefined)` (not `@IsOptional`, matching the
   null-rejecting rpc/solver pattern).
-- `apps/swaps-api/src/config/configuration.ts`: read `SODAX_API_SECRET_KEY`,
-  `SODAX_API_SECRET_WORD`, and optional `RADFI_API_URL`/`RADFI_UMS_URL`; assemble a
+- `apps/swaps-api/src/config/configuration.ts`: read `BOUND_API_SECRET_KEY`,
+  `BOUND_API_SECRET_WORD` (named `SODAX_API_SECRET_*` until the 2026-07-30 rename), and optional
+  `RADFI_API_URL`/`RADFI_UMS_URL`; assemble a
   `radfiConfig` object (omit entirely when the secrets are unset so dev/tests keep SDK
   defaults). **Deliberately flat env vars, not the file's `*_CONFIG` JSON-string pattern**
   (`RPC_CONFIG`/`SOLVER_CONFIG`): these are scalars, and keeping the secret as its own var
@@ -291,7 +295,7 @@ x-api-signature = f1cc08944bf1f22ad840eb10253cbc0b3e0f7a871034e5e1c29ae15565f155
 
 ## Sequencing
 
-`A1 → A2 → A3 (publish ~rc.19, GATE) → B1 → {B2, B3, B4 in parallel, reviewed together} → B5 → deploy + real BTC raw-build e2e`
+`A1 → A2 → A3 (publish 2.1.0, GATE) → B1 → {B2, B3, B4 in parallel, reviewed together} → B5 → deploy + real BTC raw-build e2e`
 
 ## Verification
 
@@ -322,7 +326,7 @@ x-api-signature = f1cc08944bf1f22ad840eb10253cbc0b3e0f7a871034e5e1c29ae15565f155
   NTP-synced; drift silently breaks all Bitcoin builds.
 - **`chains.bitcoin` merge collision** — radfi override and any bitcoin RPC override both
   target `chains.bitcoin`; deep-merge, don't clobber.
-- **Cross-repo coupling** — backend is blocked on the ~rc.19 publish; release from
+- **Cross-repo coupling** — backend is blocked on the 2.1.0 publish; release from
   main/release, not `feat/bridge-api-v2` (which would also ship unreleased surface).
 - **Signer scope** — the signer runs on every `apiUrl` `request()` call, so it also signs
   `GET /wallets/details`. That endpoint is itself a Sodax `apiUrl` endpoint (the credential is
@@ -340,7 +344,7 @@ x-api-signature = f1cc08944bf1f22ad840eb10253cbc0b3e0f7a871034e5e1c29ae15565f155
   fail-fast at boot; rotation = env change + redeploy (no SDK release).
 - **D1 HMAC format** — ms timestamp + lowercase hex; **confirmed by RadFi's response
   comment** (hex + message structure + 13-digit ts + 60 s); pinned test vector above.
-- **D4 release** — `@sdks@2.0.0-rc.19` from the live `release` branch (procedure in A3).
+- **D4 release** — `@sdks@2.1.0` from the live `release` branch (procedure in A3).
 
 ### RadFi answered these in their response comment (not open)
 
@@ -357,7 +361,7 @@ x-api-signature = f1cc08944bf1f22ad840eb10253cbc0b3e0f7a871034e5e1c29ae15565f155
   pinned test vector (their example used a placeholder digest); (3) **dual key/word support
   for zero-downtime rotation** — ops planning, non-blocking. Everything else in their scheme
   is settled above.
-- 🔶 **SDK release owner:** confirm the release branch name (`release`), that `rc.19` is the
+- 🔶 **SDK release owner:** confirm the release branch name (`release`), that `2.1.0` is the
   correct next number, and who cuts/publishes it.
 - 🔶 **#831 / product owner:** is `GET /swaps/quote?includeTxData=true` a supported entry
   point for Bitcoin source in this issue → **thread** the token (B4b), or ship BTC-source
@@ -403,9 +407,85 @@ Do them in this order — F1 is the only one that changes behaviour, F2–F3 gat
 > forward guards against the rule creeping back onto a shared path (a DTO validator again, or
 > `buildRawIntentAction`, which both of those methods call).
 
-**Still the real gate to closing #831:** one run against the **production credential**. No
-code change substitutes for it, and it should happen before the SDK release — a misread of
-Bound's spec otherwise costs another release cycle.
+> **F2 + F3 done 2026-07-30** — `45226506f` + `06da1749b` on `feat/radfi-backend-signer` (pushed,
+> in PR #322). `body` dropped from `RadfiSignContext`; changeset `.changeset/radfi-signer-hook.md`
+> at **minor** for `@sodax/types` + `@sodax/sdk` (new optional field + new exported types = minor
+> per `.claude/skills/release-governance/references/semver-and-changelog-policy.md`; the three
+> existing changesets are all `patch` because they are bug fixes, not a precedent for this).
+> Docs: a section in `CONFIGURE_SDK.md` **plus** — beyond the original F3 scope — the Bitcoin
+> `chain-specifics.md` in `packages/skills`, which the repo's own definition of done requires when
+> public behavior changes, and which is where a backend integrator actually looks (it sits next to
+> the per-user Bound token paragraph the signer is easily confused with).
+> Verified: `@sodax/sdk` 1738/1738, `checkTs` clean on both packages, biome clean,
+> `pnpm --filter @sodax/skills check:ai` green (all 6 sub-checks). `changeset status` not runnable
+> — the CLI is not installed locally; CI's `changeset-check.yml` is the gate.
+
+> **F4 + F5 + F6 applied 2026-07-30** on `feat/swaps-api-radfi-hmac`, **uncommitted**.
+> F4 landed **stronger than planned, at the user's call**: the credential is now **required in every
+> environment** — `buildRadfiConfig()` throws unless both secrets are set, naming the missing one(s).
+> The plan had proposed warn-on-both-unset / throw-on-half-set to avoid taking a 10-chain service
+> down over a Bitcoin gap; the user chose hard-required. Consequence worth knowing: `configuration.ts`
+> calls `buildRadfiConfig()` at **module scope**, so merely importing it throws — `radfi-config.spec.ts`
+> needs a `vi.hoisted()` block seeding the env before the import. F6 folded in on the same README bullet.
+>
+> **Verified against the live service** (swaps-api run natively on :3009 against the Dockerised
+> Mongo/Redis, local SDK build, placeholder secrets):
+> - `POST /swaps/allowance/check` Bitcoin, no token → **200 `{"valid":true}`** (was 400 — F1 fixed,
+>   and it confirms the SDK really does short-circuit Bitcoin allowance without calling Bound)
+> - `POST /swaps/intents` Bitcoin, no token → **400** naming the field
+> - `POST /swaps/intents` Bitcoin + token → **502 `upstream authentication error`** (was 422) — a real
+>   round trip to Bound, which parsed the `x-api-signature` and rejected only the digest. F5 confirmed
+>   end to end against the live API.
+> - Logs: `radfiAuthFailure: true` at error level, Bound's `apiSignatureMismatch` present in the log
+>   but absent from the response; zero occurrences of either placeholder secret; `radfiConfig` fully
+>   redacted from the startup config log.
+> - Boot with the env unset → `Missing required RadFi/Bound backend credential: SODAX_API_SECRET_KEY,
+>   SODAX_API_SECRET_WORD`, process exits.
+>
+> **F5 moved from the SDK to the BE — the SDK route would have cost a major bump.**
+> `EXTERNAL_API_ERROR` is not in `CreateIntentErrorCode`
+> (`USER_REJECTED | VALIDATION_FAILED | INTENT_CREATION_FAILED | UNKNOWN`, `errors/codes.ts:145`),
+> which is shared by every feature's `create*Intent` (32 references). Widening it changes a public
+> `Result` union → **major** per the SemVer policy, and breaks any consumer with an exhaustive
+> switch — wildly out of proportion. Instead `error-mapper.ts` gains `isRadfiAuthFailure`, which
+> walks the SodaxError cause chain (depth-capped 4, shape-matched on `name === 'RadfiApiError'` like
+> the existing solver check) and answers **502 + `logger.error({radfiAuthFailure:true})`** before the
+> 422 mapping. No SDK change, so F5 no longer waits on the release.
+> Signals matched: Bound's own `sodax.apiSignatureMismatch` (the one observed in the PR's live run)
+> plus status 401/403 (plausible, unverified — Bound has not returned one to us yet).
+> Verified: swaps-api unit **336/336**, `tsc --noEmit` clean, biome clean.
+
+> ### 2026-07-30 — the production credential WORKS. The last gate is cleared.
+>
+> Ran swaps-api natively (:3009) with the **real** Bound pair (from `.env.dev`, 64-char key /
+> 32-char word). Bound's error on a Bitcoin `createIntent` changed from
+> `sodax.apiSignatureMismatch` → **`auth.invalidToken`**, i.e. it **accepted our `x-api-signature`**
+> and failed only on the deliberately-dummy user token. The HMAC scheme, the ms timestamp, the hex
+> digest and the header format are all confirmed correct against the live API. Nothing about the
+> signing path is unverified any more.
+>
+> **That run also exposed a real bug in F5, now fixed.** Bound answers **401 for BOTH** a bad
+> service signature and a bad user token, so the original `isRadfiAuthFailure` (which matched any
+> 401/403) classified an expired *user* token as *our* credential failing → 502 + `logger.error`.
+> A Bound token lives **~10 minutes**, so that would have paged on every routine expiry and told
+> the user nothing. Replaced by `radfiFailureKind()`, which reads Bound's error identifier instead
+> of the status:
+> - `sodax.apiSignatureMismatch` → `service-credential` → **502** + `logger.error({radfiAuthFailure})`
+> - `auth.*` → `user-token` → **401** + `logger.warn({radfiUserTokenRejected})` + "mint a fresh one"
+>
+> Both verified live. **Lesson: an upstream's HTTP status may not distinguish whose fault it is —
+> classify on its error identifier.** The bug was undetectable with placeholder secrets, because
+> every call failed at the signature before ever reaching token validation.
+>
+> **Env vars renamed** `SODAX_API_SECRET_*` → **`BOUND_API_SECRET_*`** across 6 files. Bound issues
+> the pair under the `SODAX_` name (their name for the Sodax *account*), but inside this repo that
+> reads as "the Sodax API's key" — the opposite of what it is. The user hit exactly that trap: set
+> `BOUND_API_SECRET_*` in `.env.dev` by instinct and the code silently saw nothing. Renamed while
+> nothing in prod had been provisioned yet, so the change was free. A comment in
+> `configuration.ts` records Bound's original name for traceability when debugging with them.
+
+**Remaining to close #831:** a full happy-path run needs a live browser-minted Bound token
+(BIP322), which the demo can now do against `http://localhost:3009` — the signing side is done.
 
 ### Raised in review, then dropped (do not re-raise)
 
@@ -421,3 +501,46 @@ Bound's spec otherwise costs another release cycle.
 - **"Stop the signer overriding `Authorization`."** Real footgun, zero exploit path (our
   signer returns one header), and the author documented + pinned it deliberately. Author's
   call, not a blocker.
+
+## Follow-up — round 2 (2026-07-31)
+
+Re-checked both branches after F1–F6 landed. F1–F6 are in and correct; what follows is what
+F4's stronger-than-planned landing broke, plus the leftovers of round 1 (F7–F10) and one item
+promoted out of `outcome.md`'s "Still open". Evidence for every claim: `process.md`
+(2026-07-31 section) — the CI item was reproduced by running the suites, not reasoned about.
+
+| # | Repo | Fix | Why | Anchor |
+|---|---|---|---|---|
+| **F11** | BE | Stop `buildRadfiConfig()` from throwing at **module eval** — seed placeholders in `test/vitest.setup.ts` (same shape as the existing `buildMongoConfig` stub) and/or move the throw to Nest bootstrap / provider construction | **CI-breaking, new.** `configuration.ts:132` calls it at module scope, so importing anything that reaches it dies without the env. Reproduced: swaps-api e2e = **5 failed / 4 passed**, every failure `Missing required RadFi/Bound backend credential`. `pnpm test` = unit **+ e2e**, and `ci.yml` sets only `MONGOMS_VERSION` ⇒ PR #1028 goes red on merge-readiness for a reason unrelated to the SDK pin | `configuration.ts:80-93`, `:132`; `apps/swaps-api/test/vitest.setup.ts`; `.github/workflows/ci.yml:52` |
+| **F12** | both | Re-do the release/pin story: the hook ships as **2.1.0** (changeset is `minor` × 2), *not* `rc.19` | npm today: `latest` **2.0.0**, `rc` **2.0.0-rc.21**. The rc.19 pin bump (`61d4ba8b`) was undone by the merge with `development` — `apps/swaps-api/package.json` says `2.0.0-rc.21`. Every "rc.19" in this folder + both PR bodies is stale. Also: installed `node_modules/@sodax/sdk` is a **local tarball `2.0.0-rc.17`** from `.local-sodax/`, so local `checkTs`/tests do not validate what CI installs | `apps/swaps-api/package.json:48`; `.changeset/radfi-signer-hook.md` |
+| **F13** | BE | Fix PR #1028's body, or apply F7 for real | Body still names `SODAX_API_SECRET_KEY/_WORD` (renamed to `BOUND_API_SECRET_*` in `0307564f`) and still claims a `boundConfig: {secretKey:"[set]"…}` startup log. Shipped code strips `radfiConfig` **entirely** from the config log and the provider logs only `Applying RadFi backend signer (HMAC) configuration` — so ops cannot see **which Bound host** (`RADFI_API_URL`) is live | `config.service.ts:32`, `sodax.provider.ts` (log line), PR #1028 body |
+| F14 | SDK | F9 leftover: one line at the two `umsUrl` call sites saying they are intentionally unsigned (D3) | The class-level comment says "per outbound `apiUrl` request", but the surprise lives at the call sites. `RadfiProvider` is public API | `RadfiProvider.ts:291` (`getBalance`), `:407` (`getExpiredUtxos`) |
+| F15 | SDK | F10 leftover: `new RadfiProvider(config, { signer })` instead of the positional 2nd arg | Cheapest **before** the signer arg is in a published class | `RadfiProvider.ts:124` |
+| F16 | SDK | Promoted from `outcome.md` "Still open" #5 — drop the `= this.radfi.accessToken` defaults and require the token per call | Confirmed still present on the branch: `accessToken` is a public mutable field, `setRadfiAccessToken` is public, and both Bitcoin build paths silently default to it. One `Sodax` singleton serves every user in swaps-api. Separate PR (breaks browser callers) | `RadfiProvider.ts:121`, `:201`; `BitcoinSpokeService.ts:392`, `:509` |
+| F17 | BE/ops | A runbook page for `radfiAuthFailure: true` | The signature is `Date.now()`-based inside Bound's 60 s window, so **host clock drift alone** turns every Bitcoin build into a 502 + page. Runbook should name the three causes — wrong/rotated secret, clock drift, Bound-side change — and that rotation is env + redeploy | `docs/runbooks/` |
+| F18 | SDK | F8 leftover: the PR #322 sentence "…rather than inside `this.sodax`" | `deepMerge` iterates `Object.keys(source)`, so `radfi` **does** land on `instanceConfig` as well. Harmless, wrong as written | PR #322 body |
+
+**Verified correct, do not re-audit:** `RadfiApiError` sets `this.name` to a string **literal**
+(`RadfiProvider.ts:46`) and `tsup` does not minify, so `error-mapper`'s shape match survives
+bundling; the swaps-api **unit** suite passes with the credential env unset (**337/337**); Bound
+step 3 (`/sodax/transaction/sign`) is browser-side, so `submitTx` needs no Bound token on the BE.
+
+### Execution order — cheapest and lowest-risk first
+
+The table above is in discovery order. This is the order to actually work in: everything in
+tiers 1–2 can land today without touching runtime code, and nothing in them can regress a
+shipped path. F12 splits (doc half is free, the pin bump is blocked); F13 splits (PR body is
+free, the log line is code).
+
+| Order | Item | Cost | Risk | Notes |
+|---|---|---|---|---|
+| 1 | ✅ **F13a** — fix PR #1028 body | ~5 min | **none** (GitHub text) | **Done 2026-07-31.** Rewrote beyond the env rename: the "unset is valid" bullet (F4 made it required), the DTO-validator description (F1 moved it to `assertBoundAccessTokenForBitcoin`), the `boundConfig` log claim, and the stale "production credential not yet verified"; added the 502/401 error-mapping table |
+| 2 | ✅ **F18** — fix the wrong sentence in PR #322's body | ~2 min | **none** (GitHub text) | **Done 2026-07-31.** Also refreshed: changeset now exists (the "no changeset yet" line was stale), test counts (1738 / 18), the changed-files table (docs, changeset, demo), signer scope, and the 2.1.0 release note |
+| 3 | ✅ **F12a** — `rc.19` → `2.1.0` in this folder + both PR bodies | ~5 min | **none** (notes only) | **Done 2026-07-31.** Forward-looking mentions only; the historical trail in `process.md` / `outcome.md` keeps `rc.19` on purpose. Stale `SODAX_API_SECRET_*` mentions fixed the same way. Also corrected: the release cuts **8** packages, and `sdks-publish.yml` derives the dist-tag from the tag string — a hyphenless `@sdks@2.1.0` publishes to **`latest`**, not `rc` |
+| 4 | ✅ **F11** — placeholder `BOUND_API_SECRET_*` in `test/vitest.setup.ts` | ~15 min | **very low** — test-only file, `??=` never overrides a real env | **Done 2026-07-31, uncommitted.** With the env explicitly unset: unit **337/337**, e2e **9 files / 256 tests all passing** (was 5 files failing at import). `biome check` + `tsc --noEmit` clean |
+| 5 | ✅ **F14** — comments at the two `umsUrl` call sites | ~5 min | **none** (comments) | **Done 2026-07-31, uncommitted.** `@sodax/sdk` 1738/1738, `RadfiProvider.test.ts` 18/18, `checkTs` clean (needs `pnpm --filter @sodax/types build` first after a branch switch — a stale `types/dist` reports the signer types as missing), `biome lint` clean |
+| 6 | **F13b** — masked RadFi summary in the startup log (`apiUrl`/`umsUrl` resolved, secrets as `[set]`) | ~20 min | **low** — one log line + a test asserting no secret material appears | Only after F13a, so body and code agree |
+| 7 | **F17** — `docs/runbooks/radfi-auth-failure.md` | ~40 min | **none** technically, just writing time | Wants the three causes (wrong/rotated secret, host clock drift past the 60 s window, Bound-side change) |
+| 8 | **F15** — `RadfiProvider` options bag | ~20 min | **low**, but **deadline-bound**: must land before 2.1.0 publishes, else changing it later is breaking | Keep `new RadfiProvider(config)` working; only the 2nd arg changes shape |
+| 9 | **F12b** — bump the pin to the published 2.1.0, drop the `.local-sodax` link, refresh `pnpm-lock.yaml`, run the real suites | ~1 h | **medium** — first run against a real published artifact instead of a local tarball | **Blocked** on #322 merging + publishing |
+| 10 | **F16** — require the Bound token per call (drop the `= this.radfi.accessToken` defaults) | ~half day | **highest** — changes public SDK behavior, breaks browser callers (dapp-kit / demo / frontend), needs a cross-repo call-site sweep and its own version decision | Separate PR, after everything above. Safe to defer: swaps-api is protected today by the 400 guard + `raw: true` |

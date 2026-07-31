@@ -5,6 +5,20 @@
 > [`process.md`](./process.md) (research + design-decision trail) ·
 > [`outcome.md`](./outcome.md) (result, once done).
 
+> **Status 2026-07-31 (later) — round-2 tiers 1–2 applied.** F13a + F18 (both PR bodies rewritten
+> against the code) and F12a (`rc.19` → `2.1.0`) are live on GitHub. **F11** (placeholder
+> credential in `test/vitest.setup.ts` — e2e back to 9/9 files, 256 tests) and **F14** (UMS
+> call-site comments) are **uncommitted working-tree changes** in `sodax-backend` /
+> `sodax-sdks`. Left: F13b, F17, F15, then F12b (blocked on the release) and F16.
+>
+> **Status 2026-07-31 — F1–F6 landed; 2 new blockers found, nothing merged.**
+> SDK #322 is ready (not draft, CI green, awaiting review); BE #1028 is still draft.
+> New: **F11** — F4's boot-time credential check runs at *module scope*, so 5 of 9 swaps-api
+> e2e specs fail to import without `BOUND_API_SECRET_*` ⇒ CI `pnpm test` red (reproduced);
+> **F12** — the whole `rc.19` release story is stale (npm `latest` = 2.0.0, `rc` = rc.21; the
+> changeset is `minor` ⇒ **2.1.0**, and the BE pin fell back to rc.21). Round-2 list F11–F18 →
+> "Follow-up — round 2" in `plan.md`; evidence → `process.md` (2026-07-31).
+>
 > **Status 2026-07-30 — both PRs reviewed; fixes pending, nothing merged.**
 > Design holds, no redesign. **1 regression** (the Bitcoin `bound.accessToken` rule sits on
 > `CreateIntentParamsDto`, so it also fires on `/swaps/allowance/check` + `/swaps/approve`,
@@ -39,7 +53,8 @@ Two things, threaded end-to-end through the SDK and swaps-api:
 1. **Per-user token pass-through** — accept the user's Bound access token on the
    swaps-api request and forward it into `createIntent` as `extras.bound.accessToken`.
 2. **Backend HMAC auth** — sign every RadFi request with `x-api-signature` derived
-   from `SODAX_API_SECRET_KEY` + `SODAX_API_SECRET_WORD`.
+   from `BOUND_API_SECRET_KEY` + `BOUND_API_SECRET_WORD` (Bound issues the pair under the
+   `SODAX_` name — renamed in-repo on 2026-07-30, see `plan.md`).
 
 ## The key design decision
 
@@ -57,9 +72,9 @@ monkey-patching global `fetch` — are recorded in `process.md`.)
 |---|---|---|---|
 | `chains.bitcoin.radfi` config on `Sodax` | ✅ | ✅ | provider just passes it |
 | `extras.bound.accessToken` (user token) | ❌ | ✅ (since rc.15, #237) | comes free with the pin bump |
-| HMAC `x-api-signature` signer hook | ❌ | ❌ (exists nowhere) | **net-new SDK change + a new release (~rc.19)** |
+| HMAC `x-api-signature` signer hook | ❌ | ❌ (exists nowhere) | **net-new SDK change + a new release (2.1.0)** |
 
-So: **one SDK change** (add the stateless signer hook) → **publish ~rc.19** (which also
+So: **one SDK change** (add the stateless signer hook) → **publish 2.1.0** (which also
 carries the rc.15+ token plumbing) → **swaps-api bumps once** and wires everything.
 The SDK release is a one-directional blocking gate for the backend work.
 
@@ -68,13 +83,13 @@ The SDK release is a one-directional blocking gate for the backend work.
 - [x] Analyzed, researched, plan written (this folder).
 - [x] Open decisions researched — most resolved internally; see "Decisions" in `plan.md`.
 - [x] **SDK signer hook implemented + tested** — `sodax-sdks` branch `feat/radfi-backend-signer`
-  (2 commits, all SDK tests green). Release `rc.19` still to be cut/published.
+  (2 commits, all SDK tests green). Release `2.1.0` still to be cut/published.
 - [x] **swaps-api wiring implemented + tested** — `sodax-backend` branch
   `feat/swaps-api-radfi-hmac` (5 commits; checkTs 14/14, unit 247/247 green).
 - [ ] Review (matterhorn) → see `outcome.md` (⚠️ includes `--no-verify` disclosure + local-link caveats).
 - [x] **Self-review of both PRs (2026-07-30)** — F1–F10 in `plan.md`; audit in `process.md`.
 - [ ] Apply F1–F4 (regression + release blockers), then F5–F10.
-- [ ] Publish SDK rc.19, then bump/install/push swaps-api + open PR. External confirms below.
+- [ ] Publish SDK 2.1.0, then bump/install/push swaps-api + open PR. External confirms below.
 
 > **Implementation complete on local branches (unpushed, no PR).** Full status, commit list,
 > verification, and honest caveats in [`outcome.md`](./outcome.md).
@@ -90,7 +105,8 @@ The SDK release is a one-directional blocking gate for the backend work.
 - **Transport (D5):** request body, nested `bound: { accessToken }`.
 - **Secret (D7):** raw env var on swaps-api only (Coolify), redacted, fail-fast; rotate via
   env + redeploy.
-- **Release (D4):** `@sdks@2.0.0-rc.19` from the live `release` branch.
+- **Release (D4):** `@sdks@2.1.0` from the live `release` branch. (Planned as `rc.19` on
+  2026-07-01; `2.0.0` stable shipped meanwhile and the changeset is `minor` — see F12.)
 
 ## Two findings that widened scope
 
@@ -111,5 +127,5 @@ So the RadFi side is essentially settled.
 - 🔶 **RadFi (ops/non-blocking):** issue the **real `SECRET_KEY`/`SECRET_WORD`** pair; a
   one-line byte-match of the test vector (their example used a placeholder); dual-key
   rotation support.
-- 🔶 **SDK owner:** release branch (`release`) + that `rc.19` is the next number + who cuts it.
+- 🔶 **SDK owner:** release branch (`release`) + that `2.1.0` is the next number + who cuts it.
 - 🔶 **#831 / product:** thread vs descope `getQuote?includeTxData` for Bitcoin.
