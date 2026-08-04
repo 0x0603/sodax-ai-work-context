@@ -15,8 +15,8 @@ updated: 2026-08-04
 
   Each PR closes its sub-issue rather than the topic. PR #341 originally said `Closes #331`, which
   would have shut the topic on merge with two repos still open — corrected when the split landed.
-- Commits: `3dc8dc067` (sodax-sdks, one commit) · `ee8dc009` (sodax-frontend)
-- Tests: sodax-sdks **1916/1916** · sodax-backend **341/341** (against a `pack:local` SDK)
+- Commits: `d75c51b63` (sodax-sdks, one commit) · `ee8dc009` (sodax-frontend)
+- Tests: sodax-sdks **1917/1917** · sodax-backend **341/341** (against a `pack:local` SDK)
 
 ## Summary
 

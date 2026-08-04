@@ -120,6 +120,34 @@ Two gotchas worth remembering: the API takes the issue's **database id**, not it
 The body of #331 was left untouched (it holds the original analysis); the topic structure went into a
 comment instead. Both PRs were repointed to close their sub-issue rather than the topic.
 
+### Self-audit found the docs/skills coverage was two-thirds short
+
+A review pass over the PR turned up two should-fix findings, both documentation coverage rather than
+code. The behaviour note had landed in 4 docs and 2 skill files; 6 more `packages/sdk/docs` pages with
+an `### approve` section, 8 `sodax-sdk` feature knowledge files, and the entire `sodax-dapp-kit`
+knowledge tree still described approval as a single transaction. Root `AGENTS.md` requires skills to
+be updated when public behaviour changes, so this was a real gap, not polish.
+
+One of them was worse than a missing note: `LEVERAGE_YIELD.md:218` said approve *"delegates to
+`Erc20Service.approve`"*, which this PR made **false** for the signed path — it now goes through
+`SpokeService.approve`. An inaccurate statement the change itself introduced.
+
+Fixed by putting the full explanation in one place per skill family (`sodax-sdk/architecture.md`,
+`sodax-dapp-kit/architecture.md`) and a short pointer with a relative link in each feature file, so
+`check:ai` validates the link rather than 15 copies drifting apart. The dapp-kit note is deliberately
+different from the SDK one: the hooks do not change at all, so what a reader needs there is that
+`isPending` now spans two prompts, that gas estimates assuming one transaction are wrong, and that a
+retry is always safe.
+
+Three cheap nits fixed alongside: a comment explaining why the hub and EVM-spoke branches of `approve`
+can share one condition, a test for the Stellar branch of `buildApproveTxs`, and a comment recording
+that the diagnostic script's synthetic probe mirrors `Erc20Service.canApprove` and must stay in step.
+
+Deliberately left: `SwapService.buildApproveTxs` not returning `plan.reason` (would widen the public
+surface for no current consumer), the spoke public client having no RPC failover while the hub does
+(pre-existing, degrades safely, deserves its own change), and `apps/node` sitting outside every CI
+gate (by design — `btc.ts` has had errors for a while).
+
 ### Frontend was done in a git worktree
 
 `sodax-frontend` had uncommitted WIP on `fix/financial-flow-ux-safety-1559`. Used
