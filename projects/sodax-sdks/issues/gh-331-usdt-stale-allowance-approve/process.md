@@ -93,10 +93,13 @@ tokens (Arbitrum USDT among them) put the allowance mapping well past 20, and a 
    the dead branch is gone.
 4. `logApprovalPlan(method: string)` → `caller: 'approve' | 'buildApproveTxs'`.
 
-Deliberately **not** de-duplicated: the Stellar `requestTrustline` branch appears in both `approve`
-and `buildApproveTxs`. Extracting it would edit a pre-existing branch unrelated to this bug, against
-the repo's no-drive-by-refactor rule. The duplication is safe — both call the same method with the
-same mapping, so a signature change fails typecheck in both places and cannot drift silently.
+Initially left duplicated: the Stellar `requestTrustline` branch appeared in both `approve` and
+`buildApproveTxs`, and I justified that with the no-drive-by-refactor rule. **That reasoning was
+wrong** and the user pushed back on it. The rule protects *pre-existing* code from unrelated edits —
+but `buildApproveTxs` is new in this PR, so the duplication was mine, and cleaning up what you just
+made is finishing the work rather than a drive-by. The stronger argument I had missed: the
+`as RequestTrustlineParams<…>` cast is exactly the unsafe cast `AGENTS.md` calls an escape hatch, and
+having it in two places is worse than one. Extracted to `requestTrustlineForApproval`.
 
 ### Backend branch was cut from the wrong base
 
@@ -152,3 +155,55 @@ gate (by design — `btc.ts` has had errors for a while).
 
 `sodax-frontend` had uncommitted WIP on `fix/financial-flow-ux-safety-1559`. Used
 `git worktree add ../sodax-frontend-331` so that tree was never touched.
+
+### A review session that found four defects I had signed off on
+
+After I had twice reported the branch clean, the user kept asking and each question surfaced a real
+defect. Worth recording because the pattern matters more than the individual fixes:
+
+1. **`requestTrustlineForApproval<K, Raw>`** — `K` appeared only in the parameter type, never in the
+   return, forcing callers to pass type arguments the compiler should have inferred. It could not
+   infer them because I had typed the parameter as `Extract<SpokeApproveParams<K, Raw>, …>`, a
+   conditional type. Taking `SpokeApproveParamsStellar<StellarChainKey, Raw>` directly fixed it. I
+   had justified the `Extract` form from two commented-out lines in `guards.ts` — those are about the
+   *guard's* signature, not a function receiving already-narrowed input. Reasoning from an old
+   artefact instead of trying it; one `tsc` run settled it.
+2. **`raw` leaked on the Stellar branch** — the ERC-20 branch hardcodes `raw: true`, the Stellar one
+   spread it from `params`, and `requestTrustline` reads it at runtime. A JavaScript caller could
+   have made a method named "build" broadcast.
+3. **Positional contract across a package boundary** — the backend read `txs.at(-1)` / `txs[0]`. A
+   future three-step plan would have silently dropped the middle transaction. Fixed at the type
+   level, not with a guard.
+4. **Array instead of an object** — the strongest one. The only consumer converted the array
+   straight back into named fields, so the array was a pointless round trip through positions, and
+   that round trip is where defect 3 lived.
+
+Defect 4 generalised: `Erc20ApprovalPlan.steps` had the same flaw one layer down, and it is public
+API too. Now `{ resetAmount?, approveAmount }`, so the whole chain — planner, executor,
+`ApprovalTxs`, wire — names things instead of counting them. Safe to change only because none of it
+exists on `main` yet (`0` occurrences) and npm is still on `2.0.0`; that window closes at release.
+
+Two measurement mistakes of my own are worth remembering. `rg` reported line numbers for
+`SpokeService.ts` that plain `grep` contradicted — always confirm a surprising line number against
+the file. And `pnpm --filter demo checkTs | grep … ; echo $?` reports the exit code of `grep`, not
+`tsc`; I called a gate green off that and the real failure only appeared in the full run.
+
+### `useSwapsApiApproveAndBroadcast` — the boundary this fix moved
+
+The user's sharpest point: leaving signing to the app was fine when it was one transaction, because
+there was nothing to get wrong. This change made it two with an ordering and a wait between them —
+so the fix exported a correctness burden onto integrators. The package should carry it.
+
+`packages/dapp-kit/src/hooks/swapsApi/` had 23 hooks and not one touched `walletProvider`; they are
+deliberately thin HTTP wrappers. This hook breaks that symmetry on purpose. It only needs EVM and
+Stellar, because `buildApproveTxs` supports nothing else and every other chain reports its allowance
+as always sufficient — my earlier "8 chain families" estimate came from the length of the demo's
+dispatcher, which is shared with `createIntent`/`submitTx`, and was inflated cost used to argue for
+deferring.
+
+It also closes a gap the demo had documented long before this issue: `useSwapsApiApprove` cannot
+invalidate `['swapsApi','allowance']` because confirmation happens client-side after it resolves.
+This hook owns confirmation, so it invalidates the query itself.
+
+`apps/swap-api-example` deliberately keeps the manual two-step: it does not depend on dapp-kit, and
+demonstrating the standalone `@sodax/swaps-api` path is the point of that app.
