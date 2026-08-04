@@ -8,10 +8,13 @@ updated: 2026-08-04
 
 # Outcome
 
-- PR:
-  - sodax-sdks — https://github.com/icon-project/sodax-sdks/pull/341 (ready)
-  - sodax-frontend — https://github.com/icon-project/sodax-frontend/pull/1634 (draft)
-  - sodax-backend — branch `fix/331-approve-reset-tx` off `origin/development`, **uncommitted**
+- Topic: sodax-sdks#331, split into three cross-repo GitHub sub-issues on 2026-08-04
+  - sodax-sdks#342 → PR https://github.com/icon-project/sodax-sdks/pull/341 (ready)
+  - sodax-backend#1042 → branch `fix/331-approve-reset-tx` off `origin/development`, **uncommitted**
+  - sodax-frontend#1635 → PR https://github.com/icon-project/sodax-frontend/pull/1634 (draft)
+
+  Each PR closes its sub-issue rather than the topic. PR #341 originally said `Closes #331`, which
+  would have shut the topic on merge with two repos still open — corrected when the split landed.
 - Commits: `3dc8dc067` (sodax-sdks, one commit) · `ee8dc009` (sodax-frontend)
 - Tests: sodax-sdks **1916/1916** · sodax-backend **341/341** (against a `pack:local` SDK)
 

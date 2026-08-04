@@ -110,6 +110,16 @@ not exist in `2.0.0-rc.21` (verified: nor in `2.1.0-rc.1`), so the hook fails. N
 `--no-verify` is against the repo rules. The change sits in the working tree on
 `fix/331-approve-reset-tx` until the release lands.
 
+### #331 restructured into a topic with three sub-issues
+
+Done after the PRs were already open, at the user's request. GitHub's native sub-issue API accepts a
+**cross-repo** child, so the three live in their own repos and #331 still renders the progress bar.
+Two gotchas worth remembering: the API takes the issue's **database id**, not its number, and `gh api
+-f` sends it as a string — it needs `-F` to be typed as an integer, otherwise 422.
+
+The body of #331 was left untouched (it holds the original analysis); the topic structure went into a
+comment instead. Both PRs were repointed to close their sub-issue rather than the topic.
+
 ### Frontend was done in a git worktree
 
 `sodax-frontend` had uncommitted WIP on `fix/financial-flow-ux-safety-1559`. Used

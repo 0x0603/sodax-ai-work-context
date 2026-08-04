@@ -10,9 +10,18 @@ related_decisions: []
 
 # GH-331 Usdt Stale Allowance Approve
 
-- Source: https://github.com/icon-project/sodax-sdks/issues/331
+- Source: https://github.com/icon-project/sodax-sdks/issues/331 — **topic**, with one sub-issue per repo
 - Started: 2026-08-04
-- Related PR: sodax-sdks#341 · sodax-frontend#1634 (draft) · sodax-backend (branch only — blocked on release)
+- Sub-issues (GitHub native, cross-repo):
+
+  | Order | Repo | Issue | PR |
+  | --- | --- | --- | --- |
+  | 1 | sodax-sdks | #342 | #341 (ready) |
+  | 2 | sodax-backend | #1042 | — (branch only, blocked) |
+  | 3 | sodax-frontend | #1635 | #1634 (draft, blocked) |
+
+  Each PR closes its **sub-issue**, not the topic — otherwise merging the SDK PR would close #331
+  while two repos were still untouched. The topic closes when all three do.
 
 ## Problem
 
