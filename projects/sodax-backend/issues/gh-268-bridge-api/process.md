@@ -3,7 +3,7 @@ type: process
 repo: sodax-backend
 github: 268
 status: Active
-updated: 2026-07-16
+updated: 2026-08-05
 ---
 
 # GH-268 Bridge API — process log
@@ -267,3 +267,104 @@ chronological log.)
   exclusion verified (sonic 36→33 tokens). This link is dev-only, NOT committed.
 - **Open caveat**: the bridge `SubmitBridgeTxAlerterTask` is NOT yet single-owner across deployments (no
   bridge equivalent of swaps' #925 alerter-lease) → run the bridge drainer on ONE deployment until that lands.
+
+## 2026-08-05 — Robi's contract-alignment ask; alerter lease built then PARKED
+
+Robi asked for two things: review the hardening commit he pushed onto the SDK bridge PR, and bind
+`BridgeController` to the SDK contract the way `SwapsController` already binds to `ISwapsApiV2`.
+
+**Review of `d2561d679` (r0bi7, on `sodax-sdks` `feat/bridge-api-v2`) — accepted.** Four real defects,
+three of them ours:
+
+- Partner-fee transfer target: `buildBridgeData` seeded `srcVault` from `params.srcToken` (a SPOKE
+  address) and only overwrote it on the deposit branch — so a fee-bearing bridge of a vault-asset token
+  encoded the transfer against a codeless Sonic address (EVM spokes) or threw `Address … is invalid`
+  (Solana). Fixed to `srcToken.hubAsset`.
+- **Our "clamp" in `pollBackendSubmitTx` was actually an un-clamp.** `makeRequest` resolves
+  `override.timeout ?? config.timeout`, so an override REPLACES rather than caps: on the default 120s
+  budget the remaining ~100s RAISED the per-request bound from 30s to 100s, letting one stalled request
+  burn the whole poll window. `min(remaining, getTimeout())` is the fix.
+- Bitcoin fell through to the permissive raw-tx schema → `value` stayed a string while typed `bigint`.
+- Relay floor: he reversed our "no floor, `timeout` is a hard ceiling" decision. He is right —
+  `relayTxAndWaitPacket` calls `submitTransaction()` BEFORE `waitUntilIntentExecuted({timeout})`, so our
+  early return meant an already-broadcast deposit was never handed to the relay at all.
+
+**Shipped (commit `90031e34`, pushed to `feat/bridge-api`):** `BridgeController implements IBridgeApiV2`.
+The clause immediately caught three loose declarations (`tx: unknown` ×2 → `RawTxReturnType`;
+`limit: unknown` → a real `BridgeLimitResponseDto`) plus a `stringifyBigInts` type-lie (`<T>(v:T)=>T`
+keeps `amount: bigint` while the wire carries a string) **and a unit test asserting a
+`{depositCapacity, withdrawLiquidity}` shape the SDK never returns** — it returns ONE binding
+`BridgeLimit` + a `type` naming which side binds. Also `readonly` on the token handlers, matching swaps.
+SDK-side companion commit `6f018029f` on `feat/bridge-api-v2` (JSDoc restore + rewrote the three
+"do NOT `implements`" notes, whose premise was false in practice).
+
+### ⚠️ PARKED: the single-owner alerter lease
+
+Built it in full, verified it, then **stashed it deliberately**.
+
+```
+repo:   sodax-backend  (worktree sodax-backend-pr975, branch feat/bridge-api)
+stash:  "bridge-api: single-owner alerter lease (swaps #925 port) — parked, belongs to EPIC #881"
+files:  constants.ts · submit-bridge-txs.module.ts · submit-bridge-tx-alerter.task.ts
+        test/e2e/submit-bridge-tx.task.e2e-spec.ts · docs/bridge-api-runbook.md · CLAUDE.md
+restore: git stash list && git stash apply <ref>
+```
+
+It ports swaps' #925 pattern verbatim — `STATEFUL_LOCK_MANAGER` symbol, a second `LockManagerService`
+bound to the SHARED stateful `locks`, lease acquired once PER SCAN inside the overlap guard, release on
+graceful shutdown after a bounded drain wait. No new mechanism: `LockManagerService.tryAcquireModelLease`
+has been in `packages/shared-services` since 2025-09 (`561bf621`, FidelVe).
+
+Verified: `checkTs` + `lint` clean, e2e **73/73** (68 + 5 new lease tests mirroring swaps'), app boots
+with the new DI graph. Mutation-tested — disabling `if (!lease) return` turns 2 tests red, so the tests
+have teeth.
+
+**Why parked, not shipped:** it belongs to **[EPIC #881](https://github.com/icon-project/sodax-backend/issues/881)**
+(*HA for task-executor singleton jobs*, assignee **FidelVe**, OPEN, a gate on the
+`development`→`master` promotion). Step 1 of that EPIC's plan is *"Generalize the shared-lease helper …
+extract the boilerplate"* — so hand-copying a second instance now would be work Fidel has to refactor
+away. Bridge is meanwhile **compliant** with the EPIC's own interim rule: *"any singleton not converted
+must be gated to exactly ONE deployment via its `RUN_*` flag."*
+
+Note the docs edits are IN the stash on purpose: applying the code without them (or vice versa) leaves
+the runbook claiming a lease that isn't there, which would tell an operator to enable the flag on both
+deployments and get double-paged.
+
+### Deployment notes to carry into the PR description
+
+None of this is in code — merging changes nothing until an operator sets it:
+
+| Env | Value | Why |
+| --- | --- | --- |
+| `RUN_SUBMIT_BRIDGE_TXS_TASK` | `true` on **exactly one** deployment | Bundles drainer + alerter + heartbeat. Drainer is multi-safe (per-row claim); the ALERTER is the blocker (raises on each deployment's LOCAL `incidents`, so dedup can't span deployments). |
+| `STATEFUL_MONGO_*` | same server on both | Unset → the queue falls back to each deployment's LOCAL DB, so rows POSTed to prod-2 are drained by nobody. Silent, and ~50% of traffic. #842 says prod is still gated. |
+| `RUN_BRIDGE_API` | `false` on box 2 until the shared DB lands | The only safe way to run bridge-api on 2 boxes before `STATEFUL_MONGO_*` is provisioned. |
+
+Forgetting the first one is exactly the failure we hit while testing: `submit-tx` returns
+`{"status":"inserted"}`, the row sits `pending` with `processingAttempts: 0` forever, and nothing
+warns — `processingAttempts: 0` is the tell that no worker ever touched it (vs `> 0` = genuinely stuck).
+The SDK's `sodax.bridge.bridge({useBackendSubmitTx:true})` path is shielded (it falls back to a
+client-side relay), but the demo's bridge-api showcase calls the HTTP hooks directly and has no fallback.
+
+### Local dev recipe (non-obvious bits, cost real time)
+
+- **`dotenv` reads `.env`, not `.env.dev`.** `configuration.ts:1` calls a bare `require('dotenv').config()`.
+  The README's `cp example.env.dev .env.dev` is for the **docker** path (`make run-dev-bridge-api` passes
+  `--env-file`); running on the host needs `apps/bridge-api/.env`.
+- **`make run-dev-bridge-api` does NOT work with a locally packed SDK** — it builds bridge-api inside
+  Docker, where the tarball's absolute host path does not exist. Use `pnpm --filter bridge-api start:dev`.
+- **No Docker needed for Mongo**: `~/.cache/mongodb-binaries/mongod-*` is already downloaded by the e2e
+  suite's `mongodb-memory-server`. Run it directly on :27017 — far lighter than Docker Desktop.
+- Blank `REDIS_PASSWORD` if using a brew-installed Redis (no auth configured).
+- The backend pre-commit hook runs `pnpm checkTs` + `pnpm test` across **all 21 packages** and will
+  exhaust RAM on a laptop. `lint-staged` (the part `CLAUDE.md` documents) is only `biome format`.
+
+### Still uncommitted on purpose
+
+- `sodax-backend`: `apps/bridge-api/package.json` + `pnpm-lock.yaml` — the local SDK tarball pin. Must be
+  repinned to a published rc **after** sodax-sdks PR 261 merges and publishes. This is the only thing
+  blocking the backend PR from merging.
+- `sodax-sdks`: `apps/demo/src/components/bridge-api/{BridgeCard.tsx,lib/config.ts}` — source/destination
+  token balance on the showcase (copied from `SwapCard`, with `useBtcTradingBalance` for a BTC source
+  since bridge BTC spends from the Bound trading wallet, not the personal one), and the API base URL read
+  from `VITE_BRIDGE_API_BASE_URL` instead of hardcoded canary.
