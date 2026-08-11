@@ -2,7 +2,7 @@
 type: process
 repo: sodax-sdks
 github: 331
-updated: 2026-08-04
+updated: 2026-08-05
 ---
 
 # Process
@@ -207,3 +207,52 @@ This hook owns confirmation, so it invalidates the query itself.
 
 `apps/swap-api-example` deliberately keeps the manual two-step: it does not depend on dapp-kit, and
 demonstrating the standalone `@sodax/swaps-api` path is the point of that app.
+
+## 2026-08-05 — the bot review's one finding, and a live end-to-end run of the backend
+
+### The should-fix was real, but not where the reviewer put it
+
+The `@claude` review on PR #341 flagged one 🟡: `apps/demo` and `apps/swap-api-example` await the
+reset receipt without checking whether it succeeded, so a reverted reset is followed by a doomed
+second signature. The demo half of that is stale — the review ran at 10:47 and
+`useSwapsApiApproveAndBroadcast` landed at 14:21, after which the demo stopped touching `resetTx` at
+all (`rg resetTx apps/demo/src` → no hits).
+
+The finding did apply to the hook itself, which is worse than the app it was reported against:
+`sendAndWait` awaited the receipt and dropped it. So the correctness burden the hook exists to carry
+had exactly the hole the reviewer described, one layer up from where it was reported. Fixed there
+plus in `apps/swap-api-example` (the only app still doing the two-step by hand, deliberately).
+
+Detail that had to be verified rather than assumed: `EvmRawTransactionReceipt.status` is documented
+as the JSON-RPC hex flag (`'0x1'`/`'0x0'`), but `EvmWalletProvider.serializeReceipt` spreads viem's
+receipt and overrides only the numeric fields — so `status` arrives as viem's `'success'`/
+`'reverted'`. Both spellings are accepted; a missing status stays inconclusive rather than counting
+as a revert. The type/runtime mismatch is pre-existing and left alone.
+
+### Backend run end-to-end against the wallet from the issue
+
+Booted `apps/swaps-api` locally (`.env` from `example.env.dev`, Redis + Mongo already up) against
+the `pack:local` SDK. The endpoint hung twice before producing anything, and the cause was not code:
+both the SDK's default Ethereum endpoint and `eth.merkle.io` were rate-limiting (`error code: 1015`
+from Cloudflare), and viem's retry/backoff turns that into an apparently hung request rather than an
+error. `https://ethereum-rpc.publicnode.com` worked. Worth remembering — a "hanging" approve on this
+path is an RPC symptom first.
+
+The guard, confirmed live by raw `eth_call` before trusting any SDK layer:
+
+```
+approve(assetManager, 1550566800) -> execution reverted, data 0x
+approve(assetManager, 0)          -> 0x   (succeeds)
+allowance(owner, assetManager)    -> 0x0c380d40 = 205000000   (the 205 USDT, still there)
+```
+
+`POST /swaps/approve` for that wallet then returned **both** transactions — `resetTx` =
+`approve(spender, 0)`, `tx` = `approve(spender, …)` — in 0.66 s. The same call with USDC as the
+source token returned `{ tx }` alone. That is the whole fix, observed from outside the process.
+
+### Unrelated smell found while probing
+
+`POST /swaps/allowance/check` answers `{"valid":true}` for a chain key that does not exist
+(`0xdead.nope`). Unknown keys fall through to the "allowance always sufficient" branch instead of
+being rejected, so a typo'd `srcChainKey` silently reports a sufficient allowance. Out of scope for
+#331 — raise in the PR thread.

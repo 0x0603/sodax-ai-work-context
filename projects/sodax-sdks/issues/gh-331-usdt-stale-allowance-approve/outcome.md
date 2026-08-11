@@ -3,7 +3,7 @@ type: outcome
 repo: sodax-sdks
 github: 331
 status: In review — SDK PR open, consumers blocked on the release
-updated: 2026-08-04
+updated: 2026-08-05
 ---
 
 # Outcome
@@ -76,13 +76,20 @@ USDC with the same owner: `allowance 0`, one transaction, no probes.
 
 Ordered — nothing here can start before the release.
 
+0. **Done 2026-08-05, uncommitted:** the bot review's one 🟡 (receipt status never checked after the
+   reset) fixed in `useSwapsApiApproveAndBroadcast` — where it mattered more than in the app it was
+   reported against — and in `apps/swap-api-example`. dapp-kit 442/442, `checkTs` ×2, `check:ai`
+   green. The two frontend `useStellarTrustlineCheck` call sites now pass `walletAddress`, and
+   `apps/web` typechecks clean against the `2.0.0-local.331.2` pack.
 1. Maintainer cuts one release (three unrelated changesets were already pending on `main`).
 2. `sodax-backend/apps/swaps-api/package.json` — bump `@sodax/sdk`; the pre-commit hook then passes,
    so commit and open the PR.
 3. `sodax-frontend/apps/web/package.json` — bump the four `@sodax/*` deps; take #1634 out of draft.
-4. Fix `useStellarTrustlineCheck` at `migrate-button.tsx:203` and `liquidity-inputs.tsx:152` — the
-   hook swapped `walletProvider` for `walletAddress` somewhere between rc.21 and `main`. Unrelated to
-   this bug but it blocks the frontend bump.
+4. ~~Fix `useStellarTrustlineCheck` at `migrate-button.tsx:203` and `liquidity-inputs.tsx:152`~~ —
+   done 2026-08-05. The hook swapped `walletProvider` for `walletAddress` somewhere between rc.21 and
+   `main`; both sites now pass the resolved address they already had in scope (`destinationAddress`,
+   `usePoolContext().address`), which also removed two `as any` casts. Unrelated to this bug but it
+   blocked the frontend bump.
 
 ### Raised in the PR thread, not tracked as issues
 
