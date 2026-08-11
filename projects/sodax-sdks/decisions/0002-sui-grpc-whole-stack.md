@@ -25,9 +25,16 @@ Four facts, each verified rather than assumed, shaped the decision:
 
 1. **gRPC-web is live, free, public, keyless, CORS-open on Sui Foundation's own fullnodes.**
    `POST https://fullnode.mainnet.sui.io/sui.rpc.v2.LedgerService/GetServiceInfo` → HTTP 200,
-   `access-control-allow-origin: *`; testnet the same. 60 concurrent calls: 60/60 in 242 ms, no
-   rate-limit headers. These are the *same hosts* that used to serve JSON-RPC, so gRPC is a return
-   to first-party infrastructure, not a new dependency.
+   `access-control-allow-origin: *`; testnet the same. These are the *same hosts* that used to serve
+   JSON-RPC, so gRPC is a return to first-party infrastructure, not a new dependency.
+
+   **It is rate-limited per IP, which Sui does not document.** Measured: 150 concurrent calls all
+   succeed, 200 → only 50 succeed, 250+ → all fail with `RESOURCE_EXHAUSTED`; sustained 30 req/s
+   over 10 s lands at 77% success, so the sustained ceiling is ~20-25 req/s. Recovery is immediate,
+   so it throttles rather than bans. An earlier 60-call burst found nothing and was mistaken for
+   "no limit" — the ceiling only shows above ~150. A browser session is far below it, so it stays
+   the packaged default, but any server-side caller shares one egress IP and must override
+   `grpc_url`.
 
 2. **`client.core` is already a transport-neutral port, and it is exact.** `SuiGrpcClient` and
    `SuiJsonRpcClient` both extend `BaseClient` and expose the same `core: CoreClient`. Probed live
