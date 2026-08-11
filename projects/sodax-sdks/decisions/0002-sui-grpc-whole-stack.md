@@ -69,8 +69,18 @@ Four facts, each verified rather than assumed, shaped the decision:
    keep `@sodax/types` dependency-free and stop the two consumers drifting on translation.
 
 5. **Keep `@mysten/sui` external; raise `engines.node` to `>=22.12.0`** rather than bundling it.
-   `require(esm)` is unflagged from Node 20.19 / 22.12, `@mysten/sui` itself declares `>=22`, and
-   Node 20 reached EOL in April 2026. The tarball stays flat.
+   The floor is the intersection of two constraints: `@mysten/sui` declares `>=22`, and `require()`
+   of an ES module is only unflagged from **v22.12.0** in that line (v20.19.0 in the 20 line), which
+   the CJS builds need. The tarball stays flat.
+
+6. **One floor across the whole workspace, not just the forced packages.** Only `sdk`,
+   `wallet-sdk-core`, `wallet-sdk-react` (direct `@mysten/sui`) and `dapp-kit` (via `@sodax/sdk`)
+   are actually forced. `types`, `libs`, `swaps-api`, `skills` and `assets` would still run on Node
+   20. They were raised anyway because **Node 20's security support ended 2026-04-30** — declaring
+   `>=20.12.0` advertises an unpatched runtime as supported. Secondary benefit: one number instead
+   of the three that had accumulated (`>=20.12.0`, `>=20.0.0`, `>=22.12.0`), which can no longer
+   drift apart. Weakest part of this: `assets` (static images) and `skills` (markdown) have no
+   runtime at all, so the field is meaningless there either way.
 
 ## Consequences
 
