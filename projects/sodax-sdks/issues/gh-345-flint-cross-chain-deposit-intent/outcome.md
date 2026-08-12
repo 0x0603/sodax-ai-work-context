@@ -3,7 +3,7 @@ type: outcome
 repo: sodax-sdks
 github: 345
 status: Review delivered — follow-up work not started
-updated: 2026-08-11
+updated: 2026-08-12
 ---
 
 # Outcome
@@ -82,5 +82,10 @@ Ranked. Everything here goes in the **PR thread as prose** — no follow-up issu
 10. Requirement 5, the pre-flight service — blocked on deciding where a third-party vault address lives
     (an optional field on `SpokeHookConfig` is the natural slot).
 11. Backend PR, separate repo: `hook?`/`deliveryData?` on the intent-builder DTO + mapper + wire type;
-    either wire up or delete the dead `data` field; `DELIVERY = 3` in both hand-synced decoders. Needs an
-    SDK release + catalog bump first.
+    either wire up or delete the dead `data` field; `DELIVERY = 3` in both hand-synced decoders.
+    **Precisely scoped 2026-08-12** — see `process.md` § "`/swaps/intents` hook-forwarding gap": the DTO
+    field (`create-intent.dto.ts`) + one line in `buildRawIntentAction` (`swaps.service.ts:503`) is enough
+    to make `hook` reach the SDK, since `createIntent`/`approve` already call the real
+    `sodax.swaps.createIntent()` server-side. The pinned-SDK/registry bump is a *separate*, still-needed
+    prerequisite specifically for `FLINT_DEPOSIT` to resolve without throwing — not a blocker for wiring
+    the field itself.

@@ -3,7 +3,7 @@ type: knowledge
 area: architecture
 status: Stable
 tags: [hooks, delivery-hook, swaps-api, intent, sdk, backend]
-updated: 2026-08-11
+updated: 2026-08-12
 related_issues: [gh-345]
 related_decisions: []
 ---
@@ -75,6 +75,16 @@ It looks like the escape hatch. It is not, on either side:
 
 ## If you need hooks over HTTP
 
-Nothing today. It needs `hook?`/`deliveryData?` on `CreateIntentParamsV2` + the backend DTO + the mapper,
-and the backend pins a published `@sodax/sdk` from the pnpm catalog — so an SDK release and a catalog bump
-come first.
+Nothing today, but the gap is smaller than it looks — traced end-to-end 2026-08-12. `/swaps/intents` (and
+`/swaps/approve`, `/swaps/allowance/check`) already call the real `sodax.swaps.createIntent()` SDK function
+server-side (`sodax-backend/apps/swaps-api/.../swaps.service.ts:207`) — `HookService.resolveDelivery` is
+live on that path. The only reason `hook` never reaches it: the shared mapper `buildRawIntentAction`
+(`swaps.service.ts:488-510`) builds `params` field-by-field from `CreateIntentParamsDto`
+(`dto/create-intent.dto.ts:20-115`), which never declares a `hook` field. Fix is two small edits, both in
+`sodax-backend`: add `hook?: HookRequestDto` to the DTO, add `hook: dto.hook` to the mapper (`:503`). A
+third, optional edit for contract-doc parity: `hook?` on `CreateIntentParamsV2`
+(`sodax-sdks/packages/types/src/backend/backendApiV2.ts:306-330`), a different repo/PR.
+
+This is independent of, and does not replace, the SDK-pin prerequisite: the backend's *pinned*
+`@sodax/sdk`/`@sodax/types` version must also contain the target hook's registry entry (e.g. #364 for
+Flint) or `HookService.resolveDeliveryHook` still throws once `hook` does reach it.

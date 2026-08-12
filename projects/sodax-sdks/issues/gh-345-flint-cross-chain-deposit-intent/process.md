@@ -2,7 +2,7 @@
 type: process
 repo: sodax-sdks
 github: 345
-updated: 2026-08-11
+updated: 2026-08-12
 ---
 
 # Process
@@ -13,6 +13,10 @@ updated: 2026-08-11
   orchestrated audit (5 parallel investigations → adversarial verification of every blocker/major claim →
   synthesis), then hand re-verification of the load-bearing facts. 9 of 23 verified claims were refuted or
   downgraded — those are recorded under Refuted below so they are not re-derived.
+- **2026-08-12** — Follow-up scoping session (chat walkthrough, not an orchestrated audit): traced the
+  actual `sodax-backend` code behind `/swaps/intents` end to end to size ask (c)'s backend follow-up
+  (`outcome.md` follow-up #11) precisely. Sharpens two 2026-08-11 claims — see "Correction" below. No code
+  touched in either repo, read-only session.
 
 ### Checkout caveat
 
@@ -192,6 +196,47 @@ Claims that surfaced during the audit and did **not** survive verification. Do n
    `{token_src, token_dst, amount, quote_type}`). It only matters because requirement 5's pre-flight does
    not exist anywhere else either.
 
+### `/swaps/intents` hook-forwarding gap, precisely located (2026-08-12)
+
+Deeper than the 2026-08-11 audit went — traced the actual call path in `sodax-backend` end to end instead
+of grepping for absence.
+
+- `swaps.service.ts:204-213` `createIntent(dto)` calls **the real `this.sodax.swaps.createIntent(action)`
+  SDK function**, server-side — not a reimplementation. `HookService.resolveDelivery` is therefore fully
+  live on this path; the backend is not "structurally incapable" of a hooked intent, contrary to how the
+  2026-08-11 phrasing on ask (a) reads.
+- The actual gap is one private mapper: `buildRawIntentAction` (`swaps.service.ts:488-510`), shared by all
+  4 raw-tx endpoints (`isAllowanceValid` :178, `approve` :187, `createIntent` :206, limit-order :395) —
+  builds `params` field-by-field from `CreateIntentParamsDto` and never reads a `hook` field, because
+  `CreateIntentParamsDto` (`dto/create-intent.dto.ts:20-115`) never declares one.
+- Fix is two small, precise edits, both in `sodax-backend`:
+  1. `dto/create-intent.dto.ts` — add a `HookRequestDto` (`{ kind: HookKind }`, `@IsEnum(HookKind)`) and an
+     optional `hook?: HookRequestDto` field on `CreateIntentParamsDto`, after `data` (`:114`).
+  2. `swaps.service.ts:503` — add `...(dto.hook ? { hook: dto.hook } : {})` inside `buildRawIntentAction`'s
+     `params` object.
+  Optional third, different repo, contract-doc parity only (not required for the fix to work):
+  `sodax-sdks/packages/types/src/backend/backendApiV2.ts:329-330` — add `hook?` to `CreateIntentParamsV2`.
+- **Independent of the SDK-pin/registry gap.** Wiring the DTO/mapper makes `hook` reach
+  `HookService.resolveDelivery` — but that still throws for `FLINT_DEPOSIT` until the backend's *pinned*
+  `@sodax/sdk`/`@sodax/types` version actually contains the Ethereum registry entry (i.e. bumped past
+  #364). Two separate prerequisites, both needed for Flint specifically; `HYPERCORE_DEPOSIT` may already
+  work once the DTO/mapper fix lands, since that hook is registered wherever the backend is currently
+  pinned.
+
+### Correction to 2026-08-11 characterization
+
+- "The API's own intent-building endpoints... genuinely cannot express one" (`outcome.md`, ask (a)) is
+  right about today's behavior but overstates the ceiling — it reads as an architectural limit. It is a
+  2-field mapping gap, not a structural one; see above.
+- "`includeTxData` hardcodes `data: '0x'`" is about a **different** code path (`swaps.service.ts:143`, the
+  quote endpoint). `buildRawIntentAction` (the one `createIntent`/`approve` actually use) *does* forward
+  `dto.data` (`:502`) — moot in practice, because the SDK's own `IntentDataService.composeIntentData`
+  overwrites `intent.data` downstream regardless of what's passed in.
+- Confirmed (newly verified, not a correction): `/swaps/intents` returns **unsigned raw tx** only (`tx`,
+  `intent`, `relayData` — `CreateIntentResponseDto`, `dto/create-intent.dto.ts:143-159`; the comment at
+  `swaps.service.ts:174` labels this tier "Phase 1: write endpoints (raw-tx)"). It never signs or
+  broadcasts on any of these endpoints.
+
 ## Changes During Work
 
-None — review only, no code touched in `sodax-sdks`.
+None — review-and-scoping only, no code touched in `sodax-sdks` or `sodax-backend` as of 2026-08-12.
