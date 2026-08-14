@@ -4,7 +4,7 @@ repo: sodax-frontend
 github: 1627
 status: Active
 tags: [security, ci, github-actions, supply-chain, sha-pinning, audit-2026-07-28]
-updated: 2026-08-12
+updated: 2026-08-14
 related_issues: [gh-1622-email-guide-hardening, gh-1623-fence-scraped-content-llm-prompt]
 related_decisions: []
 ---
@@ -13,7 +13,8 @@ related_decisions: []
 
 - Source: https://github.com/icon-project/sodax-frontend/issues/1627
 - Started: 2026-08-12
-- Related PR: none yet — branch `chore/1627-pin-action-shas`, local only
+- Related PR: https://github.com/icon-project/sodax-frontend/pull/1684 (open 2026-08-14),
+  branch `chore/1627-pin-action-shas`, commit `43721806`
 - Parent: #1621 (2026-07-28 whole-repo security audit follow-up), ranked 5 of 5
 
 ## Problem

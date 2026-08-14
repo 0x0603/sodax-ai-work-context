@@ -1,7 +1,7 @@
 ---
 type: plan
 status: Active
-updated: 2026-08-12
+updated: 2026-08-14
 related_issues: [1622, 1623, 1627, 1374, 1375, 1632, 1069, 330, 251, 21, 1024]
 related_decisions: []
 tags: [triage, cross-repo, assigned-issues, sodax-frontend, sodax-sdks, sodax-backend]
@@ -28,7 +28,7 @@ State of the other nine: `research/open-prs-state-2026-08-11.md`.
 | --- | --- | --- | --- | --- |
 | A1 | frontend | #1622 harden `/api/partners/email-guide` | `gh-1622-email-guide-hardening` | implemented, local branch |
 | A2 | frontend | #1623 fence scraped content in the analyze prompt | `gh-1623-fence-scraped-content-llm-prompt` | implemented, local branch |
-| A3 | frontend | #1627 pin 11 GitHub Action refs to SHAs | `gh-1627-pin-github-action-shas` | implemented, local branch |
+| A3 | frontend | #1627 pin 11 GitHub Action refs to SHAs | `gh-1627-pin-github-action-shas` | **PR #1684 open (2026-08-14)** |
 | B1 | frontend | #1374 `pnpm.overrides` for Dependabot deps | `gh-1374-pnpm-overrides-dependabot` | unblocked, re-scoped, not started |
 | B2 | frontend | #1375 dismiss unreachable alerts | `gh-1375-dismiss-unreachable-dependabot-alerts` | worksheet only, nothing dismissed |
 | B3 | frontend | #1632 pre-signature preview modal | `gh-1632-pre-signature-preview-modal` | blocked on a priority call |
@@ -46,13 +46,14 @@ worth more than a blind diff. Tier C = blocked on someone else.
 
 ## What shipped
 
-Three local branches in `sodax-frontend`, one commit each, **nothing pushed**, `main` untouched:
+Three branches in `sodax-frontend`, one commit each, `main` untouched. As of **2026-08-14** the
+1627 branch is pushed and in review as PR #1684; the other two are still local:
 
-| branch | commit |
-| --- | --- |
-| `chore/1627-pin-action-shas` | `791acc31` |
-| `fix/1622-email-guide-hardening` | `1b0366c6` |
-| `fix/1623-fence-scraped-content` | `322b53b6` |
+| branch | commit | state |
+| --- | --- | --- |
+| `chore/1627-pin-action-shas` | `43721806` (was `791acc31`, amended) | PR #1684 open |
+| `fix/1622-email-guide-hardening` | `1b0366c6` | local, not pushed |
+| `fix/1623-fence-scraped-content` | `322b53b6` | local, not pushed |
 
 Gates: `pnpm lint`, `pnpm checkTs`, `pnpm build` green on each. This repo has **no test suite
 at all** — `pnpm test` is a no-op and CI never runs it — so verification was typecheck + lint +
@@ -86,8 +87,14 @@ live only here.**
   commits ahead. Following the ticket literally would silently downgrade CI as a side effect of
   a pinning-only change, and its consistency argument was conditional on PR #1565 landing,
   which has not happened. One-line flip if the reviewer disagrees.
-- **D2 — `anthropics/claude-code-action` pinned after all.** The ticket's reservation was
-  conditional on PR #1608; #1608 merged, so `.github/dependabot.yml` now bumps the SHAs.
+- **D2 — `anthropics/claude-code-action` pinned after all.** *Revised 2026-08-14 — the original
+  rationale was wrong.* "#1608 merged so Dependabot bumps the SHAs" does not survive the
+  arithmetic: weekly runs behind a 14-day cooldown against a ~1.2-day release cadence bounds the
+  drift, it does not remove it. Pinning is still right, because `v1` is force-repointed on every
+  release and that mutability is exactly the CWE-494 the ticket targets — but it is pinned
+  *knowingly stale*, which is what the ticket asked for. No `cooldown` exception added: that job
+  holds `CROSS_REPO_TOKEN`. The pin itself was also stale on commit and was corrected to
+  v1.0.192 before push — see the 1627 `process.md`.
 - **D3 — reused `BOUNDARY_HEAD`/`BOUNDARY_FOOT`** rather than a new `<sodax-untrusted-data>`
   tag: `docs/agent-readiness.md` §6 mandates those exact strings.
 - **D4 — #1622's heavy URL validation runs after Turnstile and the quotas**, not at the
@@ -95,10 +102,13 @@ live only here.**
 - **D5 — only `sodax-ai-work-context` was pushed.** "Không push lên sodax\*" read as the
   `icon-project` work repos, where a push is visible to the team. This repo is
   `0x0603/sodax-ai-work-context` and `AGENTS.md` names commit + push here as the session-end
-  sync. Work-repo branches are local, with no upstream set.
+  sync. Work-repo branches are local, with no upstream set. **Superseded for 1627 on 2026-08-14**
+  — pushed and PR #1684 opened on explicit instruction. The 1622 / 1623 branches are unchanged.
 - **D6 — no GitHub comment posted, on any issue; no issue body edited; no new tracker issue
   opened.** Six issues have a drafted comment sitting in their `outcome.md` under
   "Draft comment for the issue — NOT POSTED". Posting is outward-facing and stays a human action.
+  Still holds on 2026-08-14: PR #1684 carries 1627's corrections in its own description, so its
+  drafted issue comment was dropped rather than posted, and #1627's body was left untouched.
 
 ## Open — needs a person
 
