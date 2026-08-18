@@ -185,3 +185,49 @@ before verification, wallet-signature failures excluded from lockout, HMAC-hashe
    follow-ups.
 4. **New class of attack surface for this org** — nothing in `sodax-backend` is public-login-facing
    today. Separate box; treat the threat model in `docs/auth-api.md` as a real deliverable.
+
+
+## Phase 3 — SDK integration (this session, 2026-08-18)
+
+Split into dedicated files once it grew past a skim-able size — this section
+is now just the index:
+
+- **[[plan-sdk-integration]]** — how `sodax-sdks` (`wallet-sdk-react`
+  specifically) and `apps/demo`/`apps/wallet-modal-example` offer SODAX Auth
+  as a login option: the 3 new packages (`keystore-crypto`, `wallet-auth-core`,
+  `wallet-auth-react`), the 2 required small changes to existing
+  `wallet-sdk-react`, the phased build order, and how `sodax-backend` reuses
+  `keystore-crypto` directly (confirmed low-friction: `sodax-backend` already
+  consumes `@sodax/sdk`/`@sodax/types` as plain npm deps across 7 apps today).
+  Two corrections found by direct source-reading this session, load-bearing
+  for the whole design: `SodaxWalletConfig.<CHAIN>.connectors` **replaces**,
+  not merges with, chain defaults; and EVM/Solana/Sui bypass
+  `chainRegistry`/`IXConnector` entirely, so v1 scope is the other 6 chains.
+  Also carries the Bound-team Slack input (AAGUID whitelist, post-registration
+  local PRF re-verification) and how each is implemented.
+- **[[plan-engineering-standards]]** — S1–S9, the "senior-architect / clean
+  code" rules for this build, each grounded in a convention already enforced
+  somewhere in these repos (not invented). Cited by number from the other
+  plan files instead of restated.
+- **[[plan-auth-api-security]]** — rate limiting, CORS/CSRF/cookie hardening,
+  account enumeration, WebAuthn replay hygiene, and the blind-custodian
+  model's actual data-leak surface, for the new `sodax-backend/apps/auth-api`.
+  Answers "not hackable, no data leaks" concretely — what to reuse from
+  sibling apps (`bridge-api`'s `HaproxyThrottlerGuard`, `stateful-api`'s CORS
+  pattern) vs. what's genuinely new work (account-keyed lockout, security-event
+  logging — no existing precedent for either). Rate-limit/IP-header facts in
+  this file are verified against `better-auth@1.4.18`'s actual installed
+  source, not the plugin docs — see the file for exact quoted code.
+- **[[plan-auth-api-scaffold]]** — exact, copy-pasteable templates for
+  `apps/auth-api`: the full `stateful-api/src/auth/{auth.config.ts,
+  auth.constants.ts}` Better Auth wiring (verbatim, to mirror with a `wauth_*`
+  prefix), the `main.ts` bootstrap order, the `class-validator`-based config
+  and DTO conventions, and the `HaproxyThrottlerGuard`/Redis reuse — every
+  snippet copied verbatim from a currently-running sibling app this session,
+  not paraphrased.
+
+Open questions from this phase (11 items — npm package names, whether one
+account can hold both passkey and password, exact publish topo order, etc.)
+live inside [[plan-sdk-integration]] and [[plan-auth-api-security]] next to
+the finding each one came from, rather than duplicated into a single list
+here.
