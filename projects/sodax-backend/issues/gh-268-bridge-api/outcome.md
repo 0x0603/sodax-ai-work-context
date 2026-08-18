@@ -4,8 +4,8 @@ repo: sodax-backend
 github: 268
 related_issues: [255, 269]
 tags: [bridge-api, backend, option-a, relay-only, drainer, per-row-claim, discovery-endpoints, tests, admin, infra]
-status: In Review (PR #975)
-updated: 2026-07-21
+status: In Review (PR #975 — self-review fixes applied, unpushed)
+updated: 2026-08-13
 ---
 
 # GH-268 Bridge API — outcome
@@ -17,6 +17,23 @@ updated: 2026-07-21
 > [2026-07-21 superseding update](#2026-07-21--superseding-update-full-parity-drainer--discovery-endpoints--pr-975)
 > right below replaces the P2 drainer with the swaps-parity 2-lane per-row-claim mechanism, flips the
 > RELAY_TIMEOUT rule, renames the collection, and adds fee/bridgeable discovery endpoints — read it first.**
+
+## 2026-08-13 — Self-review pass (10 commits on `feat/bridge-api`, NOT pushed)
+
+PR #975 was reviewed against `apps/swaps-api` and 10 fix commits landed locally: swap-only dead
+code removed from `utils.ts`, bridge-local retry constants (the drainer no longer borrows swaps'
+`MAX_SWAP_TX_RETRIES`), the relay packet read changed from a 15s blocking `waitUntilIntentExecuted`
+to ONE `getTransactionPackets` read (with the admin path folded onto the same read, removing
+`relayBridgeTx`), the sweeper tick lowered 60s -> 10s so `BRIDGE_TX_AWAIT_REPOLL_MS` is real, every
+controller handler wrapped in the shared error mapper, `@IsUrl` restored on the RPC config, the
+partner-fee shape guard restored, and the missing bigint-guard / admin-guard tests added
+(96 unit + 95 e2e, was 63 + 78).
+
+Two things this pass did NOT do, by decision: the **Bitcoin RadFi HMAC** port and the **USDT
+`buildApproveTxs`** gap are follow-ups. Bitcoin is live-broken until the former lands.
+
+Full chronology, the three review findings that verification overturned, and the deploy-time env
+note are in [[process]]. The duplication inventory is in [[shareable-with-swaps]].
 
 ## 2026-07-21 — Superseding update (full-parity drainer + discovery endpoints + PR #975)
 

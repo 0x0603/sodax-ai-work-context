@@ -3,7 +3,7 @@ type: process
 repo: sodax-backend
 github: 268
 status: Active
-updated: 2026-08-05
+updated: 2026-08-13
 ---
 
 # GH-268 Bridge API — process log
@@ -368,3 +368,94 @@ client-side relay), but the demo's bridge-api showcase calls the HTTP hooks dire
   token balance on the showcase (copied from `SwapCard`, with `useBtcTradingBalance` for a BTC source
   since bridge BTC spends from the Bound trading wallet, not the personal one), and the API base URL read
   from `VITE_BRIDGE_API_BASE_URL` instead of hardcoded canary.
+
+## 2026-08-13 — Self-review of PR #975, and the 10 fix commits
+
+Reviewed the whole PR against `apps/swaps-api` (the structural parent) and `packages/shared-*`.
+Structure holds up: the tree mirrors swaps 1:1, module wiring is correct (forFeature extracted +
+re-exported, admin imports BridgeModule without re-registering), schema indexes match, and every
+infra touchpoint is in the right place — Dockerfile stage, compose service, Makefile target,
+`.env-example` block, the write-ownership rows in AGENTS.md + CLAUDE.md, `CollectionNames` +
+`TaskLabel`, incident flow + playbook. Doc filenames follow the existing split
+(`BRIDGE_V2_INTEGRATION.md` ↔ `SWAPS_V2_INTEGRATION.md`, `bridge-api-runbook.md` ↔
+`sponsoring-api-runbook.md`).
+
+13 findings raised, then verified by 10 parallel research agents before any code was written.
+**That verification pass overturned three of them** — worth recording, because two were confidently
+argued:
+
+- **Swagger base URL — the review was WRONG.** bridge-api's `/v1` is correct and swaps-api's
+  `/v1/be` is the stale one. `apps/bridge-api/README.md:20-21` states HAProxy adds the external
+  `/v1/bridge/*` prefix, and `apps/sponsoring-api/src/shared/openapi.ts:38` (the newest app) also
+  uses `/v1`. No change made. Separately: `@sodax/sdk` 2.1.0-rc.3's `resolveBridgeApiConfig`
+  defaults its bridge client to `.../v1/be`, contradicting every doc in this repo — an SDK-side
+  question, not actionable here.
+- **Bitcoin is live-broken, not theoretical.** `apps/bridge-api/logs/bridge-api-2026-08-06.log:4101-4118`
+  has a real `POST /bridge/intents` with `srcChainKey: "bitcoin"` reaching
+  `RadfiProvider.getTradingWallet` and getting HTTP 403 from Bound (no `x-api-signature`, because
+  bridge-api wires no RadFi signer), surfaced to the client as a misleading 422. The failing call is
+  `getTradingWallet`, i.e. the FIRST analysis was right; a mid-review "correction" that blamed
+  `createWithdrawTransaction` was itself wrong. Note `gh-831`'s table calls
+  `GET /wallets/details/{addr}` "public, unauthenticated" — that is no longer true.
+- **PR #1028 is already squash-merged here** (`3cbf55bc`), and every RadFi file is byte-identical
+  between this branch and `feat/swaps-api-radfi-hmac`. So a RadFi port into bridge-api would be a
+  1:1 copy from `apps/swaps-api` on this same branch — no "the pattern might still change" risk.
+
+Two findings the agents added that the review missed:
+
+- `ChainRpcConfigClass` was cloned before swaps' `@IsUrl` fix, so a scheme-less RPC endpoint booted
+  fine and then 502'd every hub call. Fixed.
+- `PartnerFeeDto` dropped swaps' `IsPartnerFeeShape`, so `partnerFee: { address }` with no
+  amount/percentage validated, matched neither branch in `toSdkPartnerFee`, and silently charged no
+  fee. Same body is a 400 on swaps. Fixed.
+
+One agent claim that did NOT survive checking: `refreshMeta` `$set enabled:false` from a disabled
+standby. Swaps forbids it because its heartbeat row is on the SHARED connection; bridge's is on the
+LOCAL one, so each deployment owns its own row and masks nobody. Latent, not a bug — recorded in
+[[shareable-with-swaps]].
+
+### Commits (branch `feat/bridge-api`, NOT pushed)
+
+| | Commit | |
+| --- | --- | --- |
+| 1 | `d8f12859` | style: sort imports + formatting (13 files) |
+| 2 | `5a327b15` | docs: the drainer's single-deployment reason is the alerter, not a lease |
+| 3 | `22becb75` | refactor: drop swap-only dead code from utils.ts (-149/+24) |
+| 4 | `e46e3b32` | refactor: bridge-local retry cap + backoff constants |
+| 5 | `ecf02cf3` | perf: single non-blocking relay packet read |
+| 6 | `228e1e3c` | fix: sweeper tick 60s -> 10s so the re-poll cadence is real |
+| 7 | `60be3085` | refactor: wrap the 4 bare controller handlers |
+| 8 | `260c0cc9` | test: bigint guard + admin health guards (+389 LOC) |
+| 9 | `377f8d1f`→`50c28e4a` | fix: `@IsUrl` on RPC config; fix: partner-fee shape guard |
+
+Gate stayed green on every commit. 96 unit + 95 e2e (was 63 + 78).
+
+### The two changes that were reworked mid-flight, and why
+
+- **Commit 5 originally wrapped the admin `waitUntilIntentExecuted` in `withTimeout`.** Correct as
+  far as it went, but after the single-read port the admin path was the ONLY remaining caller, so
+  the app carried two nested timeout mechanisms and a `RELAY_POLL_TIMEOUT_BUFFER_MS` that existed
+  for exactly one call site. Reworked: the admin path now composes `submitBridgeRelay` +
+  `observeBridgePacket` (a bounded loop over the same single read), `relayBridgeTx` and
+  `waitUntilIntentExecuted` are gone from the app entirely, and the commit was folded away with
+  `reset --soft` so history does not read "add wrapper, remove wrapper".
+- **`withTimeout` label convention.** swaps passes the bare SDK method name (`'submitIntent'`,
+  `'postExecution'`, `'getStatus'`). A `'manualRelay:waitUntilIntentExecuted'` label broke that;
+  the rework removed it. bridge now passes `'submitIntent'` and `'getTransactionPackets'`.
+
+### Operational note before this is deployed
+
+`SUBMIT_BRIDGE_TXS_TASK_INTERVAL_MS` is carried in each deployment's own `.env`. Lowering the code
+default to 10s does nothing for a running service — the env has to be updated too, or the drainer
+keeps its 60s tick and the 10s await cadence stays fictional.
+
+### Deliberately left as follow-up (user's call)
+
+- **Bitcoin RadFi HMAC** — not in this PR. Until it lands, `srcChainKey: bitcoin` keeps returning
+  the misleading 422 above. Full port plan in [[shareable-with-swaps]] context: ~7 src files + spec
+  + 3 deployment files, copied 1:1 from `apps/swaps-api` on this branch, and it makes
+  `BOUND_API_SECRET_KEY`/`_WORD` a hard boot dependency, so the secret must be in Coolify first.
+- **USDT approve** (`buildApproveTxs`, the two-step reset+approve plan USDT-class tokens need —
+  swaps consumes it, bridge still calls plain `sodax.bridge.approve`).
+- **packages/ de-duplication** — see [[shareable-with-swaps]], blocked on the incident-manager
+  index race.

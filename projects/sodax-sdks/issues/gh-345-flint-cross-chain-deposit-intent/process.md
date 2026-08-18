@@ -2,7 +2,7 @@
 type: process
 repo: sodax-sdks
 github: 345
-updated: 2026-08-12
+updated: 2026-08-13
 ---
 
 # Process
@@ -237,6 +237,145 @@ of grepping for absence.
   `swaps.service.ts:174` labels this tier "Phase 1: write endpoints (raw-tx)"). It never signs or
   broadcasts on any of these endpoints.
 
+### 2026-08-13 — Backend follow-up #11 implemented (sodax-backend#1081)
+
+Verified the 2026-08-12 correction by hand (`sodax.swaps.createIntent` at `swaps.service.ts:207` is the
+real SDK call, `this.sodax: Sodax` injected from `new Sodax(overrides)` in `sodax.provider.ts` — not a
+mock; `buildRawIntentAction` at `:488-510` confirmed to never read `dto.hook`), then implemented the fix:
+
+- `dto/create-intent.dto.ts` — `HookRequestDto` (`{ kind: HookKind }`, `@IsEnum`) + optional
+  `hook?: HookRequestDto` on `CreateIntentParamsDto`, mirroring the existing nested-DTO pattern in
+  `intent-extra-data.dto.ts`.
+- `swaps.service.ts:504` — `...(dto.hook ? { hook: dto.hook } : {})` in `buildRawIntentAction`.
+- `HookKind` confirmed as a real runtime export from `@sodax/sdk` (not type-only) by grepping the
+  installed `index.mjs`.
+- Installed pinned SDK (`@sodax+sdk@2.1.0-rc.3`) inspected directly: `hooks.js` still has
+  `HookKind.FLINT_DEPOSIT` commented out — confirms the caveat that this fix alone does not unblock Flint.
+
+Branch `feat/forward-hook-param-to-swaps-createintent` off `development` (not off the stale
+`fix/sui-zklogin-signature-verification` checkout — caught and corrected via stash before committing).
+Verification: `tsc --noEmit` 0 errors, `biome lint` clean, `vitest run swaps.service.spec.ts
+intent-dto.transform.spec.ts` 92/92 green, full pre-commit gate (`checkTs`+`test`+`lint-staged`, 20
+packages) green after `pnpm install --frozen-lockfile` (stale-install blocker from
+[[backend-precommit-gate]] applied here too).
+
+Opened icon-project/sodax-backend#1080 (tracking issue, links back to this root issue + #364) and
+icon-project/sodax-backend#1081 (PR, `Closes #1080`, base `development`). Not yet merged.
+
+### 2026-08-13 — Items 1-5 pushed directly to PR #364's branch
+
+User directed pushing the pre-merge follow-ups straight onto AntonAndell's `feat/flint-hook-registry-entry`
+branch (same repo, not a fork) rather than a suggestion-comment or stacked PR — confirmed via
+`AskUserQuestion` before acting, since this touches someone else's open PR.
+
+Checked out `origin/feat/flint-hook-registry-entry` locally, `pnpm i && pnpm build:packages`
+(per [[sdks-precommit-needs-fresh-install-and-build]]), then:
+
+- `.changeset/flint-hook-registry-entry.md` — reworded the "USDC only, matching the hook's on-chain
+  behaviour" line: confirmed by reading `HookService.ts:84-93` that `resolveDeliveryHook` never calls
+  `isHookSupportedToken`/consults `supportedTokens`, so the original wording overstated enforcement.
+- `.changeset/flint-deposit-hook.md` — dropped "the hook is not usable yet" (confirmed still an unreleased
+  pending changeset via `git log -- .changeset/flint-deposit-hook.md`, so it ships in the same release as
+  #364's registry entry — the two would otherwise contradict in one changelog).
+- `packages/sdk/src/swap/HookService.test.ts` — added a `FLINT_DEPOSIT` case to the `resolveDelivery`
+  describe (production's actual call path), distinct from the existing `resolveDeliveryHook` Flint case.
+- `apps/node/src/flint-deposit.ts` — `ETH_SPOKE_ASSET_MANAGER` now reads
+  `spokeChainConfig[ETHEREUM_MAINNET].addresses.assetManager` (confirmed identical value to the old
+  literal); added `fetchFlintHookMinDeposit()` (on-chain `readContract` against a minimal inline
+  `minDeposit()` ABI — no existing ABI for this found anywhere in the repo) replacing the hardcoded
+  `1_000_000n`; reworded the hook-support gate's JSDoc + thrown error since the SpokeAssetManager upgrade
+  is confirmed live (the gate's on-chain check itself was already correct — only the "wait for the
+  upgrade" wording was stale).
+- `apps/node/package.json` + `README.md` — added a `flint-deposit` script (`tsx src/flint-deposit.ts`,
+  matching the `stellar-sponsor`/`leverage-yield` convention for standalone flows) and a usage blurb.
+
+Verification: `packages/sdk` `tsc --noEmit` clean; `apps/node` `tsc --noEmit` has pre-existing errors in
+`stacks.ts`/`stellar.ts`/`sui.ts` (stale against current SDK exports — `git diff` confirms zero overlap
+with this change, and `grep flint-deposit` on the tsc output returns nothing); `HookService.test.ts`
+11/11 (was 10). Full repo pre-commit gate (`pnpm checkTs && pnpm build && pnpm test`, no `&&` in the
+`.husky/pre-commit` file so only the LAST command's exit code actually gates the commit — same shape as
+[[backend-precommit-gate]]) went green: 18/18 turbo tasks, `@sodax/sdk` 2080/2080 tests. Committed as
+`a04d8afe6`, pushed to `origin feat/flint-hook-registry-entry` (fast-forward), and posted a courtesy
+summary comment on the PR (`#issuecomment-5276095545`) since this is not the user's own PR.
+
+### 2026-08-13 — `claude[bot]` review on #364 triaged (commit `4c5c7e63e`)
+
+Read the bot review at `#issuecomment-5265431912` (posted 2026-08-12, i.e. **before** `a04d8afe6`), so
+two of its three findings were already closed by that commit. Triage:
+
+| Finding | Status |
+| --- | --- |
+| 🟢 nit: no `flint-deposit` script in `apps/node/package.json` | already fixed in `a04d8afe6` |
+| 🟢 nit: 2 lines exceed Biome's 120-col width | half — the `minDeposit` line was rewritten in `a04d8afe6`; the `TX_SUBMIT_FAILED` line fixed here |
+| 🟡 should-fix: `packages/skills` omits `hook` from `CreateIntentParams` | **was still open** — fixed here |
+
+The skills gap is a real repo rule, not bot noise: root `AGENTS.md` mandates keeping `packages/skills` in
+step when public behaviour changes, gated by `pnpm check:ai` in CI. Confirmed the gap by grepping
+`HookKind|deliveryData|hook?` across `packages/skills` → zero hits, and that the documented
+`CreateIntentParams<K>` block ends at `data`.
+
+Added to `features/swap.md`: the two fields on the type block, plus a `### Delivery hooks` section
+covering the registered kinds, the **`dstAddress`-is-the-recipient inversion** (the SDK overwrites the
+on-chain `dstAddress` with the hook address), fail-closed on an unregistered kind, the zero-recipient
+rejection, and the best-effort on-chain fallback. Deliberately described `supportedTokens` as
+*metadata, not enforced client-side* so the docs don't repeat the overclaim the changeset had.
+
+`pnpm check:ai` green (its `check:ai-imports` typechecks the `HookKind` import in the new snippet — 52
+sdk import statements across 59 files). Note the pre-commit `pnpm test` was a turbo **cache hit**
+(`FULL TURBO`, 18/18 cached) — legitimate here, since this diff touches only markdown plus a
+comment/format change in `apps/node` (whose `test` is `true` anyway), so no `packages/sdk` test input
+moved. Real coverage for this commit is `check:ai`, which CI also runs ("validate AI consumer docs").
+
+Left alone deliberately, and said so in the PR comment: the bot's non-scored observation that
+`isHookSupportedToken`/`getSpokeHooks` have zero call sites. Same conclusion as the 2026-08-11 audit —
+enforcing it is a behaviour change whose existing fixture asserts the opposite, so it needs the author's
+call (follow-up #9), not a drive-by.
+
+### 2026-08-13 — Full skills sweep + kind-neutral rewrite (`d690a11f5`)
+
+User feedback on the first docs pass: *don't force Flint* — the example used `FLINT_DEPOSIT` as the
+worked case, which reads as "hooks = Flint" when more kinds are coming. Also asked for a thorough
+sweep so nothing is left missing. Both are load-bearing, and the first also matches a root
+`AGENTS.md` rule ("prefer broad durable patterns over volatile enumerations… point agents to source
+files rather than copying values") — so the hand-copied per-kind descriptions came out too.
+
+Rewrote `features/swap.md`'s hook section around the **mechanism**: discover via `HookKind` +
+`getSpokeHook(dstChainKey, kind)` instead of hardcoding a kind per chain. Net −27 lines.
+
+Sweep result — where `CreateIntentParams` is documented across `packages/skills`:
+
+| File | Verdict |
+| --- | --- |
+| `sodax-sdk/…/features/swap.md` | fixed (type block + kind-neutral Delivery hooks section) |
+| `sodax-sdk/…/features/swaps-api.md` | **fixed — the real remaining gap** (see below) |
+| `sodax-sdk/…/reference/public-api.md` | fixed (added `HookKind`/`HookRequest`/`getSpokeHook` to the export list; the list is curated, not exhaustive — `spokeChainConfig` isn't in it either) |
+| `sodax-sdk/swap/SKILL.md`, `swaps-api/SKILL.md` | clean — routers that link into the knowledge files, no param enumeration |
+| `sodax-sdk/…/ai-rules.md` | clean — no `dstAddress`/hook guidance to contradict |
+| `sodax-dapp-kit/…/recipes/swap.md:258` | **pre-existing bug, deliberately NOT fixed** (see below) |
+
+**The swaps-api gap was self-inflicted and worth the sweep.** `CreateIntentParamsV2`
+(`packages/types/src/backend/backendApiV2.ts:299-323`) has **no `hook` field**, so
+`checkAllowance`/`approve`/`createIntent` on the API client cannot express one — and the swap.md edit
+had just documented `hook` next to a file describing those methods, so an agent could reasonably
+assume it works there. Now stated explicitly, pointing at `sodax.swaps` instead. Re-verified the
+underlying claim on current source before writing: `SwapService.swap()` calls `createIntent` at
+`:445` and only branches on `useBackendSubmitTx` at `:464`, so the hook is resolved client-side before
+the backend sees anything.
+
+**Not fixed, flagged in the PR thread instead** (per [[no-extra-tracker-issues]]):
+`sodax-dapp-kit/integration/knowledge/recipes/swap.md:258` documents `CreateIntentParams` with **v1
+field names** (`srcChain`/`dstChain: SpokeChainId`) while current source is
+`srcChainKey`/`dstChainKey: SpokeChainKey`. Predates this PR, different package's skill, unrelated to
+hooks — adding hook docs to an already-wrong block would be worse than leaving it.
+
+`pnpm check:ai` green. Note its `check:ai-imports` genuinely typechecks markdown import statements
+(52 sdk statements across 59 files), so it is real verification that `HookKind`/`HookRequest`/
+`getSpokeHook` are reachable from `@sodax/sdk` — worth more than grepping the bundled `dist/index.d.ts`,
+where an internal type can appear without being exported.
+
 ## Changes During Work
 
-None — review-and-scoping only, no code touched in `sodax-sdks` or `sodax-backend` as of 2026-08-12.
+- 2026-08-11/12: review-and-scoping only, no code touched.
+- 2026-08-13: `sodax-backend` — 2 files, +38/-2, PR #1081 open (see above).
+- 2026-08-13: `sodax-sdks` — pushed directly to PR #364: `a04d8afe6` (6 files, +71/-18),
+  `4c5c7e63e` (2 files, +49/-4, clearing the bot review), `d690a11f5` (3 files, +31/-27, skills sweep).

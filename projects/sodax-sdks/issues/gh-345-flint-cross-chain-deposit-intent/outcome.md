@@ -2,8 +2,8 @@
 type: outcome
 repo: sodax-sdks
 github: 345
-status: Review delivered — follow-up work not started
-updated: 2026-08-12
+status: Review delivered — backend follow-up #11 in PR (sodax-backend#1081, open); items 1-5 pushed to #364
+updated: 2026-08-13
 ---
 
 # Outcome
@@ -58,7 +58,11 @@ Nothing in `sodax-sdks`. This folder plus
 
 Ranked. Everything here goes in the **PR thread as prose** — no follow-up issues.
 
-**Worth raising before #364 merges** (all cheap, all in-PR):
+**Worth raising before #364 merges** (all cheap, all in-PR) — **done, 2026-08-13**. User (0x0603) chose
+to push directly to AntonAndell's branch `feat/flint-hook-registry-entry` (commit `a04d8afe6`) rather than
+a suggestion-comment or stacked PR, without pre-clearing it with AntonAndell first — mitigated with a
+courtesy PR comment explaining the diff right after
+(icon-project/sodax-sdks#364, comment `#issuecomment-5276095545`). Flag if AntonAndell pushes back.
 
 1. Reword the changeset's "USDC only, matching the hook's on-chain behaviour" — `resolveDeliveryHook`
    never consults `supportedTokens`, so that reads as a guarantee the code does not make.
@@ -70,9 +74,21 @@ Ranked. Everything here goes in the **PR thread as prose** — no follow-up issu
 4. Add a `flint-deposit` script + README entry so the example is discoverable.
 5. Add the `FLINT_DEPOSIT` case to the `resolveDelivery` describe — that is the function production calls.
 
+Verification: `pnpm i && pnpm build:packages`, `packages/sdk` `tsc --noEmit` clean, `HookService.test.ts`
+11/11 (was 10), full repo pre-commit gate (`checkTs`+`build`+`test`, `pnpm test` → 2080/2080 in
+`@sodax/sdk`) green. `apps/node` has pre-existing unrelated `tsc` errors in `stacks.ts`/`stellar.ts`/
+`sui.ts` (stale against current SDK API) — not touched, not introduced by this diff, confirmed via
+`git diff` showing zero overlap.
+
 **After merge:**
 
 6. Docs (ask c) — `packages/sdk/docs/SWAPS.md` + `packages/swaps-api/README.md` + `packages/skills`.
+   **`packages/skills` done 2026-08-13** (commits `4c5c7e63e` + `d690a11f5`, in #364) — a `claude[bot]`
+   review flagged the same gap as should-fix, so it was pulled forward from "after merge" into the PR.
+   Covered: `features/swap.md` (`hook?`/`deliveryData?` on the type block + a kind-neutral Delivery hooks
+   section), `features/swaps-api.md` (`CreateIntentParamsV2` has no `hook` — that path can't express one),
+   `reference/public-api.md` (hook exports). `pnpm check:ai` green.
+   `packages/sdk/docs/SWAPS.md` and `packages/swaps-api/README.md` are **still open**.
 7. Mocked backend-submit coverage for a hooked intent (ask b) — assert the captured request body carries
    the hook `dstAddress` and a DELIVERY envelope.
 8. Registry-vs-chain assertion in the `e2e-tests` tier that already blocks CI: hook address has code,
@@ -89,3 +105,12 @@ Ranked. Everything here goes in the **PR thread as prose** — no follow-up issu
     `sodax.swaps.createIntent()` server-side. The pinned-SDK/registry bump is a *separate*, still-needed
     prerequisite specifically for `FLINT_DEPOSIT` to resolve without throwing — not a blocker for wiring
     the field itself.
+    **Done, 2026-08-13**: the `hook?: HookRequestDto` field + forward line landed in
+    icon-project/sodax-backend#1081 (closes tracking issue icon-project/sodax-backend#1080), branch
+    `feat/forward-hook-param-to-swaps-createintent` off `development`. Verified `tsc --noEmit` clean,
+    `biome lint` clean, `swaps.service.spec.ts` + `intent-dto.transform.spec.ts` 92/92 green, full
+    pre-commit gate (`checkTs`+`test`+`lint-staged`, 20 packages) green. `HYPERCORE_DEPOSIT` now resolves
+    end-to-end through the API; `FLINT_DEPOSIT` still throws "hook not registered" until the backend's
+    pinned `@sodax/sdk`/`@sodax/types` (currently `2.1.0-rc.3`) bumps past a release containing #364 —
+    confirmed by reading the installed package's `hooks.js`, where `FLINT_DEPOSIT` is still commented out.
+    PR not yet merged (open, base `development`).
