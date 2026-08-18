@@ -4,6 +4,7 @@ scope: cross-repo
 status: Accepted
 tags: [auth, email-login, passkey, keystore, custody, build-vs-buy, bound-auth]
 date: 2026-08-18
+updated: 2026-08-18
 related_issues: [gh-1024-bound-auth-email-provider, gh-1069-email-provider-wallet-connectivity]
 ---
 
@@ -94,10 +95,24 @@ servers.**
   `clientId`; our keystore produces a fresh mnemonic and therefore a different address. Only Hana
   sharing their Web3Auth configuration satisfies #1069, and that is a partnership negotiation.
   Fez's framing does not mention Hana. **Do not let #1024 shipping be read as closing #1069.**
-- **What "backup" means.** If it means the client-encrypted blob held on our servers, that is the
-  Bound model and it is settled. If it means "the user can recover with nothing but their email",
-  that requires a server-held key share and makes us a custodian — a different legal and
-  technical posture. Needs confirming with Fez.
+- **What "backup" means.** Still needs confirming with Fez, but there is now evidence to put in
+  front of them. `radfi-web` access was granted the same day, and it settles what Bound actually
+  ships ([[bound-client-crypto]] §5-6): **backup is a 12-word seed phrase and nothing else.** It
+  is *not shown at registration*, revealed on demand only, the nudge is armed in sessionStorage
+  and fires only on the next successful login, it is entirely skippable, and linking a second
+  device silently cancels the prompt without ever showing the phrase. There is no reset, no
+  recovery codes, no social recovery, no server-held share, and **no mnemonic-import UI anywhere
+  in the client** — a user who forgets the password and loses every passkey has no path back.
+
+  So the two readings are concrete now:
+  - **A — backup against device loss.** The encrypted blob on our servers. This is what Bound has,
+    and it is the reason the server exists at all.
+  - **B — backup against credential loss.** Forget the password, lose every passkey, still recover.
+    Bound does not have this, at any layer. It requires a server-held share and makes us a
+    custodian.
+
+  Ask Fez literally: *"if a user forgets their password and loses every device, must we be able to
+  get them back in?"* Yes or no picks the architecture.
 - **Scope boundaries.** Fez named email login, passkey, backup, encrypted keys. Not named:
   external-wallet auth, 2FA, multi-device linking, the BTC trading wallet. Bound has all of them.
 - **Chains.** Bound covers BTC/EVM/SOL. The Sodax SDK spans 9 chain families / 21 chains.
@@ -117,4 +132,4 @@ servers.**
 ## Related
 
 - Issues: `gh-1024-bound-auth-email-provider`, `gh-1069-email-provider-wallet-connectivity`
-- Knowledge: [[bound-auth-mechanism]], [[encrypted-keystore-vs-mpc-email-wallets]]
+- Knowledge: [[bound-auth-mechanism]], [[bound-client-crypto]], [[encrypted-keystore-vs-mpc-email-wallets]]

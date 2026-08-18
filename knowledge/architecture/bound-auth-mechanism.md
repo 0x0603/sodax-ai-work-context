@@ -2,7 +2,7 @@
 type: knowledge
 area: architecture
 status: Active
-tags: [auth, bound-auth, radfi-be, keystore, passkey, webauthn, srp, prf, email-login, custody]
+tags: [auth, bound-auth, radfi-be, radfi-web, keystore, passkey, webauthn, srp, prf, email-login, custody]
 updated: 2026-08-18
 related_issues: [gh-1024-bound-auth-email-provider, gh-1069-email-provider-wallet-connectivity]
 related_decisions: [0001-own-the-email-wallet-auth-plane]
@@ -20,9 +20,9 @@ Companion note: [[encrypted-keystore-vs-mpc-email-wallets]] compares this model 
 
 `lydialabs/radfi-be` is readable with the 0x0603 token — **deliberately arranged by Fez** so we
 could use it as the blueprint (see [[0001-own-the-email-wallet-auth-plane]]).
-`boundex/radfi-web` is 404 with the same token; the `boundex` org exposes only
-`docs_bound_exchange`, `bound-intelligence`, `bp_competition`. **No frontend reference was
-obtained.** That matters — see "What the backend structurally cannot tell us".
+`boundex/radfi-web` was 404 until **2026-08-18**, when access was granted. The client half is
+now written up separately in [[bound-client-crypto]], and every item this note originally listed
+as unobtainable is settled there.
 
 ## 1. It is not "log in with email" in the OTP sense
 
@@ -79,7 +79,7 @@ deterministic functions of a fixed secret and a retrievable salt:
 
 | Method | KEK | Why it repeats |
 | --- | --- | --- |
-| Passkey | `HMAC-SHA256(CredRandom, SHA-256("WebAuthn PRF" ‖ 0x00 ‖ salt))` | `CredRandom` is generated at credential creation, stored inside the authenticator, never exported. HMAC is deterministic. |
+| Passkey | `HMAC-SHA256(CredRandom, SHA-256("WebAuthn PRF" ‖ 0x00 ‖ salt))` | `CredRandom` is generated at credential creation, stored inside the authenticator, never exported. HMAC is deterministic. **Confirmed PRF** from the client — salt is the global constant `"bound-wallet-prf-v1"` ([[bound-client-crypto]] §1). |
 | Password | `argon2id(password, salt, m, t, p)` | Deterministic by definition. Salt + params live in the blob envelope. |
 | External wallet | `KDF(signature over a FIXED message)` | Only if the signature scheme is deterministic — see §4. |
 
@@ -335,7 +335,7 @@ Bound's docs describe intent, not implementation. Read the code.
 | `docs/api/auth.md`: rate-limited by `ip+email` | key is `account:${req.user?.accountId ?? req.ip}` on a `@Public()` route → **IP only**; the env var names in the doc are wrong too |
 | `docs/api/auth.md` register mermaid: *"→ JWT access + refresh"* | `buildRegisterResponse` returns `{account, wallets}`. The sequence diagram lower in the **same file** says "no session, no tokens" — the doc contradicts itself. |
 | `docs/requirements/auth.md` §3b: *"Hash password with bcrypt"* | SRP (`srpSalt` + `srpVerifier`); no bcrypt anywhere |
-| `docs/keystore-wallet-flow.md:191`: passkey blob encrypted with *"ECDH-derived key negotiated with the authenticator"* | `docs/requirements/auth-module.md:27` says **PRF**. `grep prf src/` → 0 hits. Every ECDH reference in `src/` belongs to the A↔B device relay. **Unresolvable from the backend.** |
+| `docs/keystore-wallet-flow.md:191`: passkey blob encrypted with *"ECDH-derived key negotiated with the authenticator"* | **Settled 2026-08-18: it is PRF.** `src/core/keystore.ts:67` in radfi-web evaluates the PRF extension over a hardcoded salt. `keystore-wallet-flow.md` is simply wrong; `requirements/auth-module.md:27` is right. |
 | `docs/requirements/auth.md` §3a: client sends `btc_trading_address` | the DTO has no such field; the server builds it |
 
 `docs/requirements/auth.md:78` also leaves the core mechanism open:
@@ -360,21 +360,26 @@ Bound's docs describe intent, not implementation. Read the code.
 
 Hand-rolled WebAuthn verification belongs on this list too — use a maintained library.
 
-## 11. What the backend structurally cannot tell us
+## 11. The client half — now obtained
 
-The server is a blind custodian, so the backend repo **cannot** contain the client crypto. With
-`radfi-web` inaccessible, these remain unknown:
+This note originally ended by listing what a blind-custodian backend structurally cannot contain:
+the derivation paths, the argon2 parameters, the envelope format, the fixed wallet-derivation
+message, and whether PRF was actually what shipped.
 
-- the concrete BIP-44 derivation paths per chain (`grep "m/44|derivePath|coin_type"` over `src/`
-  **and** `docs/` → 0 hits; the docs only say "BIP-44")
-- argon2id parameters (m, t, p)
-- the blob envelope format — where salt / nonce / version sit
-- the fixed derivation message used on the wallet path
-- whether PRF is actually what shipped
+**All five are now answered** from `boundex/radfi-web`, granted 2026-08-18. See
+[[bound-client-crypto]]. Headlines:
 
-The first four are only required for **wallet compatibility with Bound** (same mnemonic → same
-addresses). For a standalone Sodax system they are free choices, as long as they are consistent
-and versioned.
+- **It is PRF**, over the global constant salt `"bound-wallet-prf-v1"` — one shared salt for every
+  user and every credential.
+- **Paths**: BTC `m/86'/0'/0'/0/0` (BIP-86 taproot), EVM `m/44'/60'/0'/0/0`, Solana
+  `m/44'/501'/0'/0'`. Three chains only, indices hardcoded to 0.
+- **Argon2id** `mem=65536, time=3, parallelism=4, hashLen=32`, 16-byte random salt — hardcoded,
+  and duplicated as inline literals in two places.
+- **Envelope** is `JSON.stringify({version, type, argon2Salt?, argon2Params?, aesIv, ciphertext})`
+  with **no AAD**, and `argon2Params` is written but never read.
+- **The fixed derivation message** is a 5-line human-readable string carrying no address, nonce,
+  salt or version.
 
-Fastest way to settle them without repo access: register on Bound's app with devtools open and
-read the `POST /auth/register` payload.
+And the finding that matters most, which neither repo shows on its own: **the SRP verifier is
+plain SHA-256 while the blob is Argon2id**, so a server compromise yields an offline attack at
+~1 SHA-256 per guess and the Argon2id cost is bypassed entirely.

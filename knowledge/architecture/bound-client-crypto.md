@@ -1,0 +1,324 @@
+---
+type: knowledge
+area: architecture
+status: Active
+tags: [auth, bound-auth, radfi-web, keystore, argon2, prf, webauthn, derivation, bip44, backup, recovery, custody]
+updated: 2026-08-18
+related_issues: [gh-1024-bound-auth-email-provider, gh-1069-email-provider-wallet-connectivity]
+related_decisions: [0001-own-the-email-wallet-auth-plane]
+---
+
+# Bound's client-side crypto, read from radfi-web source
+
+The half [[bound-auth-mechanism]] could not reach. Because the server is a blind custodian, the
+backend repo structurally cannot contain any of this — it stores an opaque string. Read from
+`boundex/radfi-web` at commit `15ac098`, branch `main`, ~238k LOC, Next.js + TypeScript.
+
+**Access:** `radfi-web` was 404 until 2026-08-18, when access was granted. Every "unobtainable"
+item listed in [[bound-auth-mechanism]] §11 is now settled and is answered below.
+
+## Stack
+
+```
+argon2-browser  ^1.18.0    KDF — last published 2021, unmaintained
+@scure/bip39    ^2.0.1     mnemonic          @scure/bip32 ^2.0.1
+ed25519-hd-key  ^1.3.0     SLIP-0010 for Solana
+@noble/curves   ^2.0.1     @noble/hashes ^2.0.1
+@scure/btc-signer ^2.0.1   bitcoinjs-lib ^7 · ecpair · tiny-secp256k1
+secure-remote-password ^0.3.1   ← SAME version as the backend
+viem ^2.47.6 + ethers ^5.8.0
+```
+
+No `@simplewebauthn/browser` — WebAuthn is hand-rolled on **both** ends.
+
+## 1. The PRF question is settled: it IS PRF
+
+```ts
+// src/core/keystore.ts:67
+const prfSalt = new TextEncoder().encode("bound-wallet-prf-v1")
+```
+
+`docs/keystore-wallet-flow.md:191` in the backend ("an ECDH-derived key negotiated with the
+authenticator device") is **wrong**. `docs/requirements/auth-module.md:27` (PRF) is right.
+
+- The salt is **one hardcoded global constant, identical for every user and every credential** —
+  19 bytes, passed as a copied ArrayBuffer, never a string.
+- `create()` uses `extensions: { prf: { eval: { first: prfSalt } } }`; `get()` uses
+  `evalByCredential` keyed by base64url credential id, or plain `eval.first` when discoverable.
+- **Registration is a SINGLE ceremony** — the PRF output is read straight from `create()`'s
+  `getClientExtensionResults().prf.results.first`. One biometric prompt.
+
+**They built the two-prompt round-trip verification and reverted it**, because the server's
+one-time challenge expired mid-flow and `/auth/register` returned `17004
+KEYSTORE_INVALID_ASSERTION` (`src/auth/passkey-prf-roundtrip-changes.md:24`). An in-repo design
+doc then records the open risk that create-time and assertion-time PRF may differ — i.e. **a
+class of accounts can be born permanently un-unlockable**. No test covers it.
+
+Capability detection exists but is advisory: `getClientCapabilities()["extension:prf"]` blocks
+only on an explicit `false`.
+
+## 2. Three encryption paths, one field
+
+All three land in the same server column `encryptedBlob`, and they are mutually incompatible.
+
+| Path | Key derivation |
+| --- | --- |
+| Password | `argon2-browser` Argon2id → 32 bytes imported **raw** as the AES-GCM key |
+| Passkey | PRF output → HKDF-SHA256, `info="bound-keystore"`, **salt = the AES-GCM IV itself** |
+| Wallet-auth | raw signature bytes → HKDF-SHA256, random 32-byte salt, versioned info string |
+
+### Argon2id parameters (password path)
+
+```ts
+// src/core/keystore.ts:43-52
+const salt = existingSalt ?? randomBytes(16);
+const result = await hash({
+  pass: password, salt,
+  type: 2,          // Argon2id — explicit; library default would be Argon2d
+  mem: 65536,       // 64 MiB   — library default 1024
+  time: 3,          //          — library default 1
+  parallelism: 4,   //          — library default 1; WASM build is single-threaded anyway
+  hashLen: 32,      //          — library default 24
+});
+```
+
+Argon2 version byte `0x13` is a library constant, not settable. `secret` and `ad` unused.
+
+**The same four numbers are written a second time as inline literals at `keystore.ts:141-146`,
+with no shared named constant.** Drift between the two copies breaks wallets.
+
+### Envelope
+
+```
+encryptedBlob = JSON.stringify({
+  version: 1, type, argon2Salt?, argon2Params?, aesIv, ciphertext
+})
+```
+
+JSON, no magic bytes, no binary framing. AES-256-GCM via WebCrypto, 12-byte random IV, tag length
+left at WebCrypto's 128-bit default (the wallet-auth path sets `tagLength: 128` explicitly — the
+two subsystems differ in intent-signalling).
+
+### The three envelope defects — exactly the failure modes predicted in advance
+
+1. **No AAD anywhere in the repo.** `grep additionalData src` finds only unrelated API fields.
+   So `version`, `type` and `argon2Params` are **unauthenticated** — a malicious server can edit
+   them and only the GCM tag over the mnemonic bytes protects the payload.
+2. **`argon2Params` is written but never read.** `derivePasswordKey` takes no params argument and
+   always uses the hardcoded constants. The recorded parameters are decorative; in practice the
+   KDF profile is pinned to the code version and **cannot be migrated**.
+3. **The HKDF salt on the passkey path is the AES-GCM IV.** Unusual, unnecessary, and it couples
+   two values that should be independent.
+
+### No DEK layer
+
+Change-password and add-passkey both **decrypt the mnemonic to a plaintext JS string and
+re-encrypt the whole thing**. Every unlock method holds a full independent ciphertext copy of the
+mnemonic, and the seed re-enters the JS heap on every routine credential operation.
+
+### Domain separation — clean in shape, undermined in substance
+
+Two disjoint derivations from the same password, two independently random salts, no chaining, no
+shared intermediate. Structurally correct.
+
+**But the SRP side is plain SHA-256**: `x = H(s, H(I ":" p))`, `secure-remote-password@0.3.1`
+with **zero explicit parameter configuration** — group, hash and salt length are all library
+defaults (RFC 5054 2048-bit, g=2, SHA-256).
+
+```
+server compromised → steal srpVerifier → offline attack at ~1 SHA-256 per guess
+                   → recover password  → run Argon2id once → open the blob
+```
+
+**The Argon2id cost is bypassed entirely.** The attacker's real cost is SHA-256, not 64 MiB ×
+3 passes. This is the single most consequential flaw found on either side, and it defeats the
+most expensive protection in the design.
+
+### Key hygiene
+
+All `CryptoKey`s are `extractable: false`. PRF outputs and wallet signatures are zero-filled in
+`finally` blocks. The **mnemonic, the password and the raw Argon2 output are not**.
+
+## 3. Derivation paths — all three, hardcoded
+
+```ts
+// src/core/derivation.ts:10-14  (non-exported DERIVATION_PATHS)
+bitcoin: "m/86'/0'/0'/0/0"     // BIP-86 taproot, key-path only, no script tree
+evm:     "m/44'/60'/0'/0/0"    // MetaMask-compatible
+solana:  "m/44'/501'/0'/0'"    // 4-level Phantom-style, SLIP-0010 ed25519
+```
+
+- **Exactly three chains.** The whole HD surface is one 155-line file plus a 33-line
+  `mnemonic.ts`.
+- Mnemonic: **12 words / 128 bits**, `@scure/bip39` `generateMnemonic(wordlist, 128)`, English
+  wordlist only. A BIP-39 passphrase is plumbed through `mnemonicToRootSeed(mnemonic, passphrase?)`
+  but **no production caller ever passes one**.
+- Account index and address index are **hardcoded to 0**. No multi-account, no gap-limit scan, no
+  path override anywhere.
+- The 2-of-2 P2TR `tradingAddress` is **not** built client-side — the frontend ships
+  `publicKey`/`address` and reads `tradingAddress` back from the server. The relayer public key
+  does not exist in this repo outside one synthetic unit test.
+- **Interop is good on mainnet** for all three (MetaMask / Phantom / Xverse-ordinals agree), but
+  **breaks on signet**: the BTC coin type stays `0'` instead of SLIP-44's `1'`.
+
+Test vectors pinned for the `abandon … about` mnemonic:
+```
+bc1p5cyxnuxmeuwuvkwfem96lqzszd02n6xdcjrs20cac6yqjjwudpxqkedrcr
+0x9858EfFD232B4033E47d90003D41EC34EcaEda94
+HAgk14JpMQLgt6rVgv7cBQFJWFto5Dqxi472uT3DKpqk
+```
+
+## 4. Wallet-auth: the fixed derivation message
+
+A globally fixed, human-readable, 5-line message, built by a function that **deliberately ignores
+its credential argument**, so the text carries **no address, no nonce, no salt, no version**:
+
+```
+Bound Wallet Auth
+Purpose: Unlock the encrypted Bound keystore
+This signature is not a transaction and does not spend funds.
+```
+
+Two legacy formats remain parseable for old envelopes (one with `Version: 1`, one 10-line
+"fielded" form).
+
+**Raw signature bytes go straight in as HKDF IKM** — full 65-byte EVM `r‖s‖v`, full 64-byte
+Solana ed25519, full 65-byte Bitcoin compact including the header byte. No argon2, no pre-hash,
+no `r‖s` truncation. Then HKDF-SHA256, random 32-byte salt,
+`info = "bound-wallet-auth-keystore-v1\n" + canonical envelope JSON`.
+
+**The two-signature model is confirmed from the client**: the challenge signature over the server
+nonce is sent to `/auth/wallet/login` and `/auth/register`; the derivation signature over the
+fixed message is used locally only and zero-filled in a `finally` block.
+
+Determinism: **no runtime check**. Only a developer-only QA page
+(`/test/web3-auth-wallet-determinism`) byte-compares two signatures. The client allowlist matches
+the backend exactly — EVM `personal_sign` (metamask/rabby/okx/phantom), Solana
+`ed25519_sign_message` (phantom only), Bitcoin `bitcoin_signed_message` (xverse/okx/unisat) —
+with **taproot rejected three ways**: `bc1p`/`tb1p` address check, p2pkh/p2wpkh/p2sh-p2wpkh-only
+typing, and explicit `"ecdsa"` protocol requests to all three BTC providers. Plus BIP-137 header
+validation (65 bytes, header 27..42).
+
+## 5. Backup — the answer is "a seed phrase, and nothing else"
+
+**Not shown at registration.** `setupWallet()` generates the mnemonic, derives keys, signs the
+ownership proofs, passes the plaintext into `registerPasskey()`, then calls
+`clearGeneratedWallet()`. The phrase is never rendered during signup. The success screen says
+only *"Use the Passkey you just created to confirm it can unlock your account before you deposit
+funds."*
+
+**Revealed on demand only**, via one component (`MnemonicDisplay`, used in exactly one place),
+reachable from a nav pill or Account → Wallet Management.
+
+**The nudge is fragile.** Registration writes a **sessionStorage** marker
+`bound:post-registration-backup`; the prompt only arms on the *next successful login*. No second
+login, no prompt, ever.
+
+**Fully skippable**, with three escape paths:
+- the pill is a nav chip, not a blocking modal; closing the modal at the "view" step sets no flag
+- the post-registration auth modal is dismissible, so the re-login can be skipped entirely
+- **linking a second device silently clears the prompt** (`clearSeedPhraseBackupPrompt()`,
+  `add-passkey/page.tsx:369`) without ever showing the phrase
+
+**Soft confirmation**: a two-step `View → Verify` that asks for one random word, with unlimited
+retries and a "Review phrase" escape. Step 1 renders all 12 words in plaintext immediately — no
+blur, no click-to-reveal, no copy button, no download.
+
+**The only local record** is `seedPhraseBackupByAccount: Record<accountId, boolean>` inside the
+persisted `bound-auth` localStorage blob. The server has no field for it at all.
+
+**The warning copy is weak.** There is no string anywhere saying "if you lose this we cannot
+restore your funds". The strongest language is a checkbox that exists **only on the Web3 Auth
+Wallet path**:
+
+> *"I understand that I must back up my recovery phrase after registration, because losing this
+> Auth Wallet can lock the Bound keystore."*
+
+Passkey and password signups get no equivalent acknowledgement.
+
+### Export
+
+Same auth gate as unlock. Formats: BTC compressed WIF (`0x80`/`0xEF` + key + `0x01`, base58check),
+EVM `0x`+hex, Solana base58 of `seed‖pubkey` (64 bytes).
+
+### Device-link relay, client side
+
+P-256 ECDH → 256 raw bits → HKDF-SHA256 with a **static all-zero 32-byte salt** and
+`info = "bound-ecdh-passkey-sync-v1"` → AES-256-GCM over the raw mnemonic string, transported as
+`base64(12-byte IV ‖ ciphertext)`. Device B then re-encrypts the same mnemonic under a fresh
+PRF-derived key and ships a brand-new `encryptedBlob` in `confirm-link`.
+
+## 6. Recovery: definitively none
+
+Exhaustive negative evidence from the client:
+
+- **No mnemonic-import UI exists anywhere.** `setupWallet(existingMnemonic?)` has 9 call sites;
+  every one passes either `undefined` or a mnemonic that just came out of a decrypt. No component
+  ever calls `isValidMnemonic` on user input.
+- Case-insensitive grep for `recovery code | social recovery | guardian | shamir | secret shar |
+  split key | escrow | backup code | shard` across `src/`, `messages/`, `docs/` and root `*.md`
+  returns only the unrelated BTC-lending "escrow" feature.
+- **`passkeyRecovery.ts` is not recovery.** 64 lines; a guard that narrows `allowCredentials` to
+  the single credential captured at login. Its own docstring: *"Re-authenticate via passkey
+  assertion to recover the mnemonic **after a page refresh**."* Session re-unlock, not account
+  recovery. Both call sites are post-login.
+- Multi-device redundancy must be pre-arranged: `approveLink` and `getPendingLink` require a JWT,
+  and the approving device must additionally **have an email on the account** —
+  `ApproveLinkModal.tsx:63-67` hard-stops with *"Add an email first"*.
+- Auth-Wallet rotation is not a back door: it unlocks with the **old** wallet first, then
+  re-encrypts.
+
+`POST /keystore/srp/password-hint` (a "Forgot password?" link) emails a **user-authored hint
+string**, not a reset.
+
+## 7. Session handling
+
+Tokens live in **plain localStorage** under `bound-session` / `wallet-session`, used as Bearer
+tokens, with JWT-`exp`-driven silent refresh (2-minute proactive buffer, 60-second on-demand
+buffer, 2 retries). The mnemonic is **never persisted** and is re-derived on every unlock — on the
+wallet path, by re-signing the fixed message.
+
+## 8. Docs vs code, client side
+
+Their frontend docs are as unreliable as their backend docs:
+
+- `AUTH_FLOW_OVERVIEW.md` is badly stale — it documents only **two** auth modes and omits the
+  entire third (Web3 Auth Wallet), points at a login page that is now a bare redirect, and
+  describes an external-BTC-login flow whose only implementation is dead code.
+- `CODEBASE.md` and `ARCHITECTURE.md` never mention derivation paths at all and still describe the
+  pre-Bound external-wallet-only architecture.
+
+Combined with the six backend divergences in [[bound-auth-mechanism]] §9: **read their code, not
+their docs — on both sides.**
+
+## 9. What to take, and what not to
+
+**Take**
+
+- PRF with a versioned info string, and the two-signature model (both confirmed working).
+- The taproot/BIP-322 exclusion, enforced three independent ways.
+- Zero-filling PRF outputs and signatures in `finally` blocks.
+- `extractable: false` on every CryptoKey.
+- The ECDH relay shape for device linking.
+- The human-readable, non-blind-signing derivation message.
+
+**Do not take**
+
+1. **SRP on plain SHA-256 next to Argon2id** — it makes the Argon2id cost irrelevant on server
+   compromise. The most important single lesson from this repo.
+2. **No AAD.** Authenticate the envelope header from v1; retrofitting cannot protect old blobs.
+3. **KDF parameters recorded but never read** — migration is impossible even though the field
+   exists.
+4. **No DEK layer** — the seed re-enters the heap on every credential change.
+5. **Duplicated hardcoded KDF constants** in two places with no shared symbol.
+6. **HKDF salt = the AES-GCM IV.**
+7. **Static all-zero HKDF salt** in the ECDH relay.
+8. **A PRF salt shared globally across all users and credentials.**
+9. **Single-ceremony PRF with a known, untested un-unlockable-account risk** — they documented it
+   and shipped anyway.
+10. **Backup that is invisible at signup, armed only on the next login, and silently cancelled by
+    device linking.** For a product where losing the phrase means losing funds, this is the
+    highest-impact gap in the whole design — and it is a product decision, not a crypto one.
+11. `argon2-browser`, unmaintained since 2021 — prefer `hash-wasm`.
+12. Tokens in plain localStorage.
+13. Mainnet-only derivation correctness — the signet coin type is wrong.

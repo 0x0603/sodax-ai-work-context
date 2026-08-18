@@ -69,6 +69,10 @@ kek      = argon2id(password, salt, ctx="kek")    → never leaves the client
 Server sees `authHash`, from which `kek` is not derivable. The blind-custodian property holds, and
 it reuses Better Auth's `emailAndPassword` plane.
 
+Note this must not repeat Bound's mistake in reverse: **both** outputs have to sit behind the same
+expensive KDF. Deriving `authHash` cheaply while deriving `kek` expensively reproduces exactly the
+bypass documented in [[bound-client-crypto]] §2.
+
 **The trade-off, stated honestly:** `authHash` is a password-equivalent in transit. Anyone who can
 observe it — a TLS-terminating proxy, XSS on the login page, a malicious server build — can
 authenticate as the user, though they still cannot derive `kek` or open the blob. SRP resists
@@ -76,6 +80,37 @@ exactly that, and also gives mutual authentication via `M2` (the client verifies
 held the verifier). At rest the two are comparable: a DB dump yields something that only supports
 an offline dictionary attack either way. If the threat model includes a hostile or compromised
 server endpoint, revisit this and implement SRP or OPAQUE.
+
+### Client crypto — the irreversible decisions, to fix before the first real user
+
+`radfi-web` is now readable, so these are informed by what Bound actually ships
+([[bound-client-crypto]]) rather than by guesswork. Each item is irreversible once one real user
+exists.
+
+1. **Versioned envelope with the FULL parameter set**, and the canonical header passed as AES-GCM
+   **`additionalData`**. Bound has neither: no AAD anywhere, and `argon2Params` is written but
+   never read (`derivePasswordKey` takes no params argument), so their KDF profile is pinned to
+   the code version and can never be migrated. Without AAD a malicious server can also downgrade
+   the recorded parameters.
+2. **Two-layer DEK.** Random DEK encrypts the mnemonic once; the DEK is wrapped per unlock method.
+   Bound has no DEK layer, so change-password and add-passkey both decrypt the mnemonic to a
+   plaintext JS string and re-encrypt everything.
+3. **Both password derivations must be expensive.** The most important lesson from Bound: they run
+   Argon2id (64 MiB, t=3) for the KEK *and* plain SHA-256 for the SRP verifier, from the same
+   plaintext password. A server compromise then costs ~1 SHA-256 per guess and the Argon2id work
+   is bypassed entirely. Whatever the server stores must be as expensive to attack as the blob —
+   run one Argon2id and split with HKDF-Expand under distinct `info` labels.
+4. **Per-user, per-credential PRF salt**, stored in the envelope. Bound uses one global constant
+   (`"bound-wallet-prf-v1"`) for every user and credential.
+5. **The nine derivation paths**, explicit, with test vectors. Also fix the two silent library
+   defaults already in `sodax-sdks` (`SuiWalletProvider` and `InjectiveWalletProvider` call
+   `deriveKeypair` / `fromMnemonic` with no path argument) — independent of this project.
+6. **RP ID** for passkeys — changing it invalidates every credential.
+7. **Single named constant per KDF parameter.** Bound duplicates the four numbers as inline
+   literals in two places, with *different field names* in each.
+
+Secondary but worth deciding early: whether to fold a high-entropy client-side secret
+(1Password-style Secret Key) into the KDF input, since it cannot be retrofitted.
 
 ### Client integration is nearly free
 
@@ -98,6 +133,16 @@ rest.
 
 Deliberately out of v1: the BTC 2-of-2 timelocked trading wallet — a Bitcoin-AMM latency
 optimisation Sodax's chains do not need.
+
+### Backup — now answerable with evidence
+
+Bound's backup is a 12-word seed phrase, **not shown at registration**, revealed on demand only,
+skippable, nudged once via a sessionStorage marker that fires only on the next login, and silently
+cancelled by linking a second device. No recovery of any kind exists at any layer.
+
+Whatever we build should decide deliberately, not inherit this by default: show-at-signup vs
+nudge-later, blocking vs skippable, and whether a verification step is enforced. This is product
+work with direct financial consequence, and it is where Bound is weakest.
 
 ### Carry over from Bound
 
