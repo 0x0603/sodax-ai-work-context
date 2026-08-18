@@ -14,6 +14,10 @@ Everything here is derived from `lydialabs/radfi-be` **source**, not from its do
 disagree with the code in six places (table at the end). Read at commit `68d8dab`, branch `dev`,
 2026-08-11. 56,625 LOC TS, 57 modules.
 
+Cloned persistently at `/Users/sangnguyen/Documents/GitHub/radfi-be` — see [[bound-exchange-repos]]
+for local paths, refresh instructions, and the caveat that a `git pull` moves past the commit
+cited here.
+
 Companion note: [[encrypted-keystore-vs-mpc-email-wallets]] compares this model against MPC.
 
 ## Access provenance

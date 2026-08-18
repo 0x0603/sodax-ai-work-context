@@ -11,4 +11,4 @@ human convenience and may lag.
 
 | Topic | File | Status |
 | ----- | ---- | ------ |
-| _none yet_ | | |
+| Bound Exchange reference repos — local clone paths | `bound-exchange-repos.md` | Active |

@@ -17,6 +17,9 @@ backend repo structurally cannot contain any of this — it stores an opaque str
 **Access:** `radfi-web` was 404 until 2026-08-18, when access was granted. Every "unobtainable"
 item listed in [[bound-auth-mechanism]] §11 is now settled and is answered below.
 
+Cloned persistently at `/Users/sangnguyen/Documents/GitHub/radfi-web` — see
+[[bound-exchange-repos]] for local paths and refresh instructions.
+
 ## Stack
 
 ```
