@@ -3,7 +3,7 @@ type: outcome
 repo: sodax-frontend
 github: 1069
 status: Blocked — research complete, needs a product call
-updated: 2026-08-12
+updated: 2026-08-18
 ---
 
 # Outcome
@@ -26,6 +26,24 @@ in either repo.
 
 Nothing in code. Added `knowledge/architecture/encrypted-keystore-vs-mpc-email-wallets.md`,
 which is the reusable half of this.
+
+## Update 2026-08-18 — backend #1024 is going ahead, and it does NOT unblock this
+
+Fez called it: SODAX builds its own encrypted-keystore auth plane
+([[0001-own-the-email-wallet-auth-plane]]). Option (C) below is happening.
+
+**It does not satisfy this ticket, and an earlier note of mine implied it might.** The keystore
+model removes future provider lock-in — no `clientId` in the derivation path — but it mints a
+fresh mnemonic, so a Hana user gets a *different* address, not their Hana one. Hana's addresses
+come from Hana's Web3Auth `clientId`; only Hana sharing that configuration produces parity.
+
+So this ticket is still blocked on the same partnership question it was blocked on in April, and
+#1024 shipping must not be read as closing it. Corrected in
+[[encrypted-keystore-vs-mpc-email-wallets]].
+
+What *does* change: once the keystore plane exists, SODAX has first-party email login for its own
+users. If the requirement can be relaxed from "Hana's addresses" to "email login without a vendor",
+this ticket is satisfiable — but that is a different ticket, and a product call.
 
 ## Follow-ups
 

@@ -4,10 +4,10 @@ repo: sodax-frontend
 github: 1069
 status: Blocked
 tags: [wallet, email-login, web3auth, mpc, hana, needs-decision, product-call]
-updated: 2026-08-12
+updated: 2026-08-18
 related_issues: [gh-1024-bound-auth-email-provider]
 related_knowledge: [encrypted-keystore-vs-mpc-email-wallets]
-related_decisions: []
+related_decisions: [0001-own-the-email-wallet-auth-plane]
 ---
 
 # GH-1069 Email Provider Wallet Connectivity

@@ -11,4 +11,6 @@ human convenience and may lag.
 
 | Topic | File | Status |
 | ----- | ---- | ------ |
-| _none yet_ | | |
+| Bound Auth mechanism, from source | `bound-auth-mechanism.md` | Active |
+| Email wallets: encrypted keystore vs MPC | `encrypted-keystore-vs-mpc-email-wallets.md` | Active |
+| Delivery hooks are SDK-only | `delivery-hooks-are-sdk-only.md` | — |

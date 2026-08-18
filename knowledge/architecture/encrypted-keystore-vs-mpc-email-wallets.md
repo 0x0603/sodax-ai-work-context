@@ -1,11 +1,11 @@
 ---
 type: knowledge
 area: architecture
-status: Draft
+status: Active
 tags: [wallet, email-login, mpc, web3auth, keystore, bound-auth, custody]
-updated: 2026-08-12
+updated: 2026-08-18
 related_issues: [gh-1069-email-provider-wallet-connectivity, gh-1024-bound-auth-email-provider]
-related_decisions: []
+related_decisions: [0001-own-the-email-wallet-auth-plane]
 ---
 
 # Email wallets: encrypted keystore vs MPC, and why the difference decides GH-1069
@@ -53,12 +53,28 @@ blob and a public login surface to defend.
   blocked on the MPC property above, and its own research comment (2026-04-15) says so.
 - **sodax-backend #1024** is researching Bound Auth — i.e. the encrypted-keystore model.
 
-So they are the client and server halves of one question, and neither issue says so. The three
-real options are: accept different addresses; ask Hana for a shared Web3Auth config and accept
-coupled security; or build the keystore model, which is the only route that satisfies the
-requirement without a dependency on another company.
+**Correction (2026-08-18).** An earlier version of this note called the keystore model "the
+structural answer to #1069". That was too strong, and the difference changes what gets funded.
+
+The keystore model removes **future** provider lock-in — there is no `clientId` in the derivation
+path, so a user can reconstruct the same wallet anywhere, including without us. It does **not**
+give a Hana user their *existing* Hana addresses, which derive from Hana's Web3Auth `clientId`;
+our keystore mints a fresh mnemonic and therefore a different address.
+
+So #1024 and #1069 are **not** two halves of one question. They are different problems:
+
+| Goal | Only answer |
+| --- | --- |
+| Own the auth plane, no third-party dependency (#1024) | build the keystore model |
+| A Hana user sees their Hana balances (#1069) | Hana shares their Web3Auth config — a partnership deal, not engineering |
+
+Fez's 2026-08-18 build call ([[0001-own-the-email-wallet-auth-plane]]) is about the first and does
+not mention Hana. Shipping #1024 must not be read as closing #1069.
 
 ## Design details from radfi-be worth keeping
+
+> Superseded in depth by [[bound-auth-mechanism]], which is derived from source rather than docs.
+> Kept here as the short list.
 
 Non-obvious things a from-scratch implementation gets wrong:
 
@@ -79,6 +95,7 @@ Non-obvious things a from-scratch implementation gets wrong:
 ## Sources
 
 - `docs.bound.exchange` — Bound Auth: *What is Bound Auth*, *How It Works*, *Security Model*.
-- `lydialabs/radfi-be` (private, read access) — `docs/requirements/auth-module.md`,
-  `docs/keystore-wallet-flow.md`, `docs/api/auth.md`, `docs/email-verification.md`.
+- `lydialabs/radfi-be` (private, read access arranged by Fez) — this note cites its `docs/`;
+  **its docs disagree with its code in six places**, so prefer [[bound-auth-mechanism]], which was
+  read from `src/` at commit `68d8dab`.
 - `boundex/radfi-web` — **not accessible**; no frontend reference was obtained.

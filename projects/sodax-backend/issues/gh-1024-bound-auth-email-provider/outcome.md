@@ -2,99 +2,114 @@
 type: outcome
 repo: sodax-backend
 github: 1024
-status: Research delivered — build-vs-adopt call not made
-updated: 2026-08-12
+status: Research delivered — build call made, implementation not started
+updated: 2026-08-18
 ---
 
 # Outcome
 
-- PR: none — a `research(...)` ticket; the deliverable is the document.
+- PR: none — filed as `research(...)`; the deliverable was a document, and now also a direction.
 - Commits: none in `sodax-backend`.
 - Tests: n/a
 
 ## Summary
 
-The research is done and came from primary sources: `lydialabs/radfi-be` is readable with the
-current token, so Bound Auth's architecture is documented here from its own `docs/` rather than
-inferred. `boundex/radfi-web` is 404 and nothing about it is guessed at.
+**The build-vs-adopt call is made.** Fez decided on 2026-08-18: build the entire auth plane
+in-house — email login, passkey, setup, backup, encrypted keys, on our servers — using
+`lydialabs/radfi-be` as a reference to *redo*, explicitly **not** integrating Bound's email login.
+Fez also confirmed the repo access was arranged deliberately for this. Recorded as
+[[0001-own-the-email-wallet-auth-plane]].
 
-Three things came out of it that change what this ticket is.
+The research is complete and now comes from **source**, not from Bound's docs. That distinction
+turned out to matter: their docs disagree with their code in six places, one of which is a
+security claim that is simply false (an enumeration defence on the OTP endpoint that is not
+implemented). The full mechanism is written up in [[bound-auth-mechanism]].
 
-**1. Bound Auth is an encrypted-keystore model, not MPC.** The server is a blind custodian of a
-client-encrypted blob; the address derives from a mnemonic the user holds. That is the whole
-reason it is interesting to SODAX — and it is the structural answer to frontend #1069, which is
-blocked precisely on MPC's `clientId` scoping. Neither issue says so today.
+Three things carried over from the 2026-08-12 pass that needed correcting:
 
-**2. The backend has none of the primitives.** No JWT issuance, no email transport, no OTP, no
-WebAuthn, no SRP — verified by grep across every `package.json`. The only session plane is
-Better Auth in `apps/stateful-api`, deliberately Google-only. And `POST /users/register` is not
-an auth endpoint: it verifies a signature over a client-chosen message with no nonce and no
-replay protection, and issues no token. This is a from-scratch auth plane.
-
-**3. Open PR #1048 already ruled this out of `apps/api-auth`**, by name and on purpose: *"Not
-here. api-auth stays internal-only, no public route, ever."* So it needs its own home — and
-#1048 is the freshest template for adding one.
+1. **"Passkey → PRF" was asserted as fact; it is unverifiable.** `grep prf src/` → zero hits;
+   Bound's own docs contradict each other and their spec leaves the mechanism open. The server is
+   a blind custodian, so the backend structurally cannot answer it, and `radfi-web` is still 404.
+2. **"One keystore per account" is wrong.** The index is not unique; each device holds its own
+   blob under its own KEK, all wrapping the same mnemonic. This is why the ECDH relay exists.
+3. **The OTP enumeration question, previously parked as unresolved, is settled: it leaks.**
 
 ## What Changed
 
-Nothing in the repo. Added
-`knowledge/architecture/encrypted-keystore-vs-mpc-email-wallets.md`, which is the part that
-outlives this ticket.
+Nothing in any `icon-project` repo. In this context repo:
 
-## The design points worth stealing, if it gets built
+- **new** `decisions/0001-own-the-email-wallet-auth-plane.md` — Fez's call, verbatim, with
+  consequences and the four things it does *not* settle.
+- **new** `knowledge/architecture/bound-auth-mechanism.md` — the code-derived architecture: trust
+  boundary, mnemonic-vs-KEK, determinism whitelist, entities, all four flows, the six docs-vs-code
+  divergences, nine anti-patterns, and what the backend structurally cannot reveal.
+- **updated** `knowledge/architecture/encrypted-keystore-vs-mpc-email-wallets.md` — corrected an
+  overstatement (see below).
+- **updated** `issue.md`, `plan.md` (Phase 2 = build), `process.md`.
 
-- **The two-signature model** — the server-identity proof signs a fresh nonce and is sent; the
-  keystore-derivation signature signs a fixed message and is never sent. They cannot be the
-  same signature because their requirements are opposite.
-- **The determinism whitelist** — EIP-191 / Ed25519 / BIP-137 only; Taproot/Schnorr and BIP-322
-  excluded because auxiliary randomness would make the keystore unrecoverable. This is a
-  non-obvious constraint that a naive implementation gets wrong.
-- **Nonce consumed before verification**, address-bound, one-time.
-- **Wallet-signature failures do not count toward lockout** — otherwise the lockout is a DoS vector.
-- **OTP hashed with HMAC keyed on a server secret**, not plain SHA-256, so a DB dump alone does
-  not reverse it.
-- **ECDH device-linking relay** where the server stays blind.
+## Correction that changes a decision
+
+The 2026-08-12 knowledge note said the keystore model is *"the structural answer to #1069"*. Too
+strong. It removes **future** provider lock-in, because there is no `clientId` in the derivation
+path. It does **not** give a Hana user their existing Hana addresses — those derive from Hana's
+Web3Auth `clientId`, and our keystore mints a fresh mnemonic.
+
+So #1024 and #1069 are **not** two halves of one question, as previously written. They are
+different problems with different answers, and only a Web3Auth config share from Hana satisfies
+#1069. Fez's framing does not mention Hana at all. Corrected in place.
 
 ## Follow-ups
 
-- **Build-vs-adopt call, with an owner.** The question is not "how" any more, it is "should we,
-  and at what size". It should be made **together with frontend #1069**, since (A) accept
-  different addresses, (B) ask Hana for shared Web3Auth config, and (C) build this are three
-  answers to one question.
-- If it proceeds: new app, not `apps/api-auth` (#1048 Decision 8), using #1048's file set as the
-  template, with the `docs/PATTERNS.md` survey and the collection-ownership table updated up front.
-- Per `docs/TEAM_CONVENTIONS.md`, post the plan as an issue comment before implementing.
-- Unresolved: radfi-be's own docs contradict each other on whether the OTP-request response
-  leaks account existence. Worth settling before copying that endpoint's semantics.
-- `boundex/radfi-web` is inaccessible — if the frontend reference matters, someone has to ask
-  Bound for access.
+- **Post the research and the decision on #1024.** Still zero comments since 2026-07-27.
+  `docs/TEAM_CONVENTIONS.md` requires the plan on the issue before implementing.
+- **Get the four scope questions answered by Fez** — parked in `plan.md`. Highest-stakes:
+  what "backup" means. "Recover with email alone" needs a server-held key share and makes us a
+  custodian; the encrypted-blob-on-our-servers reading is the Bound model and needs no such thing.
+- **Spike WebAuthn PRF before anything else** — `@better-auth/passkey` on Chrome + Safari +
+  iCloud Keychain. The whole passkey path rests on it, and Bound's own spec punts on it
+  *"based on platform support"*.
+- **Cross-repo issue structure** (backend + sdks + frontend) before coding starts.
+- New app, not `apps/api-auth` (PR #1048 Decision 8). Use `apps/bridge-api` as the scaffolding
+  template and `apps/stateful-api/src/auth/*` for the Better Auth wiring.
+- Say explicitly, when posting, that **this does not close #1069**.
 
 ## Draft comment for the issue — NOT POSTED
 
-> Research done, from the primary sources. `lydialabs/radfi-be` is readable with my token so
-> this is from their `docs/`, not inference; `boundex/radfi-web` is 404 for me, so I have no
-> frontend reference and haven't guessed at one.
+> Research is done, from source rather than docs — and that distinction matters here, because
+> radfi-be's docs disagree with its code in six places, one of them a security claim that isn't
+> implemented (the OTP endpoint documents an enumeration defence; the code throws
+> `400 emailTaken`).
 >
-> **The key thing: Bound Auth is not an MPC wallet.** The server is a blind custodian of a
-> client-encrypted keystore blob — it never sees the mnemonic — and identity is email, with the
-> blob unlocked by passkey (WebAuthn PRF), password (SRP), or an external wallet signature.
-> That matters beyond this ticket: frontend #1069 is blocked because every MPC provider scopes
-> keys to the app `clientId`, and this model has no such scoping. **#1024 is the structural
-> answer to #1069** and the two should be decided together.
+> **How it actually works.** The server is a blind custodian. The client generates a BIP-39
+> mnemonic, derives its own chain keys, and encrypts the mnemonic client-side; the server stores
+> only ciphertext. Email is the username; a passkey (WebAuthn PRF) or a password produces the key
+> that decrypts the blob. There is no email-only login and no social login — `EAuthType` is
+> exactly `{passkey, srp, wallet}`. The mnemonic is generated once and downloaded back on every
+> login; the thing that has to be reproducible is the *encryption key*, not the mnemonic. That
+> single fact explains most of the design, including why they exclude Taproot and BIP-322 from
+> wallet auth (non-deterministic signatures would make the keystore unrecoverable).
 >
-> **We have none of the primitives.** No JWT issuance, no email transport, no OTP, no WebAuthn,
-> no SRP anywhere in the repo. The only session plane is Better Auth in `stateful-api`,
-> deliberately Google-only. And `POST /users/register` isn't an auth endpoint — it verifies a
-> signature over a client-chosen message with no nonce or replay protection and issues no token.
-> This would be a from-scratch auth plane.
+> **Direction is settled**: we build this ourselves rather than integrating Bound's — that's the
+> whole point of the ticket, and Fez confirmed it. Bound's repo is the blueprint to redo, not to
+> call.
 >
-> **It can't live in `apps/api-auth`** — PR #1048's design record rules this issue out by name:
-> *"Not here. api-auth stays internal-only, no public route, ever."* It'd need its own app;
-> #1048 is a good template for how to add one.
+> **It's smaller than it looks.** Better Auth is already in `apps/stateful-api` with `email-otp`,
+> `jwt`, `bearer` and `two-factor` on disk unused, and `@better-auth/passkey` passes the PRF
+> extension through and returns the client extension results — so one ceremony gives both the
+> assertion and the encryption key, with no hand-rolled WebAuthn (which is exactly where Bound
+> shipped bugs). On the client side 8 of our 9 wallet providers already accept a raw private key,
+> so decrypt → derive → construct-existing-provider needs no SDK change. What's genuinely new is
+> the keystore layer.
 >
-> The design detail most worth stealing is their two-signature model: the identity proof signs a
-> fresh server nonce and is sent; the keystore-derivation signature signs a fixed message and is
-> never sent. Which is also why they exclude Taproot/Schnorr and BIP-322 — non-deterministic
-> signatures would make the keystore unrecoverable.
+> **It can't live in `apps/api-auth`** — #1048's design record rules this issue out by name.
+> It needs its own app on its own box; a public login surface is a new class of attack surface
+> for this repo.
 >
-> Full notes in my context repo. What's needed next is a build-vs-adopt call with an owner.
+> Two things to decide before code: what "backup" means (client-encrypted blob on our servers =
+> self-custodial and settled; "recover with email alone" = we hold a key share and become a
+> custodian), and whether WebAuthn PRF is actually available across the platforms we care about —
+> Bound's own spec punts on that one. Half-day spike either way.
+>
+> Worth stating plainly: **this does not close frontend #1069.** That ticket wants Hana users to
+> see their Hana balances, and those addresses come from Hana's Web3Auth `clientId`. Ours will be
+> different addresses. That one stays a partnership question.
