@@ -264,8 +264,9 @@ POST /auth/srp/verify { sessionId, clientPublic, clientProof }
 → { serverProof: M2, …login }  or  { serverProof, twoFactorRequired, pendingToken }
 ```
 
-`secure-remote-password@0.3.1` (SRP-6a, the library's built-in 1024-bit group — no params are
-configured anywhere). Redis `srp_session:<uuid>`, TTL 120 s, with `b` and `v` **AES-256-GCM
+`secure-remote-password@0.3.1` — SRP-6a on the library's built-in **RFC 5054 2048-bit group**
+(g=2, SHA-256; verified against `lib/params.js`). No params are configured anywhere in `src/`, so
+this is the library default, and it is a sound one. Redis `srp_session:<uuid>`, TTL 120 s, with `b` and `v` **AES-256-GCM
 encrypted at rest** under `sha256('srp-session-encryption:' + JWT_SECRET)`.
 
 The `M2` server proof gives mutual authentication — the client verifies the server actually held

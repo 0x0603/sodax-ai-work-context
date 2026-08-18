@@ -55,16 +55,27 @@ repo enforces one-writer-per-collection.
 
 ### Password path: KDF split, not SRP
 
-Bound uses SRP-6a on the library's 1024-bit group. Instead derive two independent values
-client-side:
+Bound uses SRP-6a (`secure-remote-password@0.3.1`, RFC 5054 **2048-bit** group, SHA-256 — a sound
+choice, not a weak one). We skip it for integration cost, not for strength: it is a second
+two-round ceremony to build, test and operate, and Better Auth has no SRP plane to hang it on.
+
+Instead derive two independent values client-side:
 
 ```
 authHash = argon2id(password, salt, ctx="auth")   → sent as the Better Auth password
 kek      = argon2id(password, salt, ctx="kek")    → never leaves the client
 ```
 
-Server sees `authHash`, from which `kek` is not derivable. Same blind-custodian property, no SRP
-ceremony, reuses Better Auth's `emailAndPassword` plane.
+Server sees `authHash`, from which `kek` is not derivable. The blind-custodian property holds, and
+it reuses Better Auth's `emailAndPassword` plane.
+
+**The trade-off, stated honestly:** `authHash` is a password-equivalent in transit. Anyone who can
+observe it — a TLS-terminating proxy, XSS on the login page, a malicious server build — can
+authenticate as the user, though they still cannot derive `kek` or open the blob. SRP resists
+exactly that, and also gives mutual authentication via `M2` (the client verifies the server really
+held the verifier). At rest the two are comparable: a DB dump yields something that only supports
+an offline dictionary attack either way. If the threat model includes a hostile or compromised
+server endpoint, revisit this and implement SRP or OPAQUE.
 
 ### Client integration is nearly free
 
