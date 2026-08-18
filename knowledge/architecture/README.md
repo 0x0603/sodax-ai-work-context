@@ -13,5 +13,6 @@ human convenience and may lag.
 | ----- | ---- | ------ |
 | Bound Auth mechanism, from source | `bound-auth-mechanism.md` | Active |
 | Bound client-side crypto (KDF, envelope, derivation, backup) | `bound-client-crypto.md` | Active |
+| Bound email+password flow, simplified walkthrough | `bound-email-password-flow.md` | Active |
 | Email wallets: encrypted keystore vs MPC | `encrypted-keystore-vs-mpc-email-wallets.md` | Active |
 | Delivery hooks are SDK-only | `delivery-hooks-are-sdk-only.md` | — |
