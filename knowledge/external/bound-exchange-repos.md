@@ -16,9 +16,21 @@ re-clone into a scratchpad.
 
 ## Local paths
 
+Both machines use the same layout under their own `GitHub/` root — only the home
+directory differs, so substitute yours:
+
 ```
-/Users/sangnguyen/Documents/GitHub/radfi-be     (lydialabs/radfi-be)   — backend, NestJS/Mongo
-/Users/sangnguyen/Documents/GitHub/radfi-web    (boundex/radfi-web)    — frontend, Next.js
+<home>/Documents/GitHub/radfi-be     (lydialabs/radfi-be)   — backend, NestJS/Mongo
+<home>/Documents/GitHub/radfi-web    (boundex/radfi-web)    — frontend, Next.js
+```
+
+Cloned on both machines as of 2026-08-18 (`/Users/sangnguyen/...` and `/Users/leon/...`).
+If a session finds them missing, just re-clone — `gh repo clone` works with the 0x0603 token:
+
+```bash
+cd ~/Documents/GitHub
+gh repo clone lydialabs/radfi-be -- --depth=1 --branch=dev
+gh repo clone boundex/radfi-web -- --depth=1
 ```
 
 **Deliberately outside `sodax/`.** These are not `icon-project` repos and not part of the sodax
@@ -34,8 +46,10 @@ at the `GitHub/` root, same as other unrelated personal projects there.
 
 Together they're the encrypted-keystore self-custodial wallet Bound (formerly RadFi) runs — the
 model [[bound-auth-mechanism]], [[bound-client-crypto]] and [[bound-email-password-flow]] are
-derived from, read from source rather than their docs (which disagree with the code in nine
-places across the two repos).
+derived from, **read from source rather than their docs**. That distinction is load-bearing on both
+sides: `radfi-be`'s docs contradict its code in six enumerated places ([[bound-auth-mechanism]] §9),
+and `radfi-web`'s architecture docs are stale wholesale — they document two auth modes and omit the
+third, and point at a login page that is now a bare redirect ([[bound-client-crypto]] §8).
 
 ## Clone details
 
@@ -54,9 +68,14 @@ places across the two repos).
 ## Refreshing
 
 ```bash
-cd /Users/sangnguyen/Documents/GitHub/radfi-be  && git pull
-cd /Users/sangnguyen/Documents/GitHub/radfi-web && git pull
+cd ~/Documents/GitHub/radfi-be  && git pull
+cd ~/Documents/GitHub/radfi-web && git pull
 ```
+
+Both clones are `--depth=1`, so `git pull` may refuse to fast-forward if upstream force-pushed or
+moved far enough; re-clone in that case rather than fighting it. Note the shallow clone also means
+the commits the knowledge docs originally cite are **not resolvable locally** — `git cat-file -t
+68d8dab` fails on the `radfi-be` clone, which holds only `c1c1e06`.
 
 If re-deriving any finding after a pull, re-verify by hand — see [[verify-in-code-not-docs]] in
 the user's memory. A newer commit may have changed the exact lines cited in the three knowledge

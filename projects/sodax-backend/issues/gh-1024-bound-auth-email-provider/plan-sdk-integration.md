@@ -45,15 +45,40 @@ path.
    in the package's public barrel).
 2. EVM/Solana/Sui (`providerManaged: true` in `chainRegistry.ts:168-185`,
    `defaultConnectors: () => []`) do **not** go through `IXConnector`/
-   `chainRegistry.createWalletProvider` at all — driven entirely by wagmi/
-   `@solana/wallet-adapter-react`/`@mysten/dapp-kit-react` native hooks
-   (confirmed via `EvmHydrator.tsx`). A connector-based SODAX Auth design only
+   `chainRegistry.createWalletProvider` at all — driven entirely by native
+   hooks: wagmi (`EvmHydrator.tsx`), `@solana/wallet-adapter-react`
+   (`SolanaHydrator.tsx:2`), `@mysten/dapp-kit` (`SuiHydrator.tsx:2`; pinned
+   `0.14.18` in the `pnpm-workspace.yaml` catalog — note there is no
+   `-react`-suffixed Sui package). A connector-based SODAX Auth design only
    works out of the box for the other 6 chain families (Bitcoin, ICON,
-   Injective, Stellar, NEAR, Stacks). Even those 6 need `chainRegistry.ts`'s
-   per-chain `createWalletProvider` callback taught to recognize
-   `SodaxAuthXConnector` alongside its existing brand-specific `instanceof`
-   check (confirmed pattern at Bitcoin's entry, `chainRegistry.ts:226-233`) —
-   not zero-touch as first assumed.
+   Injective, Stellar, NEAR, Stacks). Even those 6 need per-chain
+   `createWalletProvider` work in `chainRegistry.ts` — but the change is
+   **not uniform**, and the Bitcoin pattern does not generalise:
+   - **2 of 6 resolve the provider from the connector** and can be taught to
+     also accept `SodaxAuthXConnector` by adding a branch to an existing
+     brand-specific check: Bitcoin (`chainRegistry.ts:226-233` —
+     `if (!(connector instanceof BitcoinXConnector)) return undefined;` then
+     `return connector.recreateWalletProvider(...)`) and Stacks (`:380-391` —
+     `connector instanceof StacksXConnector ? connector.getProvider() : undefined`).
+   - **4 of 6 never inspect the connector in `createWalletProvider` at all** —
+     they build the provider from the chain's native *service* singleton, or
+     from a store address: Injective `:262-268` (`service.msgBroadcaster`),
+     Stellar `:308-319` (`service.walletsKit`), NEAR `:367-373`
+     (`service.walletSelector`), ICON `:329-343` (discards the service
+     entirely — `(_service, getStore)` — and reads
+     `store.xConnections.ICON?.xAccount.address`). These four do resolve a
+     connector elsewhere, in `createDefaultActions` (`:146-153`), but for
+     connect/disconnect only.
+
+   So for those four, step 3b below is not "add an alternative `instanceof`
+   branch" but "introduce a connector-sourced provider path that does not
+   exist today" — there is nothing to extend: `rg 'getProvider|recreateWalletProvider'`
+   over `src/xchains/` hits only `bitcoin/` and `stacks/`, and the base
+   `core/XConnector` class declares only `connect()`/`disconnect()`, no
+   provider accessor. Budget step 3b as a materially larger change on 4 of the
+   6 chains. Leaving them untouched is **not** fail-safe: they would silently
+   return a provider wired to the native wallet service, which cannot sign for
+   a SODAX-auth-managed key.
 
 **Scope decision**: v1 ships on the 6 non-provider-managed chains.
 EVM/Solana/Sui support is an explicit fast-follow needing real
@@ -81,11 +106,42 @@ before any funds go in."* Confirms a risk already in
 [[bound-client-crypto]]: create-time and assertion-time PRF output can
 differ, silently producing a permanently-unlockable account. Bound built a
 two-prompt verification once and **reverted it** because the server challenge
-(TTL ~2 min) expired mid-flow. Our fix: the re-verification ceremony is
-**local-only** — a second `navigator.credentials.get()` with a
-client-generated, never-sent, TTL-free challenge, purely to compare PRF
-output byte-for-byte. No network round trip, so Bound's exact failure mode
-can't recur. Gate mnemonic generation / blob upload on this passing.
+(TTL 2 min, `radfi-be auth.service.ts:404`) expired mid-flow.
+
+Being local-only is necessary but is **not** the differentiator: Bound's
+reverted verify already used a client-generated local challenge with no server
+round trip (`radfi-web src/auth/passkey-prf-roundtrip-changes.md:17`). What
+actually broke them was the elapsed wall-clock time of a second user-paced
+biometric prompt sitting **inside the outer registration window** —
+`AuthModal.tsx:714` fetches the challenge, `:719` prompts via
+`registerPasskey()`, and `:742` must still submit the attestation to
+`register()` before that 2-minute expiry.
+
+So the property that actually prevents recurrence is a **challenge boundary**:
+keep the extra prompt out of the interval between our registration-challenge
+issuance and our attestation-verifying `register()` call. Options:
+
+- (a) Issue the registration challenge only *after* the local PRF
+  re-verification. Impossible in the naive form — re-verification needs a
+  credential that `create()` can only mint under an already-issued challenge;
+  it only works as (c).
+- (b) Control our own `auth-api` challenge TTL so two user-paced prompts fit
+  comfortably (Bound's is 2 min; budget ~180s). Depends on
+  `@better-auth/passkey`'s challenge model, which this plan already flags as
+  **unverified** (see [[plan-auth-api-security]]'s callout).
+- (c) **Preferred** — allow post-register blob replacement so
+  verify-after-register is recoverable. Phase 6 already splits `keystore`
+  (blob upload/get) from `passkey-registration`, so unlike Bound we can
+  register the passkey under a fresh single-prompt challenge, run the local
+  PRF re-verification (a `navigator.credentials.get()` with a client-generated,
+  never-sent challenge, comparing PRF output byte-for-byte) entirely outside
+  any challenge window, and only then upload the blob encrypted under the
+  assertion-time PRF. Bound was blocked from this route:
+  `DELETE /keystore/passkey/:id` refuses the last passkey (`17010
+  cannotRemoveLastPasskey`, `keystore.service.ts:542`) and a fresh account has
+  exactly one.
+
+Gate the blob upload on this re-verification passing.
 
 ### Package/dependency map (target state)
 
@@ -151,7 +207,7 @@ real browser client behave byte-identically.
      Injective, pass the decrypted mnemonic straight through to
      `wallet-sdk-core`'s existing `SuiWalletProvider`/`InjectiveWalletProvider`
      (both confirmed to call `deriveKeypair`/`fromMnemonic` with **no explicit
-     path argument** — `SuiWalletProvider.ts:90`, `InjectiveWalletProvider.ts:107-108`
+     path argument** — `SuiWalletProvider.ts:67`, `InjectiveWalletProvider.ts:107-108`
      — silently using library defaults `m/44'/784'/0'/0'/0'` and
      `m/44'/60'/0'/0/0` respectively; the vendored Injective `.d.ts` comment
      claiming default `494` is stale, trust the runtime constant `60`) rather
@@ -173,8 +229,12 @@ real browser client behave byte-identically.
    that package, small reviewed PR): (a) a new public export, e.g.
    `getDefaultConnectors(chainType, walletConfig?)`, so a config helper can
    inject a SODAX Auth connector without wiping a chain's other connectors;
-   (b) teach the 6 in-scope chains' `createWalletProvider` callbacks in
-   `chainRegistry.ts` to also recognize `SodaxAuthXConnector`.
+   (b) give the 6 in-scope chains' `createWalletProvider` callbacks in
+   `chainRegistry.ts` a `SodaxAuthXConnector` path — an extra `instanceof`
+   branch for Bitcoin and Stacks, but a **new** connector-sourced provider path
+   for Injective, Stellar, NEAR and ICON, which never look at a connector there
+   today (fact 2 above). Those four are the bulk of this step's cost; "small
+   additive" describes 3a and the Bitcoin/Stacks half only.
 4. **`wallet-auth-react`** — `SodaxAuthXConnector` (implements `IXConnector`,
    scoped to the 6 chains; `connect()` opens the shared login modal only if no
    session is active, otherwise derives immediately with no re-prompt;
@@ -186,8 +246,11 @@ real browser client behave byte-identically.
    do not assume exactly one method is ever attached to an account — see open
    question below) -> {passkeyCeremony | passwordEntry} -> (converge) fetch
    encryptedBlob -> decrypt -> deriving(chain) -> connected`. Registration is
-   separate: email+OTP -> choose method(s) -> generate mnemonic -> (passkey
-   path) run local PRF re-verification -> only then encrypt+upload.
+   separate, and its ordering is load-bearing (challenge boundary, see B
+   above): email+OTP -> choose method(s) -> generate mnemonic -> (passkey path)
+   `create()` + `register()` under a fresh single-prompt challenge -> local PRF
+   re-verification, a second prompt **outside any challenge window** -> only
+   then encrypt+upload the blob.
    Deliberate, tested behavior: on reload, session shows "logged in" (address
    known, persisted like any connector) but signing requires re-running the
    unlock ceremony — the mnemonic is never persisted, matching
@@ -198,7 +261,11 @@ real browser client behave byte-identically.
    root `AGENTS.md` nav + dependency-direction tables — confirmed real,
    multi-file mechanical cost, not hand-waved.
 6. **`sodax-backend/apps/auth-api`** — scaffold from `apps/bridge-api`
-   (confirmed newest greenfield app template), Better Auth wiring copied from
+   (newest greenfield app template, but note it lives on the **unmerged**
+   `origin/feat/bridge-api` branch, tip `c0d86fea` — not on `development`;
+   `origin/development` has meanwhile grown an `apps/api-auth` that may
+   supersede this template choice — check before scaffolding), Better Auth
+   wiring copied from
    `apps/stateful-api/src/auth/*` (confirmed running today at `1.4.18`, needs
    bump to `1.6+` for `@better-auth/passkey`), own `wauth_*` Mongo prefix.
    `keystore` (blob upload/get, envelope validated structurally via
@@ -217,9 +284,11 @@ real browser client behave byte-identically.
    canonical stack to copy when integrating") to wrap `walletConfig` with
    `withSodaxAuth()` and mount `<SodaxAuthProvider>`; add
    `VITE_SODAX_AUTH_API_URL` following the existing optional/public-fallback
-   env convention; a connector icon in `packages/assets`. `apps/demo/AGENTS.md`
-   is explicit that this app must never contain hand-rolled auth business
-   logic — only import what `wallet-auth-react` exports, same discipline
+   env convention; a connector icon in `packages/assets`. `apps/demo/AGENTS.md:109`
+   is explicit — *"**Don't add business logic here.** This app demos the SDK;
+   real wallet/registration/ToS flows belong in partner apps, not in `demo/`"*
+   — which covers an auth/registration flow squarely: only import what
+   `wallet-auth-react` exports, same discipline
    already followed for the RadFi/Bound-Exchange Bitcoin session
    (`useRadfiAuth`/`useRadfiSession` live in `dapp-kit`, not in `demo/`).
 
@@ -240,17 +309,22 @@ This is the exact literal-type contract `createWalletProvider(...)`
 | ICON | `'privateKey' in config` (mirrors EVM) | `privateKey` | `` `0x${string}` `` | `Wallet.loadPrivateKey(wallet.privateKey.slice(2))` — `0x` stripped first |
 | Injective | `'secret' in config && ('privateKey' in config.secret \|\| 'mnemonics' in config.secret)` (**nested one level**, plus requires top-level `chainId`+`network`) | `secret.privateKey` **or** `secret.mnemonics` | `string` / `string` | `PrivateKey.fromPrivateKey(...)` / `PrivateKey.fromMnemonic(...)` |
 | Stellar | `config.type === 'PRIVATE_KEY'` (literal tag, not `in`-check) | `privateKey` | `Hex`, but must be a StrKey secret seed (`S...`), not raw hex | `Keypair.fromSecret(privateKey)` (after stripping an optional `0x` prefix) |
-| Stacks | `'privateKey' in config` | `privateKey` | `string` (near-api-js-independent, Stacks hex convention) | stored as-is; materialized lazily inside `sendTransactionWithPrivateKey` |
+| Stacks | `'privateKey' in config` | `privateKey` | `string` (Stacks hex convention; no special encoding, unlike NEAR/Stellar — `stacks/types.ts:14`) | stored as-is; materialized lazily inside `sendTransactionWithPrivateKey` |
 | Bitcoin | `config.type === 'PRIVATE_KEY'` (literal tag) | `privateKey` | `Hex` (32-byte hex) | `ECPair.fromPrivateKey(Buffer.from(keyHex,'hex'))`; `addressType` defaults to `'P2WPKH'` |
 | NEAR | `'rpcUrl' in && 'accountId' in && 'privateKey' in config` | `privateKey` | `string`, but must be near-api-js's `` `ed25519:${base58}` `` `KeyPairString` format, **not raw hex** | `KeyPairSigner.fromSecretKey(config.privateKey as KeyPairString)` |
 
 **Irregularities the dispatcher must account for, not smooth over with a cast (S1):**
-- Sui has no `privateKey` field at all — only `mnemonics`, intersected with a
-  `SuiEndpointConfig` union (`grpcUrl` xor `rpcUrl`, mutually exclusive).
-- Injective nests the secret one level down (`secret: {privateKey} | {mnemonics}`)
-  and additionally requires `chainId` + `network` at the top level, unlike
-  every other provider — this is the one config that can't be reached by a
-  flat `'privateKey' in config` check at all.
+- Sui has no `privateKey` field at all — only `mnemonics`, alongside a required
+  plain `rpcUrl: string`. `PrivateKeySuiWalletConfig` is a flat object
+  (`wallet-providers/sui/types.ts:27-31`); there is no endpoint union and no
+  intersection type.
+- Injective nests the secret one level down
+  (`secret: {privateKey} | {mnemonics}` — `wallet-providers/injective/types.ts:47`)
+  and also carries top-level `chainId` + `network` (`:48-49`). Those two are not
+  unique to it — EVM likewise requires `chainId` (`evm/types.ts:37`), and
+  Stellar (`stellar/types.ts:34`) and Bitcoin (`bitcoin/types.ts:26`) both
+  require a top-level `network`. What *is* unique: it is the one config that
+  can't be reached by a flat `'privateKey' in config` check at all.
 - Stellar and Bitcoin use an explicit `type: 'PRIVATE_KEY' | 'BROWSER_EXTENSION'`
   literal tag rather than structural (`in`) discrimination — the other seven
   use structural checks.
@@ -273,7 +347,10 @@ Every `I<Chain>WalletProvider extends ICoreWallet` and adds chain-specific
 signing/broadcast methods (e.g. `IEvmWalletProvider.sendTransaction`,
 `IBitcoinWalletProvider.signBip322Message`) — `createWalletProvider(...)`'s
 return type is the union of these nine, narrowed by the `chainType` argument
-via `GetWalletProviderType<K>` (documented pattern, `packages/sdk/docs/WALLET_PROVIDERS.md:22-42`).
+via `GetWalletProviderType<K>` (canonical definition
+`packages/types/src/wallet/providers.ts:34-53`; documented at
+`packages/sdk/docs/WALLET_PROVIDERS.md:45-46`, with the nine-interface table
+at `:27-37`).
 
 ### Open questions added this session (in addition to the four already listed above)
 
@@ -349,6 +426,8 @@ via `GetWalletProviderType<K>` (documented pattern, `packages/sdk/docs/WALLET_PR
 - `sodax-sdks/.changeset/config.json`, `.github/workflows/sdks-publish.yml`,
   `packages/RELEASE_INSTRUCTIONS.md`
 - `sodax-backend/apps/stateful-api/src/auth/auth.config.ts`,
-  `auth.constants.ts`; `sodax-backend/apps/bridge-api/` (scaffolding template)
+  `auth.constants.ts`; `sodax-backend/apps/bridge-api/` (scaffolding template —
+  only on `origin/feat/bridge-api`, tip `c0d86fea`; compare against
+  `origin/development`'s `apps/api-auth`)
 - `sodax-sdks/apps/demo/src/providers.tsx`
 

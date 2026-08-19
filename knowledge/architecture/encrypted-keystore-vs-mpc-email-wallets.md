@@ -98,4 +98,6 @@ Non-obvious things a from-scratch implementation gets wrong:
 - `lydialabs/radfi-be` (private, read access arranged by Fez) — this note cites its `docs/`;
   **its docs disagree with its code in six places**, so prefer [[bound-auth-mechanism]], which was
   read from `src/` at commit `68d8dab`.
-- `boundex/radfi-web` — **not accessible**; no frontend reference was obtained.
+- `boundex/radfi-web` (private, read access granted 2026-08-18) — cloned at `main` `15ac098`. The
+  client half is read from source in [[bound-client-crypto]]; local paths and refresh steps in
+  [[bound-exchange-repos]]. *This note's body predates that access.*

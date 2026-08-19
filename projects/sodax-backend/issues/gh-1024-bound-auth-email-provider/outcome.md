@@ -3,7 +3,7 @@ type: outcome
 repo: sodax-backend
 github: 1024
 status: Research delivered — build call made, implementation not started
-updated: 2026-08-18
+updated: 2026-08-19
 ---
 
 # Outcome
@@ -27,9 +27,12 @@ implemented). The full mechanism is written up in [[bound-auth-mechanism]].
 
 Three things carried over from the 2026-08-12 pass that needed correcting:
 
-1. **"Passkey → PRF" was asserted as fact; it is unverifiable.** `grep prf src/` → zero hits;
-   Bound's own docs contradict each other and their spec leaves the mechanism open. The server is
-   a blind custodian, so the backend structurally cannot answer it, and `radfi-web` is still 404.
+1. **"Passkey → PRF" was asserted as fact, and was unverifiable from the backend alone.**
+   `grep prf src/` in `radfi-be` → zero hits; Bound's own docs contradict each other and their spec
+   leaves the mechanism open. The server is a blind custodian, so the backend structurally cannot
+   answer it. **Settled later the same day (2026-08-18), when `radfi-web` access was granted: it
+   *is* PRF** — `PRF_SALT = "bound-wallet-prf-v1"` at `src/core/keystore.ts:67`. See
+   [[bound-client-crypto]] §1.
 2. **"One keystore per account" is wrong.** The index is not unique; each device holds its own
    blob under its own KEK, all wrapping the same mnemonic. This is why the ECDH relay exists.
 3. **The OTP enumeration question, previously parked as unresolved, is settled: it leaks.**
@@ -43,9 +46,18 @@ Nothing in any `icon-project` repo. In this context repo:
 - **new** `knowledge/architecture/bound-auth-mechanism.md` — the code-derived architecture: trust
   boundary, mnemonic-vs-KEK, determinism whitelist, entities, all four flows, the six docs-vs-code
   divergences, nine anti-patterns, and what the backend structurally cannot reveal.
+- **new** `knowledge/architecture/bound-client-crypto.md` (`bab44e7`) — the client half, read from
+  `radfi-web` @ `15ac098` once access was granted: PRF settled, the Argon2id/SHA-256 KDF split, the
+  envelope, the derivation paths, and the backup/recovery surface.
+- **new** `knowledge/architecture/bound-email-password-flow.md` (`69a8c8e`) — a simplified
+  register → login → sign walkthrough, with §Register flagged as *server capability*, not the
+  shipped client flow.
 - **updated** `knowledge/architecture/encrypted-keystore-vs-mpc-email-wallets.md` — corrected an
   overstatement (see below).
-- **updated** `issue.md`, `plan.md` (Phase 2 = build), `process.md`.
+- **new** the Phase 3 plan split (`c39ab65`): `plan-sdk-integration.md`,
+  `plan-auth-api-security.md`, `plan-auth-api-scaffold.md`, `plan-engineering-standards.md` —
+  indexed from `plan.md` §Phase 3.
+- **updated** `issue.md`, `plan.md` (Phase 2 = build, Phase 3 = SDK integration index), `process.md`.
 
 ## Correction that changes a decision
 
@@ -70,7 +82,8 @@ different problems with different answers, and only a Web3Auth config share from
   *"based on platform support"*.
 - **Cross-repo issue structure** (backend + sdks + frontend) before coding starts.
 - New app, not `apps/api-auth` (PR #1048 Decision 8). Use `apps/bridge-api` as the scaffolding
-  template and `apps/stateful-api/src/auth/*` for the Better Auth wiring.
+  template (unmerged — it is on `origin/feat/bridge-api`, not `development`) and
+  `apps/stateful-api/src/auth/*` for the Better Auth wiring.
 - Say explicitly, when posting, that **this does not close #1069**.
 
 ## Draft comment for the issue — NOT POSTED
@@ -82,8 +95,11 @@ different problems with different answers, and only a Web3Auth config share from
 >
 > **How it actually works.** The server is a blind custodian. The client generates a BIP-39
 > mnemonic, derives its own chain keys, and encrypts the mnemonic client-side; the server stores
-> only ciphertext. Email is the username; a passkey (WebAuthn PRF) or a password produces the key
-> that decrypts the blob. There is no email-only login and no social login — `EAuthType` is
+> only ciphertext. A passkey (WebAuthn PRF) or a password produces the key that decrypts the blob.
+> Email is the username **on the SRP/password path only** — and that path is server capability with
+> zero client call sites: the shipped `radfi-web` (@ `15ac098`) registers only with a passkey
+> (`AuthModal.tsx:743`) or an external wallet (`AuthModal.tsx:1274`), and neither sends an email at
+> all. There is no email-only login and no social login — `EAuthType` is
 > exactly `{passkey, srp, wallet}`. The mnemonic is generated once and downloaded back on every
 > login; the thing that has to be reproducible is the *encryption key*, not the mnemonic. That
 > single fact explains most of the design, including why they exclude Taproot and BIP-322 from
@@ -93,9 +109,10 @@ different problems with different answers, and only a Web3Auth config share from
 > whole point of the ticket, and Fez confirmed it. Bound's repo is the blueprint to redo, not to
 > call.
 >
-> **It's smaller than it looks.** Better Auth is already in `apps/stateful-api` with `email-otp`,
-> `jwt`, `bearer` and `two-factor` on disk unused, and `@better-auth/passkey` passes the PRF
-> extension through and returns the client extension results — so one ceremony gives both the
+> **It's smaller than it looks.** Better Auth is already in `apps/stateful-api`, with many plugins
+> shipped and unused — `email-otp`, `jwt`, `bearer`, `two-factor` and `siwe` among them — and
+> `@better-auth/passkey` passes the PRF extension through and returns the client extension
+> results — so one ceremony gives both the
 > assertion and the encryption key, with no hand-rolled WebAuthn (which is exactly where Bound
 > shipped bugs). On the client side 8 of our 9 wallet providers already accept a raw private key,
 > so decrypt → derive → construct-existing-provider needs no SDK change. What's genuinely new is

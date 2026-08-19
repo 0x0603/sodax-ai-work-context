@@ -515,3 +515,364 @@ other is the literal code to start from).
 None to overall scope or direction — this pass corrected precision and added
 verified detail to already-decided sections; it did not reverse any earlier
 decision.
+
+---
+
+# 2026-08-18 (fourth pass) — Passkey login is emailless; an earlier claim was wrong
+
+Triggered by a direct challenge from the user ("tại sao bạn biết — đọc code họ
+đi") after I asserted, from my own earlier notes rather than from source, that
+Bound requires an email on **both** login paths. Re-cloned both reference repos
+to **this** machine and read the login modal directly. **The assertion was
+wrong and the user's intuition was right.**
+
+## What the source actually shows
+
+`AuthModal.tsx:568-570` picks the ceremony:
+
+```ts
+pendingRegistration?.credentialId
+  ? getPasskeyAssertion(challenge, pendingRegistration.credentialId)   // post-registration verify ONLY
+  : getDiscoverablePasskeyAssertion(challenge)                          // NORMAL LOGIN
+```
+
+- `getDiscoverablePasskeyAssertion` (`webauthn.ts:443-459`) calls
+  `navigator.credentials.get()` with **no `allowCredentials`**. Its docstring:
+  *"Used by **no-email login** so the passkey provider shows domain credentials."*
+- `getWebAuthnChallenge()` (`api/auth.ts:30-35`) takes **no parameters**.
+- `loginPasskey({credentialId, challengeId, webauthnAssertion})` — no email field.
+- UI proof: `AuthPasskeyModal` gets no `email`/`onEmailChange` prop; only
+  `AuthPasswordModal` does (`AuthModal.tsx:1620-1684`).
+- The password path does need it: `srpInit({ email: normalizedEmail })`
+  (`AuthModal.tsx:467`).
+
+## Where the wrong claim came from
+
+[[bound-auth-mechanism]] §7 listed `GET /keystore/passkey/{email}/credentialIds`
+as step 1 of passkey login, annotated *"the only place email is used"*. The
+endpoint is real, but **every caller is a post-login page** —
+`ApproveLinkModal.tsx:77`, `PasskeyManagementPanel.tsx:133,188`,
+`add-passkey/page.tsx:148,363`. Nothing on the login path calls it.
+
+Root cause: the 2026-08-18 backend pass read radfi-be's endpoint list and
+**inferred** the client flow. `radfi-web` access arrived later the same day, and
+the client-crypto pass focused on the crypto surface rather than re-checking the
+flow claims the backend pass had already asserted. So a backend-derived
+inference survived into a knowledge file as if it were verified.
+
+This is a second instance of the discipline these notes already state twice
+("read the code, not the docs") — generalised: **read the code of the side you
+are making the claim about.** A backend endpoint existing says nothing about
+whether the client calls it, and on which path.
+
+Corrected in place in [[bound-auth-mechanism]] §7, with the ceremony-selection
+code, the docstring, and the UI-prop asymmetry quoted.
+
+## Consequence for our design — a real open decision, not just a correction
+
+`plan-sdk-integration.md` phase 4 specifies the modal state machine as
+`closed -> emailEntry -> methodSelect -> {passkeyCeremony | passwordEntry}` —
+email first, unconditionally, for both paths. That was written believing it
+matched Bound. **It does not.** So it is currently an unexamined choice that is
+strictly worse UX than the reference implementation on the passkey path.
+
+Emailless passkey login would mean:
+
+```
+closed -> methodSelect ─┬─> passkeyCeremony   (allowCredentials omitted, zero typing)
+                        └─> emailEntry -> passwordEntry
+```
+
+Three things to settle before adopting it:
+
+1. Does `@better-auth/passkey` support `residentKey: 'required'` at registration
+   and an identifier-less `signIn.passkey()`? **Still unverified — the package is
+   not installed in either repo** (the gap already flagged in
+   [[plan-auth-api-security]]). Fold this question into that same spike.
+2. The email step is also where the password path would fetch its KDF salt (see
+   the gap logged below), so removing it from the passkey path only is fine, but
+   removing it globally is not.
+3. Accounts with no email have no channel for security notifications. Bound hits
+   this too — `ApproveLinkModal.tsx:63-67` hard-stops device linking with
+   *"Add an email first"*.
+
+## Second gap found in the same conversation: where does the KDF salt come from?
+
+`plan.md:65-66` specifies `authHash = argon2id(password, salt, ctx="auth")` and
+`kek = argon2id(password, salt, ctx="kek")` but **no plan file says how the
+client obtains `salt` before login**. `rg -i salt` across all seven plan files
+returns no endpoint, no design. It is load-bearing: the client cannot compute
+`authHash` without it, so a pre-login round trip must exist:
+
+```
+POST /auth/kdf-params { email } → { salt, argon2Params }
+```
+
+and that endpoint is an **account-enumeration surface**. Bound gets this right
+on the equivalent step — `srpInit` returns a deterministic fake salt
+(`HMAC(jwtRefreshSecret, "srp-fake-salt:" + email)`) for unknown emails, so
+probing is indistinguishable — while getting it wrong on their OTP endpoint
+(`400 account.emailTaken`, [[bound-auth-mechanism]] §9). Our design must copy the
+former and not the latter.
+
+Not yet written into `plan.md` — pending the user's call on whether to fold both
+of these in as open questions.
+
+## Reference repos now on this machine
+
+[[bound-exchange-repos]] recorded clones under `/Users/sangnguyen/...` (the other
+machine). Cloned to this machine at the same commits — see that note, updated
+with both paths.
+
+---
+
+# 2026-08-18 (fifth pass) — Full source audit of every doc in this thread
+
+The fourth pass found one wrong claim by accident. That raised the obvious
+question — how many others are there? — so the user asked for a systematic
+sweep: *"đọc lại hết docs, xem có cái nào sai thực tế không, không tin vào note
+phải so với code."*
+
+## Method
+
+A 10-agent fan-out, one group per doc-and-source-tree pair, each agent given the
+doc as the **thing under test** rather than as evidence, plus the source tree the
+claim is actually about. Every finding of WRONG then went to an independent
+adversarial agent whose default was to defend the doc — so a correction only
+landed if it survived someone actively trying to refute it.
+
+Verdicts were four-way on purpose: CONFIRMED / **WRONG** / **DRIFTED** (substance
+holds, cited file:line moved — the `radfi-be` clone is at `c1c1e06` while the
+notes were written at `68d8dab`) / UNVERIFIABLE. Collapsing drift into "wrong"
+would have produced dozens of fake errors.
+
+Agents were pointed specifically at the claim shapes that hide errors, all of
+which had already burned us at least once: *"the only place X is used"*, *"X
+exists nowhere"*, *"written but never read"*, exact constants and version pins,
+and any claim about one repo made while reading another.
+
+**Result: 573 claims checked, 461 CONFIRMED, 28 WRONG, 35 DRIFTED, 39
+UNVERIFIABLE, and 5 reported errors rejected on adversarial review.**
+
+The core architecture survived intact — blind custody, mnemonic-vs-KEK, the
+two-signature model, the determinism whitelist, and the Argon2id-bypass finding
+are all confirmed from source. Everything wrong was at the detail layer, but four
+of those details change what gets built.
+
+## The four that change the plan
+
+1. **`stateful-api`'s CORS is not what two plan files claimed.** It does not
+   source its allowlist from `trustedOrigins` — `main.ts:62-79` hardcodes three
+   inline regexes and sets **no `credentials` key at all**, deliberately
+   (`main.ts:55-56`: *"deliberately NON-credentialed: no session cookie ever
+   crosses this boundary"*), because the portal is served same-origin through a
+   Next proxy. `trustedOrigins` is a separate mechanism feeding Better Auth's
+   Origin/CSRF check, consumed only at `auth.config.ts:40`; `configuration.ts:57`
+   says so verbatim. So the prescription *"auth-api must copy stateful-api's CORS
+   because it is cookie-based"* rested on a false premise. **No sodax-backend
+   service uses credentialed CORS** — there is no sibling to copy. The decision
+   is now branched on deployment topology, and the config-driven-allowlist
+   precedent is `sponsoring-api/src/shared/origin-allowlist.ts`. This also closes
+   open question 12.
+
+2. **`apps/bridge-api`, the chosen scaffold template, is not on `development`** —
+   it lives only on `origin/feat/bridge-api*`. It is also not the newest
+   greenfield app (`sponsoring-api` 2026-08-03, `api-auth` 2026-08-17). The
+   `HaproxyThrottlerGuard` cited from it exists identically in `sponsoring-api`
+   and `swaps-api` on `development`; citations re-pointed there.
+
+3. **The six non-provider-managed chains do not share one shape.** Only 2 of 6
+   (Bitcoin `chainRegistry.ts:226`, Stacks `:380`) resolve the provider from the
+   connector. The other 4 (Injective `:262`, Stellar `:308`, NEAR `:367`, ICON
+   `:329`) never inspect the connector in `createWalletProvider` — they build
+   from the native service singleton, and ICON discards the service entirely.
+   Step 3b is therefore "introduce a connector-sourced provider path that does
+   not exist" on 4 chains, not "add an `instanceof` branch". And skipping them is
+   **not fail-safe**: they would silently return a provider wired to the native
+   wallet, which cannot sign for a SODAX-managed key.
+
+4. **The PRF re-verification fix was justified by the wrong property.** The plan
+   said local-only is what prevents Bound's failure recurring. But Bound's
+   reverted attempt *already* used a local challenge — what killed them was the
+   wall-clock time of a second user-paced biometric prompt sitting **inside** the
+   registration challenge window (`AuthModal.tsx:714` issue → `:719` prompt →
+   `:742` submit, against the 2-minute TTL at `radfi-be auth.service.ts:404`).
+   The property that actually matters is the **challenge boundary**. SODAX can do
+   what Bound could not — register the passkey under a fresh single-prompt
+   challenge, re-verify outside any window, then upload the blob — because
+   Phase 6 already splits `keystore` from `passkey-registration`, whereas Bound is
+   blocked by `17010 KEYSTORE_CANNOT_REMOVE_LAST` (`keystore.service.ts:542`) on
+   an account with exactly one passkey.
+
+## Two that would have produced broken wallets
+
+- **The fixed derivation message is 5 lines, and the doc's code block silently
+  dropped the two blank ones.** Real message: `"Bound Wallet Auth\n\nPurpose:
+  Unlock the encrypted Bound keystore\n\nThis signature is not a transaction and
+  does not spend funds."` — LF only, NFKC-normalized. Signing the 3-line version
+  yields a different signature → different KEK → unopenable keystore.
+- **The HKDF `info` is not the canonical envelope JSON.** It is
+  `canonicalKdfContext()`, a fixed 8-field projection in a specific key order,
+  excluding `kdfSalt`, `kdfParams` and `cipherParams`.
+
+## What the audit revealed about Bound the product
+
+**Bound's shipped client no longer registers with an email at all.** Both
+`/auth/register` call sites are `authType: PASSKEY` (`AuthModal.tsx:743`, keyed by
+a user-chosen passkey *name*) and `authType: WALLET` (`:1274`);
+`requestEmailVerification` has zero callers; no client path constructs
+`authType: "srp"` at all, so SRP accounts can only be pre-existing. Password sits
+under a *"Legacy login options"* disclosure. The old email+OTP signup screens are
+still in the tree but dead.
+
+**This is an observation about Bound, not a constraint on SODAX** — see the scope
+decision recorded in `plan.md`.
+
+Also: Bound's strongest backup warning — the one sentence naming the consequence —
+**never shipped**. It exists only as orphaned i18n copy (`messages/en.json:458`,
+translated into zh-CN) with zero code references and no step to render it. So
+their backup story is weaker than the fourth pass documented, which was already
+the weakest part of their design.
+
+## Corrections to our own corrections
+
+Two, both worth recording because they are the same failure mode this pass exists
+to catch:
+
+- The fourth pass's fix said *"nothing on the login path calls
+  `GET /keystore/passkey/{email}/credentialIds`."* Overstated. A fifth caller,
+  `add-passkey/page.tsx:148` inside `autoLogin()`, **is** on a login path, on an
+  ungated page. The narrower true claim — the primary `AuthModal` login is
+  emailless and discoverable — stands.
+- `bound-auth-mechanism` §3 stated the PRF *output* formula as if it were the KEK.
+  The KEK is an HKDF of it whose salt is the blob's own `aesIv`, making the KEK
+  **per-blob, not per-credential**.
+
+## Rejected on review — where the doc was right
+
+5 reported errors did not survive. Two are instructive: one auditor called the
+Sui `mnemonics`-only config type nonexistent, having read only the checked-out
+ref while the type lives on an unmerged branch; another reported a claim the doc
+never actually makes, filed against an "implied by" reading. Both are the
+inverse error — over-correction — and are exactly why the adversarial stage
+exists.
+
+## Changes During Work
+
+The 28 corrections were applied by a second fan-out, one agent per file group
+with strict single-owner-per-file assignment (S9), each edit then re-read by an
+independent checker looking for corrections that did not land, fabricated
+replacement text, over-correction, and internal contradiction with sibling docs.
+
+Two new open questions were promoted from this log into `plan.md`, since both
+are now required work rather than curiosities: **where the client obtains the KDF
+salt** (unaddressed anywhere, and an account-enumeration surface — Bound solves
+the equivalent with a deterministic fake salt in `srpInit` while getting it wrong
+on their OTP endpoint), and **whether passkey login should be emailless**.
+
+---
+
+# 2026-08-19 — Threat model: "is the backend safe, can it be hacked, leaked, or lose keys?"
+
+User's question, answered by a six-lens source-verified pass, each finding then
+sent to an independent reviewer instructed to **refute it by default**. 15
+critical/high findings went through that gate; 14 stood, 1 was knocked down, and
+most that stood were re-scoped or downgraded. The gate earned its keep — see
+"What the adversarial pass changed" below.
+
+## New plan file
+
+**[[plan-auth-api-durability]]** — the durability half, which had no home
+anywhere in the plan. `plan-auth-api-security` answers *can it be stolen?*; this
+answers *can it be lost?*. The two are opposite failure modes with opposite
+fixes, and for a blind custodian the second is unrecoverable by construction.
+
+The finding that justified a whole file: **`sodax-backend` has exactly one backup
+pipeline and it covers only the shared stateful DB.** The main `sodax-mongo` —
+where all nine apps write — has no backup at all. So the placement of `wauth_*`
+silently decides whether user funds are recoverable. And placing it in the
+stateful DB is not sufficient either: the restore runbook enumerates a *closed
+set* of five `stateful_*` collections, so an operator working that runbook during
+an incident would skip an unlisted `wauth_keystore`.
+
+Three more in the same direction: the backup watcher classifies on S3 object
+**metadata** and never opens the archive (its size guard defaults to off), so a
+dump that silently omits the keystore reports healthy indefinitely; `--replSet
+rs0` reads as redundancy but is a single-member set on a bind mount; and
+`mongorestore --drop` runs in *every* restore mode, so restoring an hour-old
+archive over live keystore data destroys every registration since the dump.
+
+## What the adversarial pass changed — the gate was not ceremonial
+
+- **"Better Auth's raw-Express mount means no Nest guard can throttle auth
+  routes" — knocked down.** The architectural observation is true, but Better
+  Auth throttles *inside its own handler*, so the mount is neither the cause of
+  nor an obstacle to rate limiting. The refuter then found the real cause, which
+  is live today: Better Auth defaults `rateLimit.enabled` to `NODE_ENV ===
+  "production"`, and this repo's convention is `dev|test|prod`, so the limiter is
+  silently off in production. `auth.config.ts:24-26` already documents that exact
+  mismatch for the cookie `Secure` flag and fixes that half — the rate-limit half
+  was never noticed. Second instance of one root cause.
+- **`X-Real-IP` trust — downgraded critical → medium, on an unverified
+  precondition.** Everything depends on whether the origin ports actually answer
+  from the internet, which cannot be settled from the repo. The refuter also
+  pointed out that *if* they do, the critical item is not the header at all but
+  `docker-compose.yml:62-63, :96-97` publishing MongoDB and Redis on `0.0.0.0`.
+  Ten-minute external port scan decides this.
+- **Google OAuth tokens in cleartext — downgraded high → low.** The provider
+  requests no `access_type=offline`, so no refresh token is ever issued; the
+  exposure is a ~1h identity-only token whose claims duplicate `auth_user` in the
+  same dump.
+- **Session tokens — the reviewer found something worse than reported.** With
+  `cookieCache` enabled, `BETTER_AUTH_SECRET` **alone** suffices: `session.mjs:76-81`
+  authenticates the `session_data` cookie purely by HMAC and returns the embedded
+  user with no DB read, and the `session_token` value is never checked. The
+  secret, not the session table, is the crown jewel — and its config DTO has no
+  length or entropy floor.
+
+## Findings that are NOT about #1024 — they belong to whoever owns sodax-backend
+
+Six findings are about code running in production **today** and have nothing to
+do with the auth-api build. Recording them here because that is where they were
+found, but they should not be buried in a #1024 folder:
+
+1. **`POST /get-access-token` is publicly mounted.** The catch-all
+   `expressApp.all('.../*splat')` exposes Better Auth's whole default route
+   table; that route takes only a session cookie and returns a live Google OAuth
+   access token — no fresh-session requirement, no re-auth. `/list-accounts` and
+   `/account-info` leak linked-provider metadata; `/ok` and `/error` are
+   unauthenticated and fingerprint the stack.
+2. **Any Google account can self-provision a partner organization.**
+   `allowUserToCreateOrganization` is unset (defaults to permitted) and the Google
+   provider has no `hd` restriction or post-sign-in allowlist. Sign in → become
+   org owner → issue invitations and org API keys.
+3. **Better Auth's rate limiter is off in production** (the `NODE_ENV` mismatch
+   above).
+4. **`cookieCache` honours a revoked session for up to 5 minutes** — `SessionGuard`
+   calls `getSession` without `disableCookieCache`, so the whole portal API
+   accepts the stale cookie, including a stale `activeOrganizationId` and role.
+5. **The main Mongo has no backup** (§1 of the durability plan) — this is a
+   standing risk for every app, not only a future auth-api.
+6. **`apps/api`'s `IPGuard` is an unconditional `return true`** with a `// TODO:
+   this bypass for now` comment, on the `/admin/*` controller. The route reads as
+   two factors (network position AND token); only the token is real.
+
+**Suggest raising 1, 2 and 6 as their own issues.** None is a #1024 deliverable,
+and leaving them in a research folder is how they get lost.
+
+## Method note — a workflow failure worth not repeating
+
+The first attempt at the three heaviest lenses burned ~4 hours across 17 agents
+that were all interrupted mid-run and retried from scratch, never converging.
+Cause: prompts that asked for exhaustive module reads at `xhigh` effort, so each
+agent ran long enough to be cut. Compounding it, the script put the doc-fix phase
+*behind* the lens phase with `await`, so 18 queued documentation fixes were
+blocked behind work that never finished, despite having no dependency on it.
+
+Re-run with the lenses split into five narrow, explicitly budgeted assignments
+("locate with rg first, Read only what you need, aim for a handful of
+well-evidenced findings, not completeness") at `high` effort, and with doc-fixes
+and lenses as two concurrent tracks: **9/9 agents, zero errors, five minutes.**
+
+Lesson for future passes in this repo: scope per agent, and never put an
+independent track behind a barrier.

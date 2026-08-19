@@ -10,16 +10,25 @@ tags: [sodax-backend, auth-api, better-auth, nestjs, scaffold]
 
 # `apps/auth-api` scaffold — exact templates to copy, verified against real source
 
-Every snippet below is copied verbatim from a currently-running sibling app
-(`apps/stateful-api`, `apps/bridge-api`, `apps/swaps-api`, `apps/sponsoring-api`)
-this session, not paraphrased. Read-first note (S1/S9 in
+Every snippet below comes from a currently-running sibling app
+(`apps/stateful-api`, `apps/bridge-api`, `apps/swaps-api`, `apps/sponsoring-api`).
+A block is verbatim **unless labelled "excerpt"** — an excerpt has had comments
+stripped and/or fields elided, so diff it against the cited file:line
+structurally, not character-for-character. Read-first note (S1/S9 in
 [[plan-engineering-standards]]): `auth-api` reuses these exact patterns, it
-does not invent new ones — a reviewer should be able to diff against the
-cited file:line and see the same shape.
+does not invent new ones.
+
+**Branch caveat**: every `apps/bridge-api/*` citation resolves only on the
+unmerged branch `origin/feat/bridge-api-bound-auth-usdt-approve` (9f52532c).
+`apps/bridge-api` exists on neither the working branch nor `development`, so a
+reviewer diffing on the default branch finds nothing. Where a byte-identical
+copy exists on `development` — notably `haproxy-throttler.guard.ts` in
+`swaps-api` — the merged path is cited instead.
 
 ## 1. Better Auth wiring — mirror `stateful-api/src/auth/*` exactly, swap the prefix
 
-Real, full current file — `apps/stateful-api/src/auth/auth.config.ts:1-93`:
+Excerpt (comments stripped, `socialProviders` collapsed to one line) —
+`apps/stateful-api/src/auth/auth.config.ts:1-92`:
 
 ```ts
 import { betterAuth, type BetterAuthOptions } from 'better-auth';
@@ -58,7 +67,16 @@ export function buildAuth(db: Db, client: MongoClient, cfg: AuthConfig) {
       useSecureCookies: isProd,
       ...(cfg.cookieDomain ? { crossSubDomainCookies: { enabled: true, domain: cfg.cookieDomain } } : {}),
     },
-    plugins: [ /* organization(...) — auth-api drops this, adds passkey()/emailAndPassword instead */ ],
+    plugins: [
+      organization({
+        sendInvitationEmail: async () => { /* no-op for V1 — link-based invites */ },
+        schema: {
+          organization: { modelName: AUTH_COLLECTIONS.organization },
+          member: { modelName: AUTH_COLLECTIONS.member },
+          invitation: { modelName: AUTH_COLLECTIONS.invitation },
+        },
+      }),
+    ],
   } satisfies BetterAuthOptions;
 
   return betterAuth(options);
@@ -67,7 +85,19 @@ export function buildAuth(db: Db, client: MongoClient, cfg: AuthConfig) {
 export type StatefulAuth = ReturnType<typeof buildAuth>;
 ```
 
-`apps/stateful-api/src/auth/auth.constants.ts:1-25`, full:
+The `plugins` array is kept here rather than placeholdered because its shape is
+the load-bearing precedent: plugin-level `schema.<model>.modelName`
+(auth.config.ts:78-82) is how this repo pins a Better Auth **plugin's**
+collection names, mirroring the top-level `user`/`session`/`account`/
+`verification` `modelName` keys at auth.config.ts:53-60. That answers half the
+`WAUTH_COLLECTIONS` TODO below — the pattern is plugin-level
+`schema.<model>.modelName`; only the passkey plugin's own model **key name**
+still needs confirming against its installed `.d.ts`. `auth-api` drops
+`organization` and adds `passkey()` + `emailAndPassword` instead.
+
+`apps/stateful-api/src/auth/auth.constants.ts:1-25`, code only — the file's
+10-line header JSDoc and its two per-const doc comments are stripped here
+(`AUTH_INSTANCE` is at :11, not :1):
 
 ```ts
 export const AUTH_INSTANCE = Symbol('BETTER_AUTH_INSTANCE');
@@ -83,6 +113,13 @@ export const AUTH_COLLECTIONS = {
   invitation: 'auth_invitation',
 } as const;
 ```
+
+The stripped header is the part `auth-api` must inherit, not just the values:
+names are pinned (a) so Better Auth's default `user` collection can't collide
+with the legacy wallet-registration `stateful_users` — the prefix keeps the two
+auth planes disjoint — and (b) so they match CLAUDE.md's single-writer
+ownership table. `WAUTH_COLLECTIONS` needs the same reasoning written down
+against the now-existing `auth_*` plane.
 
 **`auth-api`'s versions**, direct copy with the prefix swapped and the plugin
 set changed — `WAUTH_COLLECTIONS`:
@@ -106,15 +143,17 @@ export const WAUTH_COLLECTIONS = {
 except the injected connection name (auth-api gets its own Mongo connection,
 not the shared `stateful` one) and swap `buildAuth`/`AUTH_INSTANCE` for the
 `WAUTH_*` versions above. The `await connection.asPromise()` before capturing
-`connection.db` (line 28) is load-bearing — don't drop it, or Better Auth
-holds an `undefined` `Db`.
+`connection.db` (line 27) is load-bearing — don't drop it, or Better Auth
+holds an `undefined` `Db`. The file's own comment (auth.module.ts:16-17) says
+exactly this.
 
 **Two things `auth-api` must NOT copy from `stateful-api`:**
 - `emailAndPassword: { enabled: false }` — auth-api needs it **on**, with
   `password.hash`/`password.verify` overridden to the derived `authHash`
   scheme (plan-sdk-integration.md's KDF-split design), not Better Auth's
-  default Scrypt (confirmed default: `create-context.mjs:154-155`,
-  `hashPassword`/`verifyPassword` from `../crypto/password.mjs` — auth-api's
+  default Scrypt (confirmed default: `create-context.mjs:156-157`,
+  `hashPassword`/`verifyPassword` imported at `create-context.mjs:4` from
+  `../crypto/password.mjs` — auth-api's
   server never sees a plaintext password at all, so this default is simply
   inapplicable, not something to disable/reconfigure).
 - The `organization` plugin — replace with `passkey()` (once
@@ -153,11 +192,14 @@ app.use(helmet({ contentSecurityPolicy: false, crossOriginEmbedderPolicy: false 
 // serves a real login UI (the SDK modal), stateful-api disables it because it's an
 // internal partner portal with different threat exposure. Tune a real CSP instead of `false`.
 
-// 2. CORS — stateful-api uses an explicit app.enableCors(...) with a regex-origin callback
-//    sourced from `trustedOrigins` (configuration.ts:55-63: localhost origins only outside
-//    prod, plus comma-split PORTAL_TRUSTED_ORIGINS env var, deduped). auth-api must use the
-//    SAME allowlist shape, not bridge-api's wildcard `origin: '*'` (that's only safe there
-//    because bridge-api sets no cookies).
+// 2. CORS — there is NO sibling to copy here; see [[plan-auth-api-security]] §Don't-hack-me
+//    → CORS for the decision. stateful-api's own block (main.ts:62-79) hardcodes three inline
+//    regexes (localhost:\d+, *.sodax.com, sodax-*.vercel.app), allows a missing Origin, and
+//    sets NO `credentials` key — deliberately (main.ts:55-56: "no session cookie ever crosses
+//    this boundary"), because the portal is served SAME-ORIGIN through a Next proxy so its
+//    cookie traffic never triggers CORS. `trustedOrigins` is NOT its CORS source; it feeds
+//    Better Auth's Origin/CSRF check only (configuration.ts:57). Those broad regexes are sized
+//    for a public cookieless surface — do not paste them onto a credentialed one.
 
 // 3. Better Auth handler mounted BEFORE express.json()/urlencoded — raw Express, named wildcard:
 const auth = app.get<WauthAuth>(WAUTH_INSTANCE);
@@ -170,6 +212,9 @@ expressApp.all(`${authBasePath}/*splat`, toNodeHandler(auth));   // Express 5 na
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+app.use(requireJson);   // stateful-api/src/main.ts:98 — deliberately AFTER both parsers and
+                        // after the Better Auth mount, so auth requests are never forced to be JSON
+
 app.useGlobalFilters(new AllExceptionsFilter());
 app.useGlobalPipes(new CustomValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true, transformOptions: { enableImplicitConversion: true } }));
 app.setGlobalPrefix('api');
@@ -179,6 +224,12 @@ The `authBasePath` derived from `configService.authConfig.baseUrl`'s URL
 pathname (not hardcoded) is deliberate — keeps the Express mount and Better
 Auth's own router path from ever drifting apart (`stateful-api/src/main.ts:81-87`'s
 own comment). Reuse this derivation, don't hardcode `/api/auth`.
+
+One middleware is deliberately **not** in this sequence: `requestContext` is
+wired via `MiddlewareConsumer` in `AppModule.configure()`, not in `main.ts`
+(`stateful-api/src/main.ts:99-101`) — registered here it would run *before*
+Nest's body parser and POST/PUT/PATCH bodies would be `undefined` when
+snapshotted. `auth-api` must keep that split.
 
 ## 3. Config validation — `class-validator` + `class-transformer`, not Zod/Joi
 
@@ -277,13 +328,15 @@ export class CustomConfigModule {}
 
 ## 4. DTO style — `class-validator` decorators + `@ApiProperty`, 1:1 pairing
 
-Real example, `apps/bridge-api/src/api/bridge/dto/submit-bridge-tx.dto.ts`,
-full file — the pattern to copy for `keystore`/`passkey-registration`/`settings`
-DTOs:
+Real example, `apps/bridge-api/src/api/bridge/dto/submit-bridge-tx.dto.ts`
+(86 lines) — excerpt: request DTOs only, doc comments and the two response
+DTOs elided. The pattern to copy for
+`keystore`/`passkey-registration`/`settings` DTOs:
 
 ```ts
 import { ApiProperty } from '@nestjs/swagger';
 import { IsHex } from '@repo/shared-utils';
+import { CHAIN_KEYS, Hex, SpokeChainKey } from '@sodax/sdk';
 import { Type } from 'class-transformer';
 import { IsIn, IsNotEmpty, IsString, MaxLength, MinLength, ValidateNested } from 'class-validator';
 
@@ -305,12 +358,45 @@ export class BridgeSubmitTxDto {
   @MaxLength(127)
   txHash!: string;
 
+  @ApiProperty({
+    description: 'Source chain key (spoke chain the tx was submitted from)',
+    enum: Object.values(CHAIN_KEYS),
+  })
+  @IsNotEmpty({ message: 'Source chain key is required' })
+  @IsIn(Object.values(CHAIN_KEYS), { message: 'Source chain key must be a valid spoke chain key' })
+  srcChainKey!: SpokeChainKey;
+
+  @ApiProperty({ description: 'Address of the wallet that broadcast the tx', example: '0x13b7...', minLength: 1, maxLength: 127 })
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(1)
+  @MaxLength(127)
+  walletAddress!: string;
+
   @ApiProperty({ description: 'Relay envelope received from createBridgeIntent', type: RelayDataRequestDto })
   @ValidateNested()
   @Type(() => RelayDataRequestDto)
   relayData!: RelayDataRequestDto;
 }
 ```
+
+Two things this excerpt is chosen for, and one it omits:
+
+- **The enum-bounded field is the clearest instance of the 1:1 pairing this
+  section is about**: `@ApiProperty({ enum: Object.values(CHAIN_KEYS) })` sits
+  next to `@IsIn(Object.values(CHAIN_KEYS), { message: ... })` (real lines
+  36-42), so Swagger and runtime validation are driven off one source of truth
+  and cannot drift. Recommended — not required — wherever `auth-api` has a
+  closed-set field.
+- **The request contract is `{ txHash, srcChainKey, walletAddress, relayData }`**,
+  not just `{ txHash, relayData }`; `srcChainKey` and `walletAddress` are both
+  required, and the route is idempotent on `(txHash, srcChainKey)`.
+- **Omitted here: the paired response DTOs** `BridgeSubmitTxDataResponseDto`
+  and `BridgeSubmitTxResponseDto` (real lines 65-86) — the `{ success, data }`
+  envelope, `@ApiProperty` on response fields too, and a literal-union status
+  (`status!: 'inserted' | 'duplicate'`). Response-shape convention is otherwise
+  undocumented across this issue folder; read those 22 lines before designing
+  `auth-api`'s response DTOs.
 
 For `auth-api`'s `keystore` upload DTO specifically: the `encryptedBlob` field
 should be validated for **shape only** (via `@sodax/keystore-crypto`'s
@@ -322,8 +408,10 @@ validator.
 
 ## 5. Rate-limit guard and Redis cache — reuse verbatim, see [[plan-auth-api-security]] for exact config values
 
-`apps/bridge-api/src/shared/guards/haproxy-throttler.guard.ts`, full 25-line
-file — copy verbatim into `auth-api/src/shared/guards/`:
+`apps/swaps-api/src/shared/guards/haproxy-throttler.guard.ts` — the 25-line
+file, JSDoc header elided below. Cited from `swaps-api` because that copy is on
+`origin/development`; `bridge-api`'s is byte-identical but lives only on the
+unmerged branch. Copy verbatim into `auth-api/src/shared/guards/`:
 
 ```ts
 import { Injectable } from '@nestjs/common';
@@ -387,18 +475,25 @@ CacheModule.registerAsync({
   isGlobal: true,
   imports: [CustomConfigModule],
   inject: [CustomConfigService],
-  useFactory: async (configService: CustomConfigService) => ({
-    store: createKeyv(configService.cacheConfig.uri),
-  }),
+  useFactory: async (configService: CustomConfigService) => {
+    const cacheConfig = configService.cacheConfig;
+    return {
+      store: createKeyv(cacheConfig.uri),
+    };
+  },
 }),
 ```
+
+The block body with the intermediate `const` is the sibling house style — it
+matches the `MongooseModule.forRootAsync` factory directly below it, and
+`swaps-api` is identical. Behaviour is the same either way; match the style.
 
 This is the store `auth.config.ts`'s `secondaryStorage` option needs to
 point at (per [[plan-auth-api-security]]) — `auth-api` needs its own adapter
 bridging Better Auth's `secondaryStorage` interface to this same Keyv/Redis
 store, not a second Redis connection.
 
-## Files read in full this pass (verbatim source, not paraphrase)
+## Files read this pass (source, not paraphrase — see the excerpt labels above)
 
 - `sodax-backend/apps/stateful-api/src/auth/{auth.config.ts,auth.constants.ts,auth.module.ts}`
 - `sodax-backend/apps/stateful-api/src/main.ts`
@@ -406,4 +501,5 @@ store, not a second Redis connection.
 - `sodax-backend/apps/sponsoring-api/src/shared/{guards/haproxy-throttler.guard.ts,configure-app.ts,cors.ts}`
 - `sodax-backend/apps/swaps-api/src/{app.module.ts,main.ts,shared/guards/haproxy-throttler.guard.ts}`
 - `sodax-backend/packages/shared-utils/src/utils/validate-utils.ts`
-- `sodax-backend/node_modules/.pnpm/better-auth@1.4.18.../node_modules/{@better-auth/core/dist/types/init-options.d.mts, better-auth/dist/context/create-context.mjs, better-auth/dist/utils/get-request-ip.mjs, better-auth/dist/api/rate-limiter/index.mjs}`
+- `sodax-backend/node_modules/.pnpm/better-auth@1.4.18.../node_modules/better-auth/dist/{context/create-context.mjs, utils/get-request-ip.mjs, api/rate-limiter/index.mjs}`
+- `sodax-backend/node_modules/.pnpm/@better-auth+core@1.4.18.../node_modules/@better-auth/core/dist/types/init-options.d.mts` — its own pnpm store entry, **not** nested under the `better-auth@1.4.18` one (re-reading it by the nested path returns not-found)

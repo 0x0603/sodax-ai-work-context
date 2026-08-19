@@ -4,9 +4,9 @@ repo: sodax-backend
 github: 1024
 status: Active
 tags: [auth, bound, email-login, passkey, srp, keystore, jwt, build]
-updated: 2026-08-18
+updated: 2026-08-19
 related_issues: [gh-1069-email-provider-wallet-connectivity, gh-831-bitcoin-radfi-hmac-auth, task-bound-backend-proxy]
-related_knowledge: [bound-auth-mechanism, encrypted-keystore-vs-mpc-email-wallets]
+related_knowledge: [bound-auth-mechanism, bound-client-crypto, bound-email-password-flow, encrypted-keystore-vs-mpc-email-wallets]
 related_decisions: [0001-own-the-email-wallet-auth-plane]
 ---
 
@@ -52,11 +52,15 @@ done. With the build call made, the deliverable becomes a design record plus an 
 - [x] A build-vs-adopt recommendation with an owner. **Answered by Fez: build.**
 - [ ] Post the research + decision as an issue comment (per `docs/TEAM_CONVENTIONS.md`,
       before implementing). **Still zero comments on the issue.**
-- [ ] Confirm the open scope questions with Fez — see `plan.md` §Open questions.
+- [ ] Confirm the open scope questions with Fez — see `plan.md` §Open questions. Partly settled
+      2026-08-18: email+password **and** passkey are both in scope, first-class (`plan.md`
+      §Scope decision). External-wallet auth, 2FA and multi-device linking are still open.
 - [ ] Design record `docs/auth-api.md` in `sodax-backend`.
 - [ ] Cross-repo parent/sub-issue structure (backend + sdks + frontend) before coding.
 
 ## Related
 
 - Decisions: [[0001-own-the-email-wallet-auth-plane]]
-- Knowledge: [[bound-auth-mechanism]], [[encrypted-keystore-vs-mpc-email-wallets]]
+- Knowledge: [[bound-auth-mechanism]] (server), [[bound-client-crypto]] (client, from `radfi-web`),
+  [[bound-email-password-flow]] (simplified walkthrough),
+  [[encrypted-keystore-vs-mpc-email-wallets]]

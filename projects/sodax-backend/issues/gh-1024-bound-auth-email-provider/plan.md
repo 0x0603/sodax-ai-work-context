@@ -2,7 +2,7 @@
 type: plan
 repo: sodax-backend
 github: 1024
-updated: 2026-08-18
+updated: 2026-08-19
 ---
 
 # Plan
@@ -11,9 +11,12 @@ Two phases. Phase 1 (research) is complete; Phase 2 (build) is the current one.
 
 ## Phase 1 — Research · DONE (2026-08-12, deepened 2026-08-18)
 
-Read the three named sources directly rather than inferring. Two of three were reachable — see
-`process.md`. Mapped the result against what `sodax-backend` has today so "replicate it, pick out
-what we need" has a concrete gap list. Output: [[bound-auth-mechanism]] and
+Read the three named sources directly rather than inferring. Two of three were reachable on
+2026-08-12; `boundex/radfi-web` was 404 until later the same week, when access was granted and the
+client half was read from source too — so all three are now covered. See `process.md` for the
+chronology. Mapped the result against what `sodax-backend` has today so "replicate it, pick out
+what we need" has a concrete gap list. Output: [[bound-auth-mechanism]] (server),
+[[bound-client-crypto]] (client), [[bound-email-password-flow]] (walkthrough) and
 [[encrypted-keystore-vs-mpc-email-wallets]].
 
 ## Phase 2 — Build
@@ -30,14 +33,26 @@ Direction set by [[0001-own-the-email-wallet-auth-plane]]: build the whole plane
 | Wiring | `sodax-frontend` | connector into the existing wallet layer |
 
 **Not `apps/api-auth`** — PR #1048's design record rules #1024 out by name: *"api-auth stays
-internal-only, no public route, ever."* Template for a new app: `apps/bridge-api` (newest
-greenfield). Better Auth wiring to copy: `apps/stateful-api/src/main.ts` (`bodyParser: false`,
-helmet first, `toNodeHandler` mounted before `express.json()`) and `src/auth/*`.
+internal-only, no public route, ever."*
+
+Template for a new app: `apps/bridge-api` — the closest **structural** match (Nest 11 +
+`@nestjs/mongoose` 11.0.3 + `@keyv/redis` 4.6.0, the same stack `auth-api` needs). Caveat: it is
+**not on `development`**. Scaffolded 2026-07-15 (`482d1609`, #268), it still lives only on
+`origin/feat/bridge-api` / `origin/feat/bridge-api-bound-auth-usdt-approve` — copy from the branch
+ref, and expect `apps/bridge-api/**` to be missing for anyone working off `development`. It is also
+*not* the newest greenfield app: `apps/sponsoring-api` landed 2026-08-03 (`04fd142d`, #981) and
+`apps/api-auth` 2026-08-17 (`00865c07`, #1048). Skim `api-auth` for the freshest scaffold
+conventions (`src/config/config.class.ts`, biome, CI, `src/shared/configure-app.ts`) but **not** its
+DB layer — that one is Postgres + `drizzle-orm` 0.45.2, not Mongo.
+
+Better Auth wiring to copy: `apps/stateful-api/src/main.ts` (`bodyParser: false`, helmet first,
+`toNodeHandler` mounted before `express.json()`) and `src/auth/*`.
 
 ### Why Better Auth rather than from scratch
 
-`apps/stateful-api` already runs Better Auth `1.4.18`, with `email-otp`, `jwt`, `bearer`,
-`two-factor`, `siwe` plugins on disk and unused. The separate `@better-auth/passkey` package
+`apps/stateful-api` already runs Better Auth `1.4.18`. Many plugins ship in that installed version
+and are unused — `email-otp`, `jwt`, `bearer`, `two-factor` and `siwe` among them. The separate
+`@better-auth/passkey` package
 (1.6+) passes WebAuthn extensions through and returns client extension results:
 
 ```ts
@@ -151,15 +166,69 @@ before verification, wallet-signature failures excluded from lockout, HMAC-hashe
 `select: false` on the blob, positive JWT type assertion. Details and the nine anti-patterns:
 [[bound-auth-mechanism]] §4, §9, §10.
 
+### Scope decision — email+password is in, first-class (2026-08-18)
+
+Reading Bound's shipped client settled what *Bound* does, and it is narrower than these notes
+assumed. It no longer registers with an email at all: both `authService.register(` call sites are
+`authType: PASSKEY` (`AuthModal.tsx:743`) and `authType: WALLET` (`AuthModal.tsx:1274`); the SRP
+branch is constructed nowhere in product code. Password sits behind a *"Legacy login options"*
+disclosure (`messages/en.json:233`), and there is **no client path that can create an SRP account** —
+`ResetPasswordPanel` is a rotation that demands the current password, and `account/page.tsx:70`
+hides the password panel unless `authType === SRP`. In radfi-web an SRP account can only be
+pre-existing.
+
+**That does not bind SODAX.** The call: SODAX ships **both** email+password login **and** passkey
+login. Bound is a blueprint to redo, not a product to track — SODAX needs its own logic, not a copy
+of Bound's and not a follow of wherever Bound went next.
+
+Consequences, stated plainly:
+
+- Partially answers Open question 2 below: email+password is **in**, first-class, not a legacy
+  path kept alive for old accounts.
+- Makes the KDF-salt gap (Open question 13) load-bearing rather than hypothetical. The password
+  path is shipping, so the pre-login salt fetch is required work, not an option.
+- Leaves emailless passkey login as a **separate** UX decision (Open question 14). The passkey
+  path can be emailless — as Bound's primary login is — while the password path stays email-keyed.
+  These are independent choices; do not couple them.
+
 ## Open questions — need Fez
 
 1. **What does "backup" mean?** Client-encrypted blob on our servers (Bound's model, settled), or
    "recover with email alone" (needs a server-held share → we become a custodian)? These are
    different products.
-2. **Scope.** Fez named email login, passkey, setup, backup, encrypted keys. In or out:
-   external-wallet auth, 2FA, multi-device linking?
+2. **Scope.** Fez named email login, passkey, setup, backup, encrypted keys. Partly answered above
+   — email+password and passkey are both in. Still open: external-wallet auth, 2FA, multi-device
+   linking?
 3. **Chains for v1.** All 9 families, or start with EVM + Solana + Sui?
 4. **#1069 / Hana.** Confirm it is out of scope, so shipping this is not mistaken for closing it.
+
+Continuing the shared numbering — items 5-7 live in [[plan-sdk-integration]] and items 10-12 in
+[[plan-auth-api-security]] (8-9 are unused; that file's own heading says "items 10 and 11" but
+lists three) — two questions found on 2026-08-18 and previously only in `process.md`:
+
+13. **Where does the client get the KDF salt?** The KDF split above specifies
+    `authHash = argon2id(password, salt, ctx="auth")` and `kek = argon2id(password, salt, ctx="kek")`
+    but no plan file says how the client obtains `salt` **before** login. It cannot compute
+    `authHash` without it, so a pre-login round trip must exist — e.g.
+    `POST /auth/kdf-params { email } → { salt, argon2Params }` — and that endpoint is an
+    account-enumeration surface. Bound gets the equivalent step right: `srpInit` returns a
+    **deterministic fake salt** (`HMAC(jwtRefreshSecret, "srp-fake-salt:" + email)`,
+    `auth.service.ts:1085-1090`) for unknown emails, so probing is indistinguishable from a real
+    account; and gets it wrong on their OTP endpoint (`400 account.emailTaken`,
+    [[bound-auth-mechanism]] §9). Copy the former, not the latter. With email+password confirmed
+    in scope, this is required work.
+14. **Should passkey login be emailless?** [[plan-sdk-integration]] phase 4 specifies the modal as
+    `closed -> emailEntry -> methodSelect -> {passkeyCeremony | passwordEntry}` — email first,
+    unconditionally, for both paths. That was written believing it matched Bound; it does not.
+    Bound's primary passkey login uses a discoverable credential with no `allowCredentials` and no
+    email (`webauthn.ts:443-459`, `residentKey: "required"` at registration, `webauthn.ts:276`).
+    Prerequisite: does `@better-auth/passkey` support `residentKey: 'required'` plus an
+    identifier-less sign-in? **Still unverified — the package is not installed in either repo.**
+    Fold into the existing spike. Two costs to weigh: discoverable credentials consume slots on
+    hardware authenticators (free on iCloud Keychain and Google Password Manager, which are the
+    only two AAGUIDs Bound whitelists anyway — `setting.constant.ts:197-206`), and an account with
+    no email has no channel for security notifications — Bound hits this too, hard-stopping device
+    linking with *"Add an email first"* (`ApproveLinkModal.tsx:63-67`).
 
 ## Verification
 
@@ -175,6 +244,10 @@ before verification, wallet-signature failures excluded from lockout, HMAC-hashe
   chain plus one non-EVM.
 - Gates: `pnpm lint` / `build` / `test` in CI; pre-commit runs `checkTs` → `test` → lint-staged.
   Note `checkTs` is **not** in CI — type errors only surface via `nest build`.
+- **Durability gates** — a separate bar from the above, because these fail differently: a restore
+  drill that asserts `wauth_keystore` survives a real archive round-trip, a runbook-coverage test, a
+  KDF-parameter migration test, an AAD tamper test, an append-only test, and a PRF round-trip gate.
+  Specified in [[plan-auth-api-durability]] §9.
 
 ## Risks
 
@@ -185,6 +258,14 @@ before verification, wallet-signature failures excluded from lockout, HMAC-hashe
    follow-ups.
 4. **New class of attack surface for this org** — nothing in `sodax-backend` is public-login-facing
    today. Separate box; treat the threat model in `docs/auth-api.md` as a real deliverable.
+5. **We become the sole custodian of the only copy of the ciphertext**, and the repo's current
+   backup posture does not cover it. This is a *durability* risk, not a security one, and it is
+   infrastructure that must exist **before the first real user**, not a follow-up. Headline: the one
+   backup pipeline covers only the shared stateful DB, so where `wauth_*` lands silently decides
+   whether user funds are recoverable at all; the backup watcher checks S3 object metadata and never
+   opens the archive; `rs0` is a single-member set, not replication; and `mongorestore --drop` runs
+   in every restore mode. Full analysis and the resulting requirements:
+   **[[plan-auth-api-durability]]**.
 
 
 ## Phase 3 — SDK integration (this session, 2026-08-18)
@@ -201,8 +282,12 @@ is now just the index:
   consumes `@sodax/sdk`/`@sodax/types` as plain npm deps across 7 apps today).
   Two corrections found by direct source-reading this session, load-bearing
   for the whole design: `SodaxWalletConfig.<CHAIN>.connectors` **replaces**,
-  not merges with, chain defaults; and EVM/Solana/Sui bypass
-  `chainRegistry`/`IXConnector` entirely, so v1 scope is the other 6 chains.
+  not merges with, chain defaults; and EVM/Solana/Sui bypass the
+  connector/`IXConnector` mechanism — they still have `chainRegistry` entries
+  (`chainRegistry.ts:168-185`), but each is `providerManaged: true` with
+  `defaultConnectors: () => []`, and connector wiring is gated behind
+  `if (!factory.providerManaged)` (`chainRegistry.ts:412`), their state being
+  written by Hydrators instead. So v1 scope is the other 6 chains.
   Also carries the Bound-team Slack input (AAGUID whitelist, post-registration
   local PRF re-verification) and how each is implemented.
 - **[[plan-engineering-standards]]** — S1–S9, the "senior-architect / clean
@@ -213,11 +298,29 @@ is now just the index:
   account enumeration, WebAuthn replay hygiene, and the blind-custodian
   model's actual data-leak surface, for the new `sodax-backend/apps/auth-api`.
   Answers "not hackable, no data leaks" concretely — what to reuse from
-  sibling apps (`bridge-api`'s `HaproxyThrottlerGuard`, `stateful-api`'s CORS
+  sibling apps (`apps/swaps-api/src/shared/guards/haproxy-throttler.guard.ts`
+  — on `development`, and byte-identical to `bridge-api`'s copy, which is not on
+  `development`. Note `apps/sponsoring-api`'s copy is *not* identical but a
+  refactored variant: it delegates to the shared
+  `resolveClientIp(req)` and falls back to `'127.0.0.1'`, so unattributable traffic
+  shares one bucket, where `bridge-api`/`swaps-api` read `req.headers['x-real-ip']`
+  directly with a `req.ip` fallback. Plus `stateful-api`'s CORS
   pattern) vs. what's genuinely new work (account-keyed lockout, security-event
   logging — no existing precedent for either). Rate-limit/IP-header facts in
   this file are verified against `better-auth@1.4.18`'s actual installed
   source, not the plugin docs — see the file for exact quoted code.
+- **[[plan-auth-api-durability]]** — the other half of `plan-auth-api-security`:
+  not *"can it be stolen?"* but *"can it be lost?"*. Added 2026-08-19 from a
+  source-verified threat-model pass. Every other collection in this repo is
+  derivable on loss; a keystore row is the only copy of an unrecoverable secret,
+  so the failure mode is permanent user fund loss with no support path. Covers
+  the backup gap that decides where `wauth_*` may live, the watcher that cannot
+  see inside an archive, `rs0` being a single-member set rather than
+  replication, `--drop` running in every restore mode, why the blob store must
+  be append-only, the two envelope bit-fragility classes (no AAD + IV-as-HKDF-
+  salt; `argon2Params` written but never read), the product decisions that are
+  really durability decisions, and the PRF create-vs-assertion mismatch that can
+  birth an unopenable account.
 - **[[plan-auth-api-scaffold]]** — exact, copy-pasteable templates for
   `apps/auth-api`: the full `stateful-api/src/auth/{auth.config.ts,
   auth.constants.ts}` Better Auth wiring (verbatim, to mirror with a `wauth_*`
@@ -226,8 +329,9 @@ is now just the index:
   snippet copied verbatim from a currently-running sibling app this session,
   not paraphrased.
 
-Open questions from this phase (11 items — npm package names, whether one
-account can hold both passkey and password, exact publish topo order, etc.)
-live inside [[plan-sdk-integration]] and [[plan-auth-api-security]] next to
+Open questions from this phase (6 items — 5-7 and 10-12 in the shared numbering;
+npm package names, whether one account can hold both passkey and password,
+wire-type sync, bot-check, CSRF, and 12 already settled) live inside
+[[plan-sdk-integration]] and [[plan-auth-api-security]] next to
 the finding each one came from, rather than duplicated into a single list
 here.

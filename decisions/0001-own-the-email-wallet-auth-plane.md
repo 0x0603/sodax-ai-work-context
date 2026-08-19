@@ -34,11 +34,15 @@ On 2026-08-18 Fez made that call directly, and it resolves the ambiguity the tic
 Two things this clarifies that the issue body did not:
 
 1. **"Not integrate their email login"** distinguishes this from the *existing* Bound
-   relationship. `apps/bridge-api` and `apps/swaps-api` already sign outbound requests with
-   `BOUND_API_SECRET_KEY` HMAC, and Bitcoin intents already carry a per-user `bound.accessToken`
-   the user mints against Bound. That integration stays; auth does **not** go the same way.
-2. **Repo access to `lydialabs/radfi-be` was arranged deliberately**, as reference material.
-   `boundex/radfi-web` was not obtained and remains 404.
+   relationship. `apps/swaps-api` already signs outbound requests with `BOUND_API_SECRET_KEY` HMAC
+   on `development` (`src/shared/providers/sodax.provider.ts`); `apps/bridge-api` does the same but
+   only on the unmerged `origin/feat/bridge-api-bound-auth-usdt-approve`. Bitcoin intents already
+   carry a per-user `bound.accessToken` the user mints against Bound. That integration stays; auth
+   does **not** go the same way.
+2. **Repo access was arranged deliberately**, as reference material. `lydialabs/radfi-be` was
+   shared first; `boundex/radfi-web` was 404 until 2026-08-18, when access was granted the same
+   day. Both are now readable and cloned locally ([[bound-exchange-repos]]) — `radfi-be` at
+   `c1c1e06` (branch `dev`), `radfi-web` at `15ac098` (branch `main`).
 
 ## Decision
 
@@ -67,9 +71,13 @@ servers.**
 
 **Harder**
 
-- We take on a **public, attack-facing login surface**. Nothing in `sodax-backend` is currently
-  exposed this way; today's auth is pre-hashed bearer tokens in env, IP allowlists and partner
-  API keys. This is an operational commitment, not just code.
+- We take on a **public, attack-facing login surface**. No *end-user credential* login surface
+  exists in `sodax-backend` today: service auth is pre-hashed bearer tokens in env, IP allowlists
+  and partner API keys. The one precedent is the partner portal — `apps/stateful-api/src/main.ts`
+  mounts Better Auth's full HTTP handler on raw Express (`main.ts:88-92`), serving Google sign-in,
+  sessions and org invitations. That is already a public, unauthenticated-entry login endpoint —
+  but Google-only (`emailAndPassword: { enabled: false }`) and org-scoped, not a credential store
+  we defend. This is an operational commitment, not just code.
 - **Irrecoverable wallets are inherent.** Lose every passkey and forget the password and the blob
   is a brick — we cannot help, by design. Mandatory seed-phrase backup at signup is load-bearing
   product work, and the support policy must exist before launch.
