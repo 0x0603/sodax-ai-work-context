@@ -164,6 +164,25 @@ sodax-backend/apps/
                       client — never wallet-auth-core/react.)
 ```
 
+> **⚠ Superseded in shape, not in purpose — see
+> [[0002-key-custody-boundary-for-third-party-dapps]] (2026-08-19).** The split below is cut by
+> **dependency weight** (keeping nine chain SDKs out of the backend's install). That goal survives,
+> but the layout above assumes the client crypto executes **inside the integrating dapp's own
+> bundle** — an assumption never written down and, once examined, not defensible for a library
+> shipped to third parties: the dapp then holds the user's mnemonic, identically across every
+> integrator, unrotatable, across all nine chain families. ADR 0002 proposes re-cutting the same
+> three packages by **trust boundary** instead:
+>
+> | Package | Contents | Runs where |
+> | --- | --- | --- |
+> | `keystore-crypto` | mnemonic, envelope, KDF, the 9 derivations | **deployed only to the SODAX signer origin** — backend still installs it for envelope validation and test fixtures |
+> | `wallet-auth-client` (replaces `wallet-auth-core`) | postMessage/popup transport + EIP-1193-shaped adapter. **Zero crypto, zero key material** | the dapp's bundle |
+> | `wallet-auth-react` | hooks over that transport | the dapp's bundle |
+>
+> Everything below about chain dispatch, the 9-chain provider contract, and demo wiring stays
+> valid — it just moves behind the transport. Read the rest of this file with that boundary in
+> mind, and do not create the packages until 0002 is decided.
+
 **Why this 3-way split, not fewer packages**: the explicit requirement this
 session was that `sodax-backend` (a separate repo) must be able to
 `pnpm add` the exact same crypto logic used by the browser client — confirmed

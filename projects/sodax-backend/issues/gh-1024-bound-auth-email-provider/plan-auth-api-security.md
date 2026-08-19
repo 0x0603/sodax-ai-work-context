@@ -338,5 +338,17 @@ against an unconfirmed API surface.
     exact-string allowlist; same-origin proxy → non-credentialed), per the CORS
     bullet in the Don't-hack-me checklist. What **does** remain open is the
     topology itself — whether the SDK login modal is served cross-origin or
-    proxied same-origin — which is a product/deployment decision, not a source
-    question, and it is the input this CORS branch is waiting on.
+    proxied same-origin — and it is the input this CORS branch is waiting on.
+
+    **Corrected 2026-08-19: this is not "a product/deployment decision, not a
+    source question", which is how this bullet previously filed it.** It is the
+    **key-custody boundary**, and it is the most consequential decision in the
+    project. Because the keystore KEK is HKDF over the WebAuthn PRF output, and
+    passkeys are RP-ID scoped and browser-enforced, the topology and the RP ID
+    are the same decision: `rp.id = sodax.com` means the unlock ceremony can only
+    ever execute in a `*.sodax.com` context (a wallet-controlled signer origin),
+    while an integrator-domain RP ID means per-dapp wallets. There is no third
+    setting, and `plan.md` already lists the RP ID as irreversible — changing it
+    invalidates every credential. Decide both together, before the first passkey
+    exists. Full analysis and the proposed decision:
+    [[0002-key-custody-boundary-for-third-party-dapps]].

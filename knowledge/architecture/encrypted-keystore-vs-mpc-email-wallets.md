@@ -47,6 +47,34 @@ The cost is that it is a real auth plane to build and operate — email transpor
 issuance and rotation, WebAuthn, SRP, a nonce store, lockout — plus custody of an encrypted
 blob and a public login surface to defend.
 
+### And the cost this note originally failed to subtract (added 2026-08-19)
+
+The paragraph above and the MPC section above it were, until now, in direct contradiction. The MPC
+section calls `clientId` scoping *"a security property, not a limitation"* — the thing that stops
+any app that can authenticate you from deriving the key you use somewhere else. This section then
+recorded the **absence** of that same scoping purely as a win, and priced the cost as operational
+only. The security property asserted twenty lines earlier was never subtracted.
+
+Subtracting it: **if the keystore client runs inside a third-party app's own bundle, that app holds
+the user's mnemonic — the same mnemonic, at the same addresses, in every integrating app.** One
+compromised or dishonest integrator then reaches every chain the mnemonic derives and every asset
+the user holds anywhere, permanently, because a seed cannot be rotated.
+
+That is not an argument against the keystore model. It is an argument that the model is only safe
+under one of two conditions, which is exactly the trade MPC makes with `clientId`:
+
+- the integrator **cannot reach** the key (it executes on a wallet-controlled origin, and the app
+  gets a signing channel — Privy, Magic, Turnkey, Coinbase Smart Wallet), **or**
+- the key **differs per integrator** (the `clientId` scoping described above).
+
+Bound satisfies the first condition trivially by being a single first-party app. A library shipped
+into third-party dapps satisfies neither by default. See
+[[0002-key-custody-boundary-for-third-party-dapps]] for the analysis and the proposed decision.
+
+The portability claim survives all of this — one address, importable anywhere — because it is a
+property of the *mnemonic*, not of where the crypto executes. What does not survive is the
+assumption that the crypto may execute anywhere.
+
 ## Why this matters here
 
 - **sodax-frontend #1069** wants email login where a Hana user sees their balances. It is

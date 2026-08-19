@@ -230,6 +230,15 @@ lists three) — two questions found on 2026-08-18 and previously only in `proce
     no email has no channel for security notifications — Bound hits this too, hard-stopping device
     linking with *"Add an email first"* (`ApproveLinkModal.tsx:63-67`).
 
+15. **Where does the key material execute?** Raised 2026-08-19, and it blocks the SDK packages
+    entirely. The user confirmed SODAX Auth **does** ship to third-party dapps, because the SDK is a
+    library dapps consume — which makes the current in-bundle model untenable (risk 5). Proposed
+    answer in [[0002-key-custody-boundary-for-third-party-dapps]]: a cross-origin hosted signer on a
+    SODAX origin, sequenced via first-party-only for v1. Needs Fez, because it adds a standing
+    operational commitment (a static origin at wallet-grade uptime) that is the real price of
+    third-party distribution. **Decide `rp.id` in the same conversation** — it is the same decision,
+    it is free to make correctly today, and it is unchangeable per credential afterwards.
+
 ## Verification
 
 - Spike gate: print `clientExtensionResults.prf.results.first` on Chrome + Safari + iOS.
@@ -258,7 +267,19 @@ lists three) — two questions found on 2026-08-18 and previously only in `proce
    follow-ups.
 4. **New class of attack surface for this org** — nothing in `sodax-backend` is public-login-facing
    today. Separate box; treat the threat model in `docs/auth-api.md` as a real deliverable.
-5. **We become the sole custodian of the only copy of the ciphertext**, and the repo's current
+5. **The dapp holds the key, and the same key, in every integrating dapp.** The plan assumed —
+   never stating it — that the client crypto ships as npm packages third-party dapps bundle. Verified
+   2026-08-19: there is no trust boundary in that model. SDK and dapp compile into one bundle, one
+   origin, one JS realm; `useWalletProvider` hands the provider object to dapp code by design; and
+   the only access control is TypeScript `private`, erased at runtime (ICON and Sui are each one
+   property access from the raw secret). So one XSS or one compromised npm dependency in **any**
+   integrator's frontend yields the mnemonic — identical across every integrator, reaching all nine
+   chain families including ones the user never connected there, permanently, since a seed cannot be
+   rotated. Bound does not face this because it is a single first-party app. **This is a blocking
+   architectural decision, not a hardening task**, and it is welded to the RP ID (risk 6 below and
+   `plan.md`'s irreversible list). Analysis and proposed decision:
+   **[[0002-key-custody-boundary-for-third-party-dapps]]**.
+6. **We become the sole custodian of the only copy of the ciphertext**, and the repo's current
    backup posture does not cover it. This is a *durability* risk, not a security one, and it is
    infrastructure that must exist **before the first real user**, not a follow-up. Headline: the one
    backup pipeline covers only the shared stateful DB, so where `wauth_*` lands silently decides
