@@ -5,8 +5,18 @@ The map of this repo. **Read this first**, then drill into the specific area.
 ## Start here
 
 1. `projects/<repo>/README.md` for the repo you're working on.
-2. If there's a GitHub issue: `projects/<repo>/issues/gh-<number>-*/issue.md`.
+2. If there's a GitHub issue: `projects/<repo>/issues/gh-<number>-*/**brief.md**`
+   — state, blockers, next action, and a map of which file answers which
+   question. **Read the brief, then open one file from its map.** Only fall back
+   to `issue.md` if a folder predates the brief convention.
 3. Search by frontmatter (recipes below) instead of guessing paths.
+
+## Load only what you need
+
+These files are written to be read selectively; several dossiers exceed 70k
+tokens if read whole. See "Reading rules" in `AGENTS.md` — the short version:
+brief first, `rg "^## "` before opening anything over 10 KB, `Read` with
+`offset`/`limit`, and never read a `process/` folder end to end.
 
 ## Main areas
 

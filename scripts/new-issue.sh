@@ -59,8 +59,8 @@ dest="$projects_dir/issues/$folder"
 today="$(date +%Y-%m-%d)"
 mkdir -p "$dest"
 
-# All four files carry frontmatter; substitute the metadata into each.
-for f in issue plan process outcome; do
+# All five files carry frontmatter; substitute the metadata into each.
+for f in brief issue plan process outcome; do
   sed -e "s|__HEADING__|$heading|g" \
       -e "s|__SOURCE__|$source|g" \
       -e "s|__REPO__|$repo|g" \
