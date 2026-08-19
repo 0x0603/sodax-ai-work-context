@@ -230,6 +230,36 @@ lists three) — two questions found on 2026-08-18 and previously only in `proce
     no email has no channel for security notifications — Bound hits this too, hard-stopping device
     linking with *"Add an email first"* (`ApproveLinkModal.tsx:63-67`).
 
+    **Root cause found 2026-08-19, deeper than the library-verification gap above.** Bound's
+    emailless login is not just "discoverable credential, no `allowCredentials`" — it works
+    *because* the PRF salt passed into `extensions.prf.eval.first` is **one hardcoded global
+    constant**, identical for every user and every credential (`PRF_SALT = "bound-wallet-prf-v1"`,
+    `keystore.ts:67`, confirmed live in both `registerPasskey` at `webauthn.ts:283` and
+    `getDiscoverablePasskeyAssertion` at `webauthn.ts:456`). The client can supply that salt to
+    `navigator.credentials.get()` **before** knowing which credential the browser's account picker
+    will resolve, because the salt doesn't depend on the credential at all.
+
+    But a global PRF salt is exactly the anti-pattern item 4 above (and
+    [[bound-client-crypto]] §9 "Do not take" #8) says to fix — SODAX's plan calls for a
+    **per-user, per-credential** salt instead. That salt has to come from *somewhere* before the
+    `get()` call, and with a per-credential salt there is no way to look it up without already
+    knowing which credential/account is being unlocked — which is exactly what "emailless" means
+    giving up. So items 4 and 14 are in direct tension, not independent decisions:
+
+    - Keep per-credential salt (safer) → login needs an identifier first (email, as currently
+      planned) to look up the right salt before calling `get()`.
+    - Copy Bound's emailless mechanism as-is → requires reverting to a global/known salt, which is
+      the exact anti-pattern this project set out not to repeat.
+    - A third option, not yet designed: a two-step ceremony (`get()` once with no PRF eval to learn
+      which credential the browser picked, fetch that credential's salt, `get()` again with the
+      correct `eval.first`) — genuinely emailless and keeps per-credential salt, at the cost of two
+      user-facing prompts and the same challenge-TTL shape that made Bound revert their own
+      two-prompt re-verification attempt (item B in [[plan-sdk-integration]]).
+
+    Needs Fez: this is a security-vs-UX tradeoff, not an implementation detail — decide alongside
+    the RP ID / hosted-signer call in [[0002-key-custody-boundary-for-third-party-dapps]], since
+    both gate the same spike.
+
 15. **Where does the key material execute?** Raised 2026-08-19, and it blocks the SDK packages
     entirely. The user confirmed SODAX Auth **does** ship to third-party dapps, because the SDK is a
     library dapps consume — which makes the current in-bundle model untenable (risk 5). Proposed

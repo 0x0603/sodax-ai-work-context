@@ -393,6 +393,20 @@ encrypted at rest** under `sha256('srp-session-encryption:' + JWT_SECRET)`.
 The `M2` server proof gives mutual authentication — the client verifies the server actually held
 the verifier. A naive "POST the password hash" login has no equivalent.
 
+### Attaching a password post-login — the only way an SRP credential is created
+
+There is no SRP registration endpoint call in the shipped client (§1). The one path that creates or
+rotates `srpSalt`/`srpVerifier` is post-login account management, gated by JWT:
+
+```
+POST /account/srp/change-password/init    (account.controller.ts:66-67, JWT)
+POST /account/srp/change-password/verify  (account.controller.ts:81-83, JWT)
+```
+
+Client side: `createPasswordKeystore` (`radfi-web src/auth/password.ts:23`), reachable only from
+`ResetPasswordPanel.tsx:156`. Server side: `AccountService.srpChangePasswordVerify`
+(`account.service.ts:452-525`) — the atomic `$set` on the keystore document described in §3.
+
 ### Multi-device — ECDH relay, server stays blind
 
 ```
