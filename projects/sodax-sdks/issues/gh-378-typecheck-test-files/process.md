@@ -59,6 +59,29 @@ consts consumed inside other multi-line statements need declared-name matching a
 ENCLOSING STATEMENT text of the error line, not just the error line; (3) ignore TS6133/TS6196
 during attribution (unused imports are consequences of removal, fixed at the end).
 
+### Session 1c — enforcement + multi-agent audit (ultracode)
+
+- User chose to ship enforcement in the PR: commit 506bc05ed adds
+  `packages/sdk/scripts/check-tests-typechecked.mjs` (tsc --showConfig must list every
+  src/**/*.test.ts; wired as the second half of `checkTs`, so CI+husky inherit it with zero
+  workflow changes — negative-tested: re-adding the exclude fails loudly with the 76-file list)
+  plus a `packages/sdk/AGENTS.md` §Build And Tests paragraph stating both rules (tests are
+  typechecked; a stub cast is allowed only while removing it breaks the typecheck).
+  Rejected: a cast-count ratchet in CI (noisy, gameable; the strip-sweep stays a periodic tool).
+- 7-agent audit workflow (6 dimensions + adversarial verify) over the PR: **0 blockers,
+  0 should-fix**. Key proofs: verifyTxHash consumers branch only on .ok (BridgeService.ts:568,
+  MigrationService.ts:555, StakingService.ts:418, MoneyMarketService.ts:548, SwapService.ts:788);
+  SodaxError fixture swaps hit guard-free pass-throughs (guards only in catch blocks); every PR-body
+  number re-derived exactly; sweep hunks all classify into the 4 expected classes. Two nits, both
+  cosmetic, parked for review-feedback time: SwapService.test.ts:2534 baseQuoteRequest cast lacks
+  its why-comment (13/14 commented); MigrationService.test.ts:310 `?.address` expected value could
+  co-degrade — harden with invariant like BridgeService.test.ts does. The completeness-critic agent
+  died on a session limit; its charter items were covered elsewhere (guard now pins vitest⊆tsc-program;
+  0 .test.tsx/.spec; status fixtures verified in-program by the issue-compliance agent).
+- Mid-audit scare resolved: working tree "reverts" were the user checking out their own new branch
+  `fix/near-default-rpc-url` (NEAR RPC swap in types+wallet-sdk-react) — unrelated WIP, untouched.
+  PR branch intact at 506bc05ed, CI green on it (guard ran in CI's checkTs).
+
 ### State at session end
 
 - `packages/sdk` checkTs: **0 errors** with all 76 test files included.
