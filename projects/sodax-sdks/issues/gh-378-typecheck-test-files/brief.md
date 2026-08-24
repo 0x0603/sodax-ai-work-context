@@ -3,7 +3,7 @@ type: brief
 repo: sodax-sdks
 github: 378
 status: Active
-next: await review on PR #395; on merge fill outcome.md and set status Done
+next: await review on PR #395 (now whole-repo scope); on merge fill outcome.md and set status Done
 updated: 2026-08-24
 ---
 
@@ -14,11 +14,11 @@ then opens exactly one row from the map below.**
 
 ## State in five lines
 
-- **PR open: https://github.com/icon-project/sodax-sdks/pull/395** (`no-changeset` label) — commit adc100c97 on `test/sdk-typecheck-tests`, 29 files, +169/−110; pre-commit gate (checkTs+build+test) passed.
-- `packages/sdk/tsconfig.json` no longer excludes `**/*.test.ts`; sdk `checkTs` = **0 errors** with all 76 test files typechecked (was 138 errors in 29 files).
-- Unit suite green: 71 files / 2297 tests pass. Root `pnpm checkTs` 13/13, `pnpm build:packages` 7/7. Biome clean on changed files (2 pre-existing warnings on main).
-- No production `src` changes; 0 new `as never`/`as any`/`@ts-*`; 14 documented deliberate `as unknown as` casts.
-- Found (NOT fixed, out of scope): `GetAddressType` in `@sodax/types` declares Hex/Address for Stellar/Solana/Near whose real addresses are strkey/base58/named — flag in PR body.
+- **PR open: https://github.com/icon-project/sodax-sdks/pull/395**, retitled `test: typecheck .test files in every package` — 5 commits (head 2c40b3043), `no-changeset` label, CI green through commit 4; commit 5 CI pending at last check.
+- ALL five packages now typecheck tests: sdk (138 errors fixed + 153-cast sweep) and types/swaps-api/dapp-kit/wallet-sdk-react (74 errors fixed; types via `tsconfig.check.json` since its tsc emits dist).
+- Shared guard `scripts/check-tests-typechecked.mjs` (repo root) wired into all five `checkTs` scripts: test-in-program assert + `as unknown as` why-comment ratchet with per-package shrink-only baselines.
+- 7-agent audit of the sdk half: 0 blockers/should-fix. Zero new escape hatches anywhere in the diff.
+- Follow-ups flagged in the PR body (not tracker issues): GetAddressType wart, swaps-api schema factory generics, wallet-sdk-react chainRegistry keying.
 
 ## Next action
 
