@@ -30,6 +30,35 @@ updated: 2026-08-24
 
 - **Accidental `git stash`** during a verification one-liner (`git stash -q` in a compound command) stashed the whole working tree mid `pnpm test` run; popped immediately, all 29 files intact, the two pre-existing parked stashes untouched. Lesson: never put `git stash` in a "probe" command; the first `pnpm test` pass was discarded and re-run.
 
+### Follow-up sizing (measured 2026-08-24, after PR #395 opened)
+
+- Sibling packages, dry-run tsc with tests included (same scratchpad-extends method):
+  dapp-kit **24** errors / 22 test files · swaps-api **28** / 6 · wallet-sdk-react **20** / 15 · types **2** / 8.
+  ≈74 errors total — about half the sdk effort. Do as a separate PR after #395 review validates the fix patterns.
+- `GetAddressType` wart blast radius: **62 non-test refs across 12 files** (all sdk feature services + types).
+  Public-API change needing team buy-in; must land AFTER #395 (it removes the documented casts #395 adds).
+
+### Session 1b — cast sweep (user expanded scope: "PR must complete ALL issue requirements")
+
+User directed that the issue's cast clause be fully honored in PR #395. Method — compiler as
+referee, AST-driven (`scratchpad/cast-sweep.mjs`, typescript API): strip every `as never` /
+`as any` / `as unknown as T` in `*.test.ts` (span → same-length spaces so tsc line numbers stay
+stable), run `tsc`, restore only sites implicated by errors (node range, enclosing-statement
+range, declared-fixture-name appearing in the erroring statement), iterate to fixpoint; files
+where attribution stalls get a conservative blanket-restore. Finalize rebuilds from git HEAD
+with dead casts truly deleted.
+
+Results: 532 sites → **153 deleted** (127 never, 26 unknown2), **377 kept** (256/116/5 —
+compiler-proven load-bearing), 2 `(event as any).detail` → `as CustomEvent`; 2 imports that
+became unused dropped; biome formatted the 17 touched files. All 36 `@ts-expect-error` are
+active (self-proving). tsc 0 errors, 2297/2297 tests pass (identical count — casts are erased).
+
+Attribution gotchas hit: (1) tsc reports errors at the START of a multi-line expression, so the
+site's line range must be the whole AsExpression node, not the cast-suffix span; (2) fixture
+consts consumed inside other multi-line statements need declared-name matching against the
+ENCLOSING STATEMENT text of the error line, not just the error line; (3) ignore TS6133/TS6196
+during attribution (unused imports are consequences of removal, fixed at the end).
+
 ### State at session end
 
 - `packages/sdk` checkTs: **0 errors** with all 76 test files included.

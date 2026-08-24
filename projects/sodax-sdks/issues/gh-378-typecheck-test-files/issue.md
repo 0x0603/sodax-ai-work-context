@@ -23,7 +23,7 @@ Assignee: 0x0603 · State: OPEN · No labels, no comments (as of 2026-08-24).
 > The SDK tsconfig excludes **/*.test.ts; checkTs uses that config, ordinary Vitest transpilation does not typecheck, and CI has no separate test-source typecheck pass. The same gap affects the new typed status fixtures.
 > Goal: enable typechecked tests (fix any open typecheck related issue in tests (note that "as" casts to "never" and similar should only be allowed if purposely made, otherwise fix)
 
-## Scope reading (confirmed with user in-session)
+## Scope reading (evolved in-session)
 
 - Mandatory: remove the test exclude so `checkTs`/CI/pre-commit typecheck all `.test.ts` files, and fix the errors that surface.
-- The "as never" parenthetical is a constraint on HOW to fix (no cast-to-silence; casts only when deliberate) — not a mandate to audit the ~395 pre-existing deliberate stub casts. Those stay unless found masking real drift in a file being touched.
+- The "as never" parenthetical: initially read as a constraint on HOW to fix. The user then directed ("PR must complete ALL issue requirements") that the pre-existing casts be reviewed too — done as a compiler-refereed sweep (see `process.md` §Session 1b): dead casts deleted, remaining ones proven load-bearing, i.e. "purposely made" is now mechanically enforced.
