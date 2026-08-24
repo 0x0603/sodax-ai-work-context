@@ -96,6 +96,26 @@ during attribution (unused imports are consequences of removal, fixed at the end
 - Validated: exit 1 on re-excluded tests, exit 1 on over-baseline, exit 0 clean; check:ai-dev-files
   passes; hook (checkTs+build+test) passed twice (original + amend).
 
+### Session 1e — sibling packages folded into PR #395 (user: "PR gốc đi")
+
+- Commit 2c40b3043: dropped the test excludes in dapp-kit/swaps-api/wallet-sdk-react and fixed the
+  74 surfaced errors (24/28/20/2) — 3 fixer agents in parallel (workflow) + types by hand. Notable:
+  ChainKeys.SONIC → SONIC_MAINNET drift caught; mocks typed at source (vi.fn<typeof fetch>); zero
+  new escape hatches; 3 documented casts.
+- **types is the special case**: its `tsc` emits dist (checkTs doubles as the dependency build for
+  turbo ^checkTs), so the build tsconfig keeps excluding tests and a new `tsconfig.check.json`
+  (tests + noEmit) carries the check; verified 0 test files land in dist.
+- Guard generalized to root `scripts/check-tests-typechecked.mjs` (--project flag, .test.tsx) wired
+  into all five packages; sdk-local copy folded in (git shows R063 rename); per-package shrink-only
+  cast-comment baselines, all grandfathered casts verified pre-existing on main.
+- PR #395 retitled `test: typecheck .test files in every package`; body rewritten; two new
+  source-improvement notes recorded (swaps-api schema factory generics, wallet-sdk-react
+  chainRegistry Record<ChainType,…>).
+- Gates: per-package checkTs chains PASS ×5, tests 539+89+182+333 (+2297 sdk), root checkTs 13/13,
+  biome clean on changed files, pre-commit hook green.
+- Oddity noted: the scratch branch ref pointed at ff345adac (an old main commit) at deletion —
+  provably an ancestor of main with 0 unique commits, so nothing was lost; cause unknown.
+
 ### State at session end
 
 - `packages/sdk` checkTs: **0 errors** with all 76 test files included.
