@@ -82,6 +82,20 @@ during attribution (unused imports are consequences of removal, fixed at the end
   `fix/near-default-rpc-url` (NEAR RPC swap in types+wallet-sdk-react) — unrelated WIP, untouched.
   PR branch intact at 506bc05ed, CI green on it (guard ran in CI's checkTs).
 
+### Session 1d — cast-comment ratchet (user: improvement #1 into the PR)
+
+- Commit c95c0dccd (amended once to consolidate per user's "gom lại"): the guard script
+  `check-tests-typechecked.mjs` grew a second check — every `as unknown as` in a test needs a
+  why-comment on/within 2 lines above; 87 pre-existing undocumented casts grandfathered per file
+  in `test-cast-comment-baseline.json` (shrink-only, `--update-baseline` regenerates). Chain stays
+  two-leg: `tsc --noEmit && node ./scripts/check-tests-typechecked.mjs`.
+- Design call: strict rule would have demanded 89 guess-written comments (rejected — wrong comments
+  are worse than none); ratchet makes new casts fail loudly while legacy documents opportunistically.
+- 3 PR-added casts that leaned on distant context got in-place comments (SwapService:2534 — closing
+  the audit nit — SolanaSpokeService getDeposit #2, BridgeService negative-test closing line).
+- Validated: exit 1 on re-excluded tests, exit 1 on over-baseline, exit 0 clean; check:ai-dev-files
+  passes; hook (checkTs+build+test) passed twice (original + amend).
+
 ### State at session end
 
 - `packages/sdk` checkTs: **0 errors** with all 76 test files included.
