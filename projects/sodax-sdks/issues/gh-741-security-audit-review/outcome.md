@@ -173,6 +173,76 @@ Medium+**; the Low tier is internally consistent and if anything slightly
 conservative. Swallowed-error-to-benign-value patterns (0n balances, fail-open
 verify) are correctly Low because no signing/fund path gates on those values.
 
+## Fix recommendation (fix or not)
+
+Legend: 🟢 fix now (cheap + verified-real) · 🔵 should fix (hardening, not urgent) ·
+🟠 split into its own issue (architecture decision / cross-repo) · ⚪ optional
+(defense-in-depth / usage-dependent) · ⚫ no action (already fixed / refuted /
+doc-only).
+
+### 🟢 Fix now — one ~half-week PR
+
+| ID | Fix | Effort |
+| --- | --- | --- |
+| secrets:H-1 | drop/raise axios override → 1.19.0 | 0.25d |
+| secrets:H-2 | ranged ws overrides (8.x→8.21, 7.5.10→7.5.13) | 0.5d |
+| secrets:M-3 | move NODE_AUTH_TOKEN job→publish step | <1h |
+| secrets:M-4 | pnpm patch bigint-buffer (no upstream fix) | 0.5d |
+| secrets:M-6 | pin protobufjs "7.6.5" | <2h |
+| secrets:M-5 | bump next ^16.2.11 | <2h |
+| bridge-migration:M-1 | fix bnUSD hub spender + approve path + 2 tests | 0.5d |
+| staking:M-1 | relayData.address → fromHubWallet (1 line) | <2h |
+| swap:M-2 | CSPRNG for randomUint256 (Low, but cheap + repo rule) | <2h |
+| wallet-react-providers:M-1 | port ICONex hardening into wallet-sdk-react | 0.5d |
+
+### 🔵 Should fix — hardening
+
+| ID | Fix | Effort |
+| --- | --- | --- |
+| secrets:H-3 | make secret scan blocking + husky gitleaks | 1-2d |
+| secrets:M-1 | SHA-pin 58 action refs + environment gate on 9 publish jobs | 0.5d |
+| secrets:M-2 | add minimumReleaseAge | 0.5d |
+| intent-fund-flow:M-1 | bind expectedChainId for EVM (fund-misdirection footgun) | 1-2d |
+| intent-fund-flow:M-2 | add Stacks post-conditions | 1-2d |
+| crosschain:M-4 | stop lowercasing src_address (+ verify relay compat) | <2h |
+| bridge-migration:M-2 | encodeAddress validators for BTC/NEAR/INJ | 1d |
+
+### 🟠 Split into its own issue (bigger / cross-repo)
+
+| ID | Note | Effort |
+| --- | --- | --- |
+| swap:M-1 | biggest finding. Min: tighten schemas 0.5d. Full decode-and-verify is an architecture decision | 4-6d (0.5d min) |
+| dapp-kit:M-1 | move tokens out of localStorage SDK-side; true logout-revoke needs Bound server | 0.5-1d + server |
+| wallet-sdk-core:M-1 | domain-separate login message fast; replay-proofing needs server nonce | 1h + server |
+| wallet-react-store:M-1 | re-verify address on rehydrate (BTC/NEAR/STACKS) | 1-3d |
+
+### ⚪ Optional — defense-in-depth / usage-dependent
+
+| ID | Recommendation |
+| --- | --- |
+| money-market:M-1 | display-only; fix only if an integrator supplies eModes (~0.5d) |
+| staking:M-3 | complete fix needs a contract change → split; SDK-side only mitigates |
+| staking:H-1 | refuted; harden the surviving raw path (~0.5d) if desired |
+| staking:M-2 | refuted; add quote-based minOutput (~0.5d) for belt-and-suspenders |
+
+### ⚫ No action
+
+| ID | Why |
+| --- | --- |
+| secrets:H-4 | already fixed on main (shell-quote 1.10.0) |
+| intent-relay:M-1 | refuted; only a doc note ("verify hash on-chain"), <2h |
+| 37 Low + 37 Info | spot-check found none worth upgrading; fix opportunistically, not scheduled |
+
+### Suggested rollout
+
+1. **PR-1 "audit quick wins" (~3-4d):** all of 🟢 — lowest risk, closes the most
+   findings, do first.
+2. **PR-2 "supply-chain hardening" (~2-3d):** 🔵 CI/deps (H-3, M-1, M-2) + the
+   three fund-flow items.
+3. **Separate issues** for 🟠 (esp. swap:M-1 and the Bound Exchange server-side
+   session changes — cross-repo, need design).
+4. **🟠 remainder / ⚪ / ⚫:** record, do not schedule.
+
 ## Fix-effort roadmap
 
 **Tier 1 — mechanical + verified-real bug, ~3-4 engineer-days (do now):**

@@ -46,7 +46,7 @@ commits/posts).
 
 | Question | File | ~tok |
 | -------- | ---- | ---: |
-| What did we conclude? full per-finding verdicts + effort | `outcome.md` | ~2.6k |
+| What did we conclude? verdicts + fix-or-not recommendation + effort | `outcome.md` | ~4k |
 | The issue itself, AC, report links | `issue.md` | ~0.5k |
 | Draft sign-off comment (to post) | `review-comment.md` | ~0.6k |
 | How the verification was run (workflow, agents) | `process.md` | ~0.4k |
