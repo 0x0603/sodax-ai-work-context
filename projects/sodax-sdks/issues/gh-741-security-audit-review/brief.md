@@ -3,7 +3,7 @@ type: brief
 repo: sodax-sdks
 github: 741
 status: Active
-next: User to post sign-off comment (draft in review-comment.md) or request fixes
+next: Continue 🟢 fix batch on branch fix/audit-741-quick-wins (axios+ws done; protobufjs/next next)
 updated: 2026-08-26
 ---
 
@@ -47,6 +47,7 @@ commits/posts).
 | Question | File | ~tok |
 | -------- | ---- | ---: |
 | What did we conclude? verdicts + fix-or-not recommendation + effort | `outcome.md` | ~4k |
+| Decisions made while implementing fixes | `decisions.md` | ~0.6k |
 | The issue itself, AC, report links | `issue.md` | ~0.5k |
 | Draft sign-off comment (to post) | `review-comment.md` | ~0.6k |
 | How the verification was run (workflow, agents) | `process.md` | ~0.4k |
