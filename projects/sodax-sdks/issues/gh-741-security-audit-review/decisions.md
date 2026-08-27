@@ -208,5 +208,32 @@ on `origin/main`. One branch for the whole 🟢 "fix now" batch — see D-001.
 - **Status:** done + pushed as commit `df130aa75`. Branch now has 7 commits.
   Remaining uncommitted: #6 bnUSD, #9 ICONex.
 
+## D-012 · Code fix #6 bnUSD (sdk-bridge-migration:M-1) — IGNORED, investigate later
+- **When:** 2026-08-27 · **Who:** You (product call)
+- **Decision:** Do NOT fix bnUSD now. Reverted the code change (was uncommitted).
+  Note for later; likely NOT a real fix to make.
+- **Why (your product insight):** migration exists to move tokens legacy → new;
+  the **new → old** direction that this "bug" breaks is something almost nobody
+  wants. If new→old shouldn't exist, the right fix is to **hide/disable it in the
+  frontend**, not to add SDK plumbing for a pointless flow.
+- **What the live UI investigation actually found** (sodax-frontend migrate tab,
+  screenshot Sonic→Sui): the stuck path is **new bnUSD FROM Sonic (hub) → legacy**.
+  The bnUSD tab always calls `action: 'migrate'` (isRevertDirection is ICX&SODA-only,
+  migrate-button.tsx:65,118); source Sonic ⇒ needsApproval=true; the allowance check
+  uses the wrong spender AND `approve('migrate')` for a hub source throws
+  `invariant(false, 'Invalid params for migrate action')` (MigrationService.ts:87).
+  So the real gap is `approve('migrate')` hub bnUSD — NOT the `revert` branch the
+  audit/survey pointed at. new→old from a non-hub EVM spoke, and all old→new, work.
+- **Correction to earlier assessment:** the audit's sdk-bridge-migration:M-1 and my
+  survey framed this as a `revert` check-then-approve gap with a small "just do it"
+  fix (CHANGE A/B). The UI shows it is the `migrate`+hub path, and — more importantly —
+  it guards a direction that may be a product mis-feature. So M-1 is "code-accurate,
+  fix-questionable": don't schedule the SDK fix until product intent is confirmed.
+- **If it does need fixing:** SDK side is easy (~0.5d — mirror the revert approve
+  branch into the `migrate` action for hub bnUSD, spender = getUserRouter) but needs
+  Robi's confirmation on migrate/revert semantics + a mainnet/staging test (no PR e2e).
+- **Status:** ignored/deferred; code reverted, branch clean of bnUSD. Raise in the
+  audit PR thread as a product question, not a new GitHub issue.
+
 <!-- Next decisions get appended here. -->
 
