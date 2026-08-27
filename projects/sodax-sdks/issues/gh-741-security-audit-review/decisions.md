@@ -85,5 +85,60 @@ on `origin/main`. One branch for the whole 🟢 "fix now" batch — see D-001.
   behavior (Solana/Injective subscriptions) is only exercised by the mainnet
   e2e/smoke suite, not unit tests — flag for the PR, but no breakage expected.
 
-<!-- Next decisions (protobufjs exact, next version, bnUSD fix approach, etc.)
-     get appended here as we work through the 🟢 list. -->
+## D-005 · protobufjs override → fixed `7.6.5`
+- **When:** 2026-08-26 · **Who:** Both
+- **Decision:** Change the override `protobufjs: "^7.5.8"` → exact `"7.6.5"`.
+- **Why:** the floating `^7.5.8` still resolved 7.6.0, inside three advisory
+  ranges (unbounded Any, property shadowing, .proto infinite loop). 7.6.5 (latest
+  7.x, published 2026-07-04, OSV-clean) clears all three; only pulled via
+  @trezor/protobuf, whose exact spec the override already supersedes.
+- **Status:** done + pushed as commit `7f985dca8`. Resolves protobufjs@7.6.5.
+
+## D-006 · next → pin `16.2.12` in example-next-js-16
+- **When:** 2026-08-26 · **Who:** Both
+- **Decision:** In `apps/example-next-js-16/package.json`, change `next: "^16.0.0"`
+  → exact `"16.2.12"`.
+- **Why:** the floating range resolved 16.2.6, inside four HIGH advisories
+  (middleware/proxy bypass, SSRF in Server Actions + rewrites, Server Actions DoS).
+  16.2.12 is the latest 16.2.x (2026-07-25, OSV-clean). App is private/unpublished,
+  so exact pin is fine.
+- **Status:** done + pushed as commit `f0f6d286e`. Resolves next@16.2.12.
+
+## D-007 · bigint-buffer CVE-2025-3194 — patch now, alias preferred
+- **When:** 2026-08-26/27 · **Who:** Both (you dislike the patch approach)
+- **Decision (current):** pushed a pnpm patch that drops the native binding so the
+  safe pure-JS path is used. **Pending switch:** replace the patch with an
+  override alias `bigint-buffer: "npm:@trufflesuite/bigint-buffer@1.1.10"` (Truffle
+  fork, OSV-clean, drop-in) — no patch file to maintain.
+- **Why:** bigint-buffer@1.1.5 is abandoned (since 2022, no upstream fix) and has
+  an unpatched native buffer overflow. It enters via TWO paths — `@solana/web3.js`
+  (direct `bigint-buffer: ^1.1.5`) and `@solana/spl-token` → `buffer-layout-utils`
+  → bigint-buffer. Both patch and alias target bigint-buffer itself, so they close
+  both paths in one line. Bumping web3.js/spl-token cannot remove it: spl-token
+  0.4.x (through latest 0.4.15) always pulls buffer-layout-utils.
+- **Status:** patch pushed as commit `c0cebc27f`. Alias switch is PENDING — to do
+  when back on the audit branch (currently you are on `feat/leverage-positions`).
+
+## D-008 · @solana/kit v8 migration — DEFERRED (note, don't do now)
+- **When:** 2026-08-27 · **Who:** You (decided to wait)
+- **Decision:** Do NOT migrate `@solana/web3.js` 1.x → `@solana/kit` v8 now. Note
+  it as future work; wait until kit 8.x matures, then upgrade straight to the
+  latest stable at execution time.
+- **Why:** this is the only way to truly remove bigint-buffer (kit v8 uses native
+  BigInt/DataView, drops buffer-layout-utils). But: (1) `@solana/kit@8.0.0` and
+  `@solana-program/token@0.16.0` were both released **2026-08-21 — 6 days ago**;
+  jumping onto a brand-new major is exactly the release-age risk the audit flags,
+  worse than the axios 1.20.0 we deliberately avoided. (2) It is a full **rewrite**
+  (not a bump) of the Solana surface across `sdk` + `wallet-sdk-core` +
+  `wallet-sdk-react` — connection/tx/sign/decode APIs all change, plus
+  `spl-token 0.4.x → @solana-program/token`. Rewriting a lot of code to fix a
+  LOW-severity CVE is disproportionate and adds more risk than it removes.
+- **Scope when done:** 3 packages, breaking API migration, needs its own plan +
+  tests; repo has no PR-time e2e, so mainnet smoke testing is required.
+- **How to track:** per repo convention (no extra tracker issues), raise this in
+  the audit PR thread as deferred follow-up, not a new GitHub issue. This entry is
+  the record.
+- **Status:** deferred. Revisit when kit 8.x has matured (target: a few months).
+
+<!-- Next decisions get appended here. -->
+

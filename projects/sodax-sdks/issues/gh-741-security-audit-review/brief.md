@@ -3,8 +3,8 @@ type: brief
 repo: sodax-sdks
 github: 741
 status: Active
-next: Continue 🟢 fix batch on branch fix/audit-741-quick-wins (axios+ws done; protobufjs/next next)
-updated: 2026-08-26
+next: On fix/audit-741-quick-wins — switch bigint patch→alias, then do #6 CI token. Migration kit v8 deferred (D-008).
+updated: 2026-08-27
 ---
 
 # GH-741 Security Audit Review · brief
@@ -26,9 +26,18 @@ effective is 0 High / 15 Medium. Full assessment + per-finding table in
 
 ## Next action
 
-Post the sign-off comment on ICON-Projects-Planning#741 — text ready in
-`review-comment.md`. Only the user posts to GitHub (repo rule: no autonomous
-commits/posts).
+On branch `fix/audit-741-quick-wins` (5 deps commits pushed: axios, ws,
+protobufjs, next, bigint-patch). Still to do: (1) switch bigint patch → alias
+`@trufflesuite/bigint-buffer@1.1.10` (D-007), (2) #6 CI token scope, then #7-#10
+code fixes. Separately: post the sign-off comment (`review-comment.md`) — user
+posts. All decisions logged in `decisions.md`.
+
+## Deferred — do not start without a fresh decision
+
+- **@solana/kit v8 migration (D-008):** the real way to remove bigint-buffer, but
+  it is a full Solana rewrite across 3 packages and kit 8.0.0 is only days old.
+  Waiting until it matures, then upgrade to latest. Raise in the PR thread, not a
+  new GitHub issue.
 
 ## Settled — do not re-litigate
 
