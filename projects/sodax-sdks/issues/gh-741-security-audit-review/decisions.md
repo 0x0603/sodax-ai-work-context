@@ -116,8 +116,14 @@ on `origin/main`. One branch for the whole 🟢 "fix now" batch — see D-001.
   → bigint-buffer. Both patch and alias target bigint-buffer itself, so they close
   both paths in one line. Bumping web3.js/spl-token cannot remove it: spl-token
   0.4.x (through latest 0.4.15) always pulls buffer-layout-utils.
-- **Status:** patch pushed as commit `c0cebc27f`. Alias switch is PENDING — to do
-  when back on the audit branch (currently you are on `feat/leverage-positions`).
+- **Status (updated 2026-08-27):** patch commit `c0cebc27f` **reverted** — dropped
+  from the branch tip via ref update + force-push, so `fix/audit-741-quick-wins`
+  now holds 4 deps commits (axios/ws/protobufjs/next), no bigint change. Per your
+  call, **bigint-buffer is left UNPATCHED** — CVE-2025-3194 stays open until the
+  deferred kit v8 migration (D-008). This is acceptable because the CVE is
+  **availability-only (crash/DoS), NOT fund-loss** (CVSS C:N/I:N/A:H) and needs a
+  hostile Solana RPC. Alias remains available anytime if we want to close it sooner
+  without waiting for the migration.
 
 ## D-008 · @solana/kit v8 migration — DEFERRED (note, don't do now)
 - **When:** 2026-08-27 · **Who:** You (decided to wait)
