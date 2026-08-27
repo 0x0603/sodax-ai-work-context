@@ -15,7 +15,7 @@ related_decisions: []
   the subject under review is the sodax-sdks codebase)
 - Author: FezBox · Assignee: R0bi7
 - Started: 2026-08-26
-- Related PR: —
+- Related PR: https://github.com/icon-project/sodax-sdks/pull/405
 
 ## Problem
 

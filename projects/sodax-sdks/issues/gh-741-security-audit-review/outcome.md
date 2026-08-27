@@ -8,7 +8,7 @@ updated: 2026-08-26
 
 # Outcome — GH-741 Security Audit Review
 
-- PR: — (review/sign-off task, no code change in scope)
+- PR: https://github.com/icon-project/sodax-sdks/pull/405 (fix/audit-741-quick-wins, 8 commits)
 - Verification basis: origin/main `75dec7011` (2026-08-25) exported read-only;
   cross-checked with live OSV + npm registry queries (2026-08-26)
 - Method: 10-agent verification fan-out, one cluster per agent, every conclusion
