@@ -138,7 +138,13 @@ on `origin/main`. One branch for the whole 🟢 "fix now" batch — see D-001.
 - **How to track:** per repo convention (no extra tracker issues), raise this in
   the audit PR thread as deferred follow-up, not a new GitHub issue. This entry is
   the record.
-- **Status:** deferred. Revisit when kit 8.x has matured (target: a few months).
+- **Wait on BOTH, not just kit:** `@solana-program/token@0.16.0` (the spl-token
+  successor) is still a **0.x pre-1.0** release (API not yet stable) and also
+  shipped 2026-08-21. So the migration waits on both `@solana/kit` reaching a
+  settled 8.x AND `@solana-program/token` reaching a stable (ideally ≥1.0) line —
+  then upgrade both to their latest at execution time.
+- **Status:** deferred. Revisit when kit 8.x AND @solana-program/token have
+  matured (target: a few months).
 
 <!-- Next decisions get appended here. -->
 
