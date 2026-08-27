@@ -186,5 +186,27 @@ on `origin/main`. One branch for the whole 🟢 "fix now" batch — see D-001.
 - **Status:** done + pushed as commit `86842c8e8`. Branch now has 6 commits.
   Remaining uncommitted in the tree: #6 bnUSD, #7 relayData, #9 ICONex.
 
+## D-011 · Code fix #7 relayData destination — committed
+- **When:** 2026-08-27 · **Who:** You approved after questioning it ("ok commit push đi")
+- **Decision:** `AssetService.executeWithdraw` now sets `relayData.address` to
+  `fromHubWallet` (was the spoke `recipient` / `params.srcAddress`), plus a new
+  `AssetService.test.ts`.
+- **Why it IS a bug (verified in code, not from the audit's word):** `relayData.address`
+  is documented in IntentRelayApiService as "address on the Hub chain ... Required
+  for Solana and Bitcoin; ignored for all other chains." In the same function the
+  spoke `sendMessage` commits `dstAddress: fromHubWallet` (line 413), so the relay
+  destination must equal `fromHubWallet`. The original code used `recipient`
+  (= spoke srcAddress ≠ fromHubWallet) — an internal contradiction; `executeDeposit`
+  and the sibling DEX/staking services all use the hub wallet.
+- **Flow:** this is the **DEX liquidity withdraw** path (`sodax.dex.assetService`,
+  dapp-kit `useDexWithdraw`, demo ManageLiquidity) — NOT swap/staking. Effective
+  low: only Solana/BTC use relayData.address, no test existed, real-world usage
+  unconfirmed. Not fund-loss (availability only; assets stay in the hub wallet).
+- **Note for the PR:** the buggy line was written by **Robi** (commit `a30abe4736`,
+  2026-05-03), who also owns issue #741. Flag it for Robi to confirm in the PR since
+  it is their code and the Solana/BTC branch is untested on-chain.
+- **Status:** done + pushed as commit `df130aa75`. Branch now has 7 commits.
+  Remaining uncommitted: #6 bnUSD, #9 ICONex.
+
 <!-- Next decisions get appended here. -->
 
