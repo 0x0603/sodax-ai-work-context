@@ -235,5 +235,26 @@ on `origin/main`. One branch for the whole 🟢 "fix now" batch — see D-001.
 - **Status:** ignored/deferred; code reverted, branch clean of bnUSD. Raise in the
   audit PR thread as a product question, not a new GitHub issue.
 
+## D-013 · Code fix #9 ICONEX channel hardening — committed; NO dedup
+- **When:** 2026-08-27 · **Who:** Both
+- **Decision:** Hardened the wallet-sdk-react ICONEX channel to **parity** with the
+  already-hardened wallet-sdk-core / sdk copies: serialize (single-flight queue),
+  correlate by expected response type, 300s timeout + listener cleanup, validate
+  `isIconAddress` before storing the account, try/catch on the hydration reconnect.
+  Committed with tests (correlation blocks a forged event; timeout; forged payload
+  → undefined).
+- **NO dedup (you rejected refactor C):** the 3 duplicate impls stay separate.
+  Reason we did NOT gom them into one source: `@sodax/libs` docs are explicit it is
+  for **third-party build-workarounds only** ("if npm import just works, it doesn't
+  belong here"), so first-party channel logic must not go there; `@sodax/types` is
+  DOM-free; sdk doesn't depend on wallet-sdk-core. A true dedup would need a NEW leaf
+  package (`@sodax/icon-common`) — out of scope, and you chose to keep it as-is.
+- **Safety:** high — a faithful port of the production-tested core impl (verified
+  side-by-side: same 300s timeout, queue, correlation, isIconAddress). Not fund-loss;
+  closes an identity-spoofing / hang gap on the ICON wallet connect used by ICON→Sonic
+  migration. Real browser+Hana behavior not covered by unit tests (no PR e2e).
+- **Status:** done + pushed as commit `89b84f143`. Branch has 8 commits. Working
+  tree clean — group B complete (bnUSD ignored per D-012).
+
 <!-- Next decisions get appended here. -->
 

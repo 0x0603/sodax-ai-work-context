@@ -3,7 +3,7 @@ type: brief
 repo: sodax-sdks
 github: 741
 status: Active
-next: On fix/audit-741-quick-wins — deps + CI + CSPRNG + relayData committed (7 commits). bigint reverted (D-007), bnUSD ignored as product mis-feature (D-012). Remaining code fix: ICONex only.
+next: fix/audit-741-quick-wins DONE — 8 commits (deps×4, CI, CSPRNG, relayData, ICONex). bigint reverted (D-007), bnUSD ignored (D-012). Open a PR when ready; raise deferred items (kit v8 migration D-008, bnUSD product question, ICONex dedup) in the PR thread.
 updated: 2026-08-27
 ---
 
