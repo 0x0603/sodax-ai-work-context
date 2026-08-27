@@ -34,10 +34,13 @@ posts. All decisions logged in `decisions.md`.
 
 ## Deferred — do not start without a fresh decision
 
-- **@solana/kit v8 migration (D-008):** the real way to remove bigint-buffer, but
-  it is a full Solana rewrite across 3 packages and kit 8.0.0 is only days old.
-  Waiting until it matures, then upgrade to latest. Raise in the PR thread, not a
-  new GitHub issue.
+- **Solana v2 migration (D-008):** the real way to remove bigint-buffer. Must
+  replace BOTH `@solana/web3.js` 1.x → `@solana/kit` v8 AND `@solana/spl-token`
+  0.4.x → `@solana-program/token` — bigint-buffer enters via both (web3.js
+  directly + spl-token → buffer-layout-utils), so upgrading only one leaves it in
+  the tree. Full Solana rewrite across 3 packages; both new deps are only days old
+  (kit 8.0.0 + @solana-program/token 0.16.0, pre-1.0). Wait for both to mature,
+  then upgrade to latest. Raise in the PR thread, not a new GitHub issue.
 
 ## Settled — do not re-litigate
 
