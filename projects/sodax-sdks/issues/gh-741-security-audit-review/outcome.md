@@ -2,8 +2,8 @@
 type: outcome
 repo: sodax-sdks
 github: 741
-status: Reviewed — ready to sign off (with caveats)
-updated: 2026-08-26
+status: Fixes shipped in PR #405 (2 findings deferred); review below
+updated: 2026-08-27
 ---
 
 # Outcome — GH-741 Security Audit Review
@@ -13,6 +13,34 @@ updated: 2026-08-26
   cross-checked with live OSV + npm registry queries (2026-08-26)
 - Method: 10-agent verification fan-out, one cluster per agent, every conclusion
   carries file:line evidence from the main snapshot. See `process.md`.
+
+## What shipped — PR #405
+
+Eight fixes committed on `fix/audit-741-quick-wins`; two audit findings
+deliberately not fixed. Mirrors the PR body. (`Finding` = ID in the audit report.)
+
+### Fixed
+
+| Area | Change | Why | Finding | Commit |
+| --- | --- | --- | --- | --- |
+| axios | override `1.13.2` → `1.19.0` | 1.13.2 sat in ~29 advisories; only via `@injectivelabs/*` | H-1 | `57b5036d7` |
+| ws | overrides → `7.5.13` / `8.21.3` per major | DoS + uninitialized-memory disclosure | H-2 | `64b394360` |
+| protobufjs | override → exact `7.6.5` | floating `^7.5.8` still resolved vulnerable 7.6.0 | M-6 | `7f985dca8` |
+| next (`example-next-js-16`) | `^16.0.0` → `16.2.12` | was 16.2.6, inside 4 HIGH advisories | M-5 | `f0f6d286e` |
+| CI publish token | `NODE_AUTH_TOKEN` onto the publish step | install/build shouldn't see the npm token | M-3 | `63e39a0cd` |
+| `getRandomBytes` | `Math.random` → `crypto.getRandomValues` (+ guard) | use a CSPRNG | swap M-2 | `86842c8e8` |
+| DEX withdraw | `relayData.address` → hub wallet | wrong dest broke Solana/BTC relay submit (no fund loss) | staking M-1 | `df130aa75` |
+| ICONEX channel | queue + 300s timeout + type match + `isIconAddress` | took first response of any type, could hang forever | wallet M-1 | `89b84f143` |
+
+### Not in this PR
+
+| Item | Why not now | Finding |
+| --- | --- | --- |
+| bigint-buffer | no upstream fix; crash-only, needs a hostile Solana RPC — low priority. Proper fix is the Solana v2 migration (`@solana/web3.js` → `@solana/kit` v8 **and** `@solana/spl-token` → `@solana-program/token`), both days-old — wait (D-008) | M-4 |
+| bnUSD hub migrate | the broken path is the new→old direction (Sonic → legacy), one nobody really uses — belongs in a frontend fix, not the SDK (D-012) | M-1 |
+
+Decision trail: `decisions.md` (D-001→D-013). The full audit review (accuracy,
+over/understatement, per-finding verdicts) is below.
 
 ## Summary (the verdict)
 

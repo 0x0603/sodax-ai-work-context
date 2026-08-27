@@ -58,7 +58,7 @@ posts. All decisions logged in `decisions.md`.
 
 | Question | File | ~tok |
 | -------- | ---- | ---: |
-| What did we conclude? verdicts + fix-or-not recommendation + effort | `outcome.md` | ~4k |
+| What shipped (PR #405 tables) + full verdicts + fix recommendation | `outcome.md` | ~5k |
 | Decisions made while implementing fixes | `decisions.md` | ~0.6k |
 | The issue itself, AC, report links | `issue.md` | ~0.5k |
 | Draft sign-off comment (to post) | `review-comment.md` | ~0.6k |
