@@ -152,5 +152,22 @@ on `origin/main`. One branch for the whole 🟢 "fix now" batch — see D-001.
 - **Status:** deferred. Revisit when kit 8.x AND @solana-program/token have
   matured (target: a few months).
 
+## D-009 · CI — scope npm publish token to the publish step (secrets-supply-chain:M-3)
+- **When:** 2026-08-27 · **Who:** You asked "safe? then do it"; Claude assessed safe + did it
+- **Decision:** In `.github/workflows/sdks-publish.yml`, remove the job-level
+  `env: NODE_AUTH_TOKEN` and set it only on the "Publish packages" step.
+- **Why:** at job level, checkout/install/build all inherited the npm publish
+  token; only publish needs it. If any install/build-time dependency ran hostile
+  code it could read the token and publish poisoned @sodax/* packages. Moving it
+  to the publish step follows least-privilege and matches the 8 sibling
+  per-package workflows (which already scope it correctly).
+- **Safety:** low risk — YAML-only, 2 lines moved, no code/lockfile change;
+  install/build genuinely don't need the token (public registry + local tsup);
+  the sibling workflows prove `setup-node` registry-url + `$NODE_AUTH_TOKEN`
+  resolves fine when the token is present only at publish time.
+- **How:** done in a throwaway git worktree of the audit branch so the user's
+  `feat/leverage-positions` WIP was never touched.
+- **Status:** done + pushed as commit `63e39a0cd`. Branch now has 5 commits.
+
 <!-- Next decisions get appended here. -->
 
