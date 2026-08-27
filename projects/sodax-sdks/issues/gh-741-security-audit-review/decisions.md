@@ -169,5 +169,22 @@ on `origin/main`. One branch for the whole 🟢 "fix now" batch — see D-001.
   `feat/leverage-positions` WIP was never touched.
 - **Status:** done + pushed as commit `63e39a0cd`. Branch now has 5 commits.
 
+## D-010 · Code fix #8 CSPRNG (getRandomBytes) — committed first of group B
+- **When:** 2026-08-27 · **Who:** You drove it ("commit getRandomBytes đi")
+- **Decision:** `getRandomBytes` now uses `globalThis.crypto.getRandomValues` with an
+  explicit availability guard (you asked for the guard), plus 4 unit tests. Web
+  Crypto is the right isomorphic CSPRNG here: the build is `platform: 'neutral'`
+  (must run browser + Node), and `globalThis.crypto` is guaranteed by the repo's
+  `engines.node >=22.12`. It is NOT an XSS defense — a script that runs in the page
+  can monkey-patch any RNG; and intentId is not a secret anyway (on-chain identity
+  is a keccak of the whole struct), so this is a repo-standard hygiene fix.
+- **How committed independently:** the group-B code fixes all sit uncommitted in
+  one working tree; the pre-commit hook runs the full test suite, and fix #6 bnUSD
+  makes 2 old tests red. So bnUSD was stashed while committing CSPRNG, then popped
+  back. Order to commit group B: independent ones first (CSPRNG done, relayData,
+  ICONex), bnUSD last (needs its 2 tests rewritten).
+- **Status:** done + pushed as commit `86842c8e8`. Branch now has 6 commits.
+  Remaining uncommitted in the tree: #6 bnUSD, #7 relayData, #9 ICONex.
+
 <!-- Next decisions get appended here. -->
 
