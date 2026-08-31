@@ -3,7 +3,7 @@ type: brief
 repo: sodax-sdks
 github: 401
 status: Active
-next: await review on PR #402 (settings modal + staging fix + bridge/swap controls)
+next: await review on PR #402 (settings modal + swap-only staging fix + bridge/swap controls)
 updated: 2026-08-31
 ---
 
@@ -15,7 +15,8 @@ updated: 2026-08-31
   the full Sodax Settings modal, and the follow-up bridge/swap control pass (`0339bc7d3`).
 - Issue #401 body expanded with the settings-modal scope (Robi's ask) and retitled.
 - The modal now separates Swap SDK submit-tx and Bridge SDK submit-tx, adds a Bridge API base
-  URL override, and labels which feature consumes each endpoint.
+  URL override, and labels which feature consumes each endpoint. The Production/Staging preset is
+  explicitly named as swap-solver-only; bridge has no staging preset.
 - Gates green (demo checkTs + Biome + pre-commit build/test); browser-verified modal copy and
   layout via the local demo.
 - Flagged for review in the PR: `solverEnvironment` now persists across reloads (was: reset to

@@ -81,3 +81,7 @@ updated: 2026-08-31
 - Verification: `pnpm --filter sodax-demo-v2 checkTs`, Biome format/lint, `git diff --check`,
   browser visual check at `http://localhost:3000/`, and the repo pre-commit build/test all
   passed. Build logs still show existing Vite/Rollup warnings from dependencies and large chunks.
+- Correction commit `e61a2670c`: user pointed out bridge has no staging. Renamed the modal's
+  generic `Environment` control to `Swap solver env`, changed debug JSON to
+  `swapSolverEnvironment`, and updated UI/docs copy so bridge is explicitly not tied to the
+  Production/Staging switch.
