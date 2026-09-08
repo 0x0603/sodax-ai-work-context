@@ -32,18 +32,29 @@ state and blockers.
 
 ## Acceptance Criteria
 
-- [x] Q1–Q4 answered — from DNS, host probing and Bound's own source, not from Discord.
-      See `plan.md` §"What recon settled" and `plan-evidence.md`.
-- [ ] #426 ships `authUrl` + per-prefix routing, and moves the packaged `apiUrl` to
-      `svc.bound.exchange`. `authUrl` stays unset in the default — deliberately.
-- [ ] #1215 ships `RADFI_AUTH_URL` in swaps-api and bridge-api, after the SDK release.
-- [ ] Phase 2: `auth.bound.exchange` verified on canary via `RADFI_AUTH_URL`, then
-      `authUrl` added to the packaged default in a later release.
-- [ ] Migration timeline given to Bound and a deprecation date agreed.
+Bound completed the mapping on 2026-09-08: **four hosts**, `api.bound.exchange` retired.
+`/api/transactions/*` goes to `api.radfi.co`, not svc.
 
-**Dropped:** "intents-whitelabel env flipped" — it pins `@sodax/* 2.0.0-rc.12`, two
-minors behind the release carrying `authUrl`, so it is an SDK upgrade rather than an env
-change. Out of scope; tracked as a correction in `plan.md` §Corrections.
+- [x] Q1–Q4 answered. Q1 answered by Bound; Q2–Q4 from DNS, host probing and their source.
+- [ ] **Step 0 (blocking)**: `artifacts/probe-bound-hosts.sh` from a whitelisted
+      environment — confirms auth, radfi.co and svc each serve their own family.
+      Decision table in `plan.md` §Step 0.
+- [ ] **CORS verified from a real browser** on canary — `api.radfi.co` is a different
+      registrable domain and all three `/transactions/*` calls are browser calls.
+      Highest-severity item; the probe script cannot cover it.
+- [ ] #426 ships **two** new optional fields (`authUrl`, `transactionsUrl`) + three-way
+      prefix routing + the packaged defaults, each gated on its Step 0 row.
+- [ ] #1215 ships `RADFI_AUTH_URL` — **only that**; the backend calls 2 endpoints and never
+      reaches `/api/transactions/*` or UMS. After the SDK release; coded in parallel
+      against a locally-linked SDK with the override reverted before commit.
+- [ ] Bound answers: is `api.radfi.co` itself on a sunset path · CORS/origin allowlist on
+      it · does the deprecation cover `signet.api.` / `staging.api.`
+- [ ] Deprecation date agreed — we asked for their minimum notice rather than committing a
+      date, since consumer SDK adoption is the long pole.
+
+**Dropped:** "intents-whitelabel env flipped" — it pins `@sodax/* 2.0.0-rc.12`, two minors
+behind. Out of scope, but it is the only live consumer of `useRadfiWithdraw`, so BTC
+withdrawal breaks first when the old host dies. Schedule its bump against the deprecation date.
 
 ## Related
 

@@ -116,3 +116,91 @@ apps consume `@sodax/sdk` through the npm catalog), and #1097 will have merged b
   four questions that had been filed as "waiting on Bound in Discord" — but note it
   answers *code ownership*, not *host fronting*, and conflating the two is exactly the
   mistake the first draft made.
+
+### 2026-09-08 (later) — Bound's second message, plan restructured to one pass
+
+Bound reposted the mapping in Discord, unchanged, plus two new things: **"both
+svc.bound.exchange and auth.bound.exchange are live and ready for testing"**, and the
+HMAC/JWT split stated in writing. The deprecation date is still TBD and still waiting on
+our timeline.
+
+The invitation to test is what changed the plan. The earlier two-phase structure existed
+only because the auth host was unverifiable; with testing explicitly sanctioned, the
+verification becomes a **measurement step before coding** rather than a shipped phase.
+Restructured to one pass on the user's instruction ("1 lần làm fix hết").
+
+**Step 0** is now a blocking gate: `artifacts/probe-bound-hosts.sh`, run from a
+whitelisted environment. It sends deliberately invalid bodies and discriminates on the
+reply shape — `404 "Cannot POST …"` means the route is not served on that host, `400/401`
+means it is — so it needs no valid credential and creates nothing. That also answers Q1
+empirically, since it probes `/transactions/*` against all three hosts.
+
+Both Step-0 outcomes ship the same code; only the packaged `authUrl` value differs. That
+property is what lets one script run gate the work without risking a second round of PRs.
+
+Still missing from Bound's mapping, in both messages: `/api/transactions/*` (5 call sites)
+and `api.ums.bound.exchange`. Worth noting the mapping is not merely incomplete but
+locally contradictory — `/api/wallets/*` → auth reads as covering `/wallets/balance`,
+which is served by the UMS host. Draft reply in `plan.md` asks both.
+
+Sequencing improved on the user's suggestion: PR 2 no longer waits idle for the SDK
+release. It is coded against a locally-linked SDK via `pnpm.overrides` (the block already
+exists at the backend's `package.json:9-16`), with the override reverted and replaced by
+the catalog bump before commit. Recorded as a landmine, since an override reaching a PR
+would be a silent local-path dependency.
+
+Scope reconfirmed with the user rather than inferred from "fix hết": whitelabel stays out.
+
+### 2026-09-08 (final) — Bound completed the mapping: four hosts
+
+Bound answered the two gaps. The result changed the design again.
+
+```
+/api/sodax/*        -> svc.bound.exchange
+/api/auth/*         -> auth.bound.exchange
+/api/wallets/*      -> auth.bound.exchange
+/api/transactions/* -> api.radfi.co            <- not svc
+/api/wallets/balance, /api/utxos -> api.ums.bound.exchange (unchanged)
+api.bound.exchange  -> deprecated, date TBD
+```
+
+**`/api/transactions/*` goes to `api.radfi.co`** — the legacy RadFi domain, not a
+bound.exchange subdomain. Bound is retiring the newer brand host and routing that family
+back to the older one. Verified: `api.radfi.co` reaches the same backend as `svc`
+(identical `radfi-be` NestJS 404 on `/.well-known/jwks.json`), same ALB, own `*.radfi.co`
+certificate.
+
+Own correction: when Bound said "BTC thì trỏ qua endpoint của radfi", this session read it
+as "the radfi-be service, therefore svc" and concluded both readings landed in the same
+place. True of the *backend*, false of the *configuration* — they meant the literal
+`api.radfi.co` domain. The lesson is narrow but real: "same backend" and "same base URL to
+configure" are different questions, and only the second one matters to a config change.
+
+**Design impact.** Config goes from 2 base URLs to 4, so `RadfiConfig` needs **two** new
+optional fields (`authUrl`, `transactionsUrl`), and the prefix table becomes three-way with
+each branch falling back to `apiUrl`.
+
+**Backend scope shrank.** Verified the backend calls exactly two endpoints —
+`/api/wallets/details/{address}` (auth) and `/api/sodax/transaction` (svc). It never
+reaches `/api/transactions/*` or UMS: both apps pin `raw: true`, and
+`BitcoinSpokeService.deposit` returns at `:470-472` before `requestRadfiSignature`, so the
+backend builds the PSBT and the client signs it. `radfi`, `signAndSubmitRawTransaction`,
+`getTradingWalletAddress` and `encodeWithdrawalData` appear 0 times in `apps/*/src`. So PR
+2 needs `RADFI_AUTH_URL` only — no transactions override for a call the backend never makes.
+
+**New top risk: CORS on `api.radfi.co`.** All three `/transactions/*` calls run from the
+browser with a user JWT, against a different registrable domain. `intents-whitelabel`'s
+`rpc.ts:38-39` already records that radfi.co URLs stopped answering at some point and broke
+Bound sign-in — almost certainly an allowlist change rather than the host dying, since it
+is demonstrably alive. Preflight is untestable from outside: every host answers `OPTIONS`
+with a gate 403. This has to be verified from a real browser on canary, and asked of Bound.
+
+Also unanswered and now asked: whether `api.radfi.co` is itself on a sunset path (routing to
+a legacy brand domain reads as transitional), and whether the `api.bound.exchange`
+deprecation covers `signet.api.` and `staging.api.`, for which no `svc.`/`auth.`
+equivalents exist in DNS.
+
+Artifacts updated in this pass: `plan.md` rewritten for four hosts,
+`artifacts/probe-bound-hosts.sh` extended to probe `api.radfi.co` first for the
+`/transactions/*` family and to state that CORS is out of its reach, `brief.md` re-routed.
+
