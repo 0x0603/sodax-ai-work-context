@@ -55,6 +55,12 @@ sign_header() {
 SIG="$(sign_header)"
 
 # classify <http_code> <body>
+#
+# Only Nest's own "Cannot POST /path" proves a route is absent. A LIVE route can answer a
+# JSON 404 for its own reasons — RadfiProvider.getTradingWallet has an explicit
+# "Trading wallet not found" branch for exactly that (RadfiProvider.ts:287-299) — so a
+# bare 404 is reported as AMBIGUOUS, never as absent. Treating it as absent would make the
+# probe withhold a host that actually works.
 classify() {
   local code="$1" body="$2"
   case "$body" in
@@ -64,7 +70,7 @@ classify() {
   case "$code" in
     400|401|403|422) echo "route present" ;;
     200|201)         echo "route present (2xx!)" ;;
-    404)             echo "ROUTE ABSENT" ;;
+    404)             echo "AMBIGUOUS json-404" ;;
     000)             echo "no response / DNS" ;;
     *)               echo "http $code" ;;
   esac
@@ -97,7 +103,7 @@ for pair in "AUTH:$AUTH" "SVC:$SVC" "OLD:$OLD"; do
   echo " [$name] $base"
   probe "POST /auth/authenticate"      POST "$base" "/auth/authenticate"
   probe "POST /auth/refresh-token"     POST "$base" "/auth/refresh-token"
-  probe "GET  /wallets"                GET  "$base" "/wallets"
+  probe "POST /wallets"               POST "$base" "/wallets"
   probe "GET  /wallets/details/:addr"  GET  "$base" "/wallets/details/bc1qprobe"
 done
 
@@ -138,9 +144,17 @@ How to read this
     [RADFI] /transactions/*             -> all three must say "route present"
     [SVC]   /sodax/*                    -> both must say "route present"
 
-  If a host returns ROUTE ABSENT for its family, do NOT set that host in the
-  packaged default. The family then falls back to apiUrl, which is where it is
-  served today — a complete, shippable outcome. Tell Bound.
+  If a companion host returns ROUTE ABSENT for its family, use the [SVC] rows as
+  the fallback proof before editing BOUND_HOSTS:
+    - if that same family is route present on [SVC], point that BOUND_HOSTS entry at .api;
+      the family resolves to apiUrl.
+    - if [SVC] is absent too, do not silently point the family at svc. Block and
+      ask Bound, or consciously keep the old host if product accepts that
+      temporary dependency.
+
+  AMBIGUOUS json-404 is NOT absence. Only Nest's "Cannot POST /path" proves a route
+  is missing; a live route may answer 404 for its own reasons (a wallet that does
+  not exist, for instance). Read the body before concluding anything.
 
   The [OLD] rows are the fallback check: while api.bound.exchange still answers
   everything, shipping with a field withheld is safe.

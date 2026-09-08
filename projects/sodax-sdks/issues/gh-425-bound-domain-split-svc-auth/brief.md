@@ -21,7 +21,7 @@ host — and the answer is **four hosts, not two**. The plan is written for a si
 | Ticket | Scope |
 | --- | --- |
 | sodax-sdks#425 | parent / coordination |
-| sodax-sdks#426 | SDK: two new base-URL fields + prefix routing (PR 1) |
+| sodax-sdks#426 | SDK: two new base-URL fields + host-declared routing (PR 1) |
 | sodax-backend#1215 | swaps-api + bridge-api `RADFI_AUTH_URL` (PR 2) |
 
 ## The mapping, complete
@@ -36,10 +36,16 @@ api.bound.exchange       — DEPRECATED, date TBD
 
 `/api/transactions/*` → `api.radfi.co` is the surprise: Bound is retiring the newer brand
 host and routing that family back to the older RadFi domain. Verified same backend as svc
-(identical `radfi-be` 404 on `/.well-known/jwks.json`), own `*.radfi.co` certificate.
+(same `radfi-be` 404 shape on `/.well-known/jwks.json`), own `*.radfi.co` certificate.
 
-**Config goes from 2 base URLs to 4.** `RadfiConfig` needs **two** new optional fields
-(`authUrl`, `transactionsUrl`), not one.
+**Config goes from 2 base URLs to 4.** `RadfiConfig` gains **two** optional fields
+(`authUrl`, `transactionsUrl`) — but the packaged `chains.ts` default deliberately carries
+**`apiUrl` only**. The companions live in an exported `BOUND_HOSTS` lookup table
+keyed by api host, resolved in `RadfiProvider` with a plain `??` chain — no `if`, no
+`switch`, no ternary for host selection. That is not a style choice: putting them in the default
+would let `deepMerge` leave a partial override holding mainnet companion hosts, silently
+straddling environments — and it would falsify every "falls back unchanged" claim in the
+plan. See `plan.md` §Why the default carries `apiUrl` only.
 
 ## Next action
 
@@ -72,8 +78,13 @@ BTC withdraw from a browser on canary before trusting the migration.
 - **One pass**, two PRs, one per repo. Do not stack PR 2 on #1097's branch.
 - **SDK ships first**, but PR 2 is coded in parallel against a locally-linked SDK via
   `pnpm.overrides`. **Revert the override before committing.**
-- **Both new fields are optional with fallback to `apiUrl`.** That is what makes
-  signet/staging, old-host consumers and the Step-0 fallback all free.
+- **Both new fields are optional, and the packaged default sets neither.** Overriding
+  `radfi.apiUrl` alone moves every family to that host — today's semantics, and the reason
+  a partial override cannot straddle. Old-host, signet/staging and the backend all rely on
+  this.
+- **The host is declared at each call site, not derived from the path.** `request()` takes a
+  required `RadfiHost` first parameter, so an unrouted call fails to compile rather than
+  falling through to `apiUrl`. No prefix or segment matching anywhere.
 - **Backend scope shrank**: it calls exactly 2 endpoints (`/wallets/details` on auth,
   `/sodax/transaction` on svc), never `/transactions/*` or UMS. So PR 2 needs
   `RADFI_AUTH_URL` only — no transactions override for a call it does not make.
@@ -110,9 +121,10 @@ verification contradicted. Prefer `plan.md`.
   matching DTO field aborts the boot.
 - **Two different `transactions`.** `/api/sodax/transactions` is on svc and we never call
   it; `/api/transactions` is on `api.radfi.co` and we call it 5×.
-- **`/wallets/balance` is NOT captured by the `/wallets` routing prefix** — `getBalance` and
-  `getExpiredUtxos` bypass `request()` and build from `umsUrl`. A refactor routing them
-  through `request()` would silently move them to the auth host.
+- **`/wallets/balance` and `/utxos` bypass `request()`** and build from `umsUrl`. There is
+  deliberately no `'ums'` member of `RadfiHost`, so a refactor routing either through
+  `request()` has to name a host that does not fit — the mistake surfaces instead of
+  silently landing on the auth host.
 - **`bitcoin-raw-intent-check.ts:102`** gates its logger on `url.includes('bound.exchange')`
   — that now misses `api.radfi.co`.
 - **`apps/node` bypasses `RadfiProvider`** with raw `fetch` and hardcoded signet/staging

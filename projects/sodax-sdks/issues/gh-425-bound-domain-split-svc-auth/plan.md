@@ -34,7 +34,7 @@ Bound's final message. `api.bound.exchange` is the only domain being deprecated.
 
 The `/api/transactions/*` answer is the surprise. Bound is retiring the newer brand host
 and routing that family back to the older RadFi domain. Verified: `api.radfi.co` reaches
-the **same backend** as `svc` (identical `radfi-be` NestJS 404 on `/.well-known/jwks.json`),
+the **same backend** as `svc` (same `radfi-be` NestJS 404 shape on `/.well-known/jwks.json`),
 on the same ALB, under its own `*.radfi.co` certificate. Technically consistent — but see
 §Risks: it looks transitional, and we do not want to migrate this family twice.
 
@@ -101,12 +101,13 @@ Different controllers, different hosts. Reading "`/api/sodax/*` → svc" as cove
 
 ## Design
 
-Two new **optional** base URLs, each falling back to `apiUrl`, and an internal prefix table.
+Two new **optional** base URLs, the host declared at each call site, and — the load-bearing
+part — **the packaged default carries `apiUrl` only.**
 
 ```ts
 // packages/types/src/sodax-config/sodax-config.ts:41-47  (and the chains.ts duplicate)
 export type RadfiConfig = {
-  apiUrl: string;              // svc — /sodax/* and anything unrouted
+  apiUrl: string;              // api host — /sodax/* on the packaged default
   authUrl?: string;            // auth — /auth/*, /wallets/*
   transactionsUrl?: string;    // radfi.co — /transactions/*
   apiKey: string;
@@ -117,35 +118,191 @@ export type RadfiConfig = {
 ```
 
 ```ts
-// packages/sdk/src/shared/entities/btc/RadfiProvider.ts — internal, not consumer-configurable
-/** Bound serves these prefixes from hosts other than `apiUrl` after the domain split. */
-const HOST_PREFIXES = [
-  { prefixes: ['/auth/', '/wallets'], pick: (c: RadfiConfig) => c.authUrl },
-  { prefixes: ['/transactions'],      pick: (c: RadfiConfig) => c.transactionsUrl },
-] as const;
+// packages/types — the packaged Bound host set, shipped as one literal
+export const BOUND_HOSTS = {
+  api:          'https://svc.bound.exchange/api',
+  auth:         'https://auth.bound.exchange/api',
+  transactions: 'https://api.radfi.co/api',
+} as const;
+```
 
-private baseUrlFor(endpoint: string): string {
-  const route = HOST_PREFIXES.find((r) => r.prefixes.some((p) => endpoint.startsWith(p)));
-  return route?.pick(this.config) ?? this.config.apiUrl;
+```ts
+// packages/sdk/src/shared/entities/btc/RadfiProvider.ts
+export type RadfiHost = 'api' | 'auth' | 'transactions';
+
+private readonly hosts: Record<RadfiHost, string>;
+
+constructor(config: RadfiConfig, options?: RadfiProviderOptions) {
+  // …existing token seeding…
+  const api = stripTrailingSlash(config.apiUrl);
+  const split = api === BOUND_HOSTS.api; // apiUrl is still the packaged svc host
+
+  this.hosts = {
+    api,
+    auth:         stripTrailingSlash(config.authUrl)         ?? (split ? BOUND_HOSTS.auth         : api),
+    transactions: stripTrailingSlash(config.transactionsUrl) ?? (split ? BOUND_HOSTS.transactions : api),
+  };
+}
+
+// `host` is REQUIRED and first: every existing call fails to compile until it declares one.
+private async request(host: RadfiHost, endpoint: string, options?: RequestInit) {
+  const signed = this.signer ? await this.signer({ method: options?.method ?? 'GET', path: endpoint }) : undefined;
+  return fetch(`${this.hosts[host]}${endpoint}`, { ...options, headers: { … } });
 }
 ```
 
-Why this shape:
+Call sites declare their own host — eleven of them, one word each:
 
-- **Optional + fallback keeps every awkward case free.** Omit both and behaviour is
-  byte-identical to today. That is what signet/staging need — no `svc.`/`auth.` hosts
-  exist for those environments — and what lets a partner stay on the old host for a
-  release.
-- **The prefix table stays internal.** No consumer-facing routing config; nobody is asking
-  for one and it would be API surface for a hypothetical caller.
-- **Optional in both type copies** (`sodax-config.ts:41-47` and the inline duplicate at
-  `chains.ts:546-553`), so nothing hand-constructing either shape breaks. Strictly additive.
-- **Naming.** `transactionsUrl` over `txUrl` — inside a `RadfiConfig` where every field is
-  RadFi's, naming the *path family* is the only unambiguous option. Reviewer may prefer
-  `txUrl` for symmetry with `apiUrl`/`authUrl`/`umsUrl`; either is fine, pick one and pin
-  it in the docs.
-- Precedent for flat-or-split host config: `ApiConfig = BackendApiConfig | CustomApiConfig`
-  (`packages/types/src/common/constants.ts:69-74`).
+```ts
+await this.request('auth', '/auth/authenticate', { method: 'POST', … });
+await this.request('auth', `/wallets/details/${userAddress}`, { method: 'GET' });
+await this.request('api',  '/sodax/transaction', { method: 'POST', … });
+await this.request('transactions', '/transactions/max-spent', { method: 'POST', … });
+```
+
+### Resolve once, then look up
+
+One flat constant, one named boolean, one record. `request()` contains no decision at all —
+`this.hosts[host]` is a lookup into something resolved once in the constructor.
+
+`split` reads as the sentence it encodes: *if `apiUrl` is still the packaged svc host, use the
+packaged companions; otherwise every family follows the host the consumer named.* Everything
+the design needs falls out of that:
+
+| `radfi.apiUrl` | `split` | auth | transactions |
+| --- | --- | --- | --- |
+| unset → packaged svc | true | `auth.bound.exchange` | `api.radfi.co` |
+| `https://svc.bound.exchange/api` | true | `auth.bound.exchange` | `api.radfi.co` |
+| `https://api.bound.exchange/api` (old) | false | old host | old host |
+| signet / staging / a proxy | false | same as `apiUrl` | same as `apiUrl` |
+| anything, with a companion set explicitly | — | the explicit value wins | |
+
+Naming the svc host explicitly therefore *opts you into* the split, which is what makes the
+whitelabel migration a single env line after its SDK bump.
+
+An earlier revision keyed a nested `Record<string, {auth, transactions}>` by api host to avoid
+the ternary. It bought a future signet host set at the cost of a second constant, a nesting
+level and an `?.` — speculative for a table with one row. If Bound does split signet/staging
+(asked, unanswered), turn `split` into that lookup then: an internal five-line change that
+touches no caller.
+
+**The `split` comparison is an exact string match** after the trailing-slash strip. A value
+differing any other way — cased host, different path suffix — is `false` and falls to
+single-host mode. That fallback is safe (no straddle is possible) but *silently un-migrated*,
+so an operator typo reads as "nothing happened" rather than an error. Two things bound it:
+the chains-config test pins the packaged default to `BOUND_HOSTS.api`, and the canary probe
+in §Verification shows which host each family actually hit.
+
+### Guard: warn when a resolved host is one Bound is retiring
+
+Setting `apiUrl` to the old host is legal and stays legal — the migration window is open on
+purpose. But it is currently *silent*, and `intents-whitelabel` lands there by accident:
+`rpc.ts:40` has a literal fallback to `https://api.bound.exchange/api`, so after its SDK
+bump it would sit on the dying host with no signal at all.
+
+```ts
+// packages/types — announced retirements, and where to go instead
+export const DEPRECATED_BOUND_HOSTS: Record<string, string> = {
+  'https://api.bound.exchange/api': BOUND_HOSTS.api,
+};
+```
+
+```ts
+// RadfiProvider constructor, after this.hosts is resolved
+for (const url of new Set(Object.values(this.hosts))) {
+  const replacement = DEPRECATED_BOUND_HOSTS[url];
+  if (replacement) {
+    this.logger.warn(
+      `Bound is retiring ${url}. Point radfi.apiUrl at ${replacement} before the deprecation date.`,
+    );
+  }
+}
+```
+
+Three decisions inside that:
+
+- **Warn, do not throw.** Throwing would break consumers deliberately staying on the old
+  host, which is exactly what `#426` asked us to preserve for a release. It becomes a throw
+  in a later release once Bound sets a date — a one-line change, recorded as a follow-up
+  rather than done now.
+- **Deduplicate on the URL, not the host key.** An `apiUrl` set to the old host resolves all
+  three hosts to it; without the `Set` that is three identical warnings per provider.
+- **Only known-deprecated hosts warn.** An `apiUrl` that simply misses the companion table —
+  signet, staging, a proxy — is legitimate and must stay quiet, so "not in the table" is not
+  a warning condition. Announced retirement is the only signal specific enough to act on.
+
+Route it through the SDK logger rather than `console`: add `logger` to `RadfiProviderOptions`
+(whose JSDoc already says it exists so the next runtime dependency is not a third positional
+argument) and pass `config.logger` from `BitcoinSpokeService.ts:94`. That also gives
+consumers a way to silence it. `RadfiProvider` currently reaches for bare `console.warn`
+(`:202`) and `console.error` (`:338`); converting those two is a tidy-up for a different PR.
+
+Maintenance is a data edit, not a code edit: if Bound moves `/transactions/*` again, change
+one string in `BOUND_HOSTS`.
+
+This also removes the config-mutation landmine for the URL fields: the trailing-slash strip
+now feeds `this.hosts` instead of writing back into `this.config.apiUrl` (`:145-152`), which
+today mutates the packaged `spokeChainConfig` singleton that `deepMerge` shallow-copied.
+`umsUrl` keeps its current handling to keep the diff scoped — a follow-up, not this PR.
+
+### Why the host is declared, not derived
+
+An earlier revision routed by matching the path — first a prefix table, then a
+first-segment map. Both work, and both are the wrong shape for this problem.
+
+A path→host map is a **derivation**: a second source of truth that has to be kept in sync
+with the call sites. Declaring the host at the call site is a **statement of fact** — there
+is nothing to keep in sync, and nothing to match.
+
+Concretely, declaration wins on four counts:
+
+| | path matching | host declared at call site |
+| --- | --- | --- |
+| A new call left without a host | silent fall-through to `apiUrl`; needs a test to catch | **does not compile** |
+| `/wallets-export`-style collisions | needs segment-aware matching to avoid | not a category that exists |
+| Path with a query string | needs `split(/[/?#]/)` care | irrelevant |
+| Reading `withdrawToUser()` | must cross-reference the map | the host is on the line |
+
+The first row is the one that matters. Path matching leaves exactly one hole — an unmatched
+segment falls through to `apiUrl` silently, and `/sodax/*` *relies* on that fall-through, so
+it cannot be made fail-closed. A required `host` parameter closes it at **compile time**,
+which is strictly stronger than the exhaustiveness test the map version needed.
+
+It also dissolves a landmine this plan has been carrying: `/api/wallets/balance` lives on
+the UMS host and is safe today only because `getBalance` bypasses `request()`. Under path
+matching, a refactor routing it through `request()` would silently send it to the auth host.
+Under declaration the refactorer must name a host, and there is no `'ums'` member — so the
+mistake surfaces immediately.
+
+Cost: eleven call sites gain one argument, and moving a family later means editing the
+affected sites rather than one map entry. Both are acceptable — arguably the second is a
+feature, since a family move *should* appear in the diff at every call it changes.
+`request()` is `private` and has no caller outside the class, so this is an internal change
+with no public API impact.
+
+### Why the default carries `apiUrl` only
+
+An earlier draft put all three hosts in the packaged `chains.ts` default and called the
+resulting straddle an accepted risk. **That was wrong, and it silently falsified the
+plan's own fallback claims.** `deepMerge`
+(`packages/sdk/src/shared/utils/deepMerge.ts:12-35`) merges plain objects key by key, so a
+consumer — or the backend — overriding only `radfi.apiUrl` would *keep* the packaged
+mainnet `authUrl` and `transactionsUrl`. Every "falls back unchanged" statement about the
+old host, signet, staging and the backend was therefore false.
+
+Keeping the companions out of the merged config removes the hazard **by construction**
+rather than by documentation:
+
+| Consumer does | Result |
+| --- | --- |
+| nothing (packaged default) | `apiUrl` = svc; companions resolve to auth + radfi.co. Full four-host routing |
+| sets `apiUrl` = `api.bound.exchange` (old host) | every family goes there, matching today's host behaviour |
+| sets `apiUrl` = signet / staging / a proxy | every family follows it. No cross-environment split is possible |
+| sets `apiUrl` **and** the companions | honoured exactly as given |
+
+There is nothing left to leak, so no runtime guard, no comparison heuristic, and no
+"override all or none" doc contract are needed. This also makes the backend safe with a
+single `RADFI_API_URL` — see PR 2 §2.
 
 ### Packaged default
 
@@ -153,9 +310,10 @@ Why this shape:
 // packages/types/src/chains/chains.ts:863-869
 radfi: {
   walletMode: 'TRADING',
-  apiUrl: 'https://svc.bound.exchange/api',
-  authUrl: 'https://auth.bound.exchange/api',            // gated on Step 0
-  transactionsUrl: 'https://api.radfi.co/api',           // gated on Step 0
+  apiUrl: BOUND_HOSTS.api,   // https://svc.bound.exchange/api
+  // authUrl / transactionsUrl are deliberately NOT set here. They are resolved from
+  // BOUND_HOSTS in RadfiProvider, so a partial override cannot inherit a mainnet
+  // companion host. See "Why the default carries apiUrl only".
   apiKey: '',
   umsUrl: 'https://api.ums.bound.exchange/api',
   accessToken: '',
@@ -163,24 +321,17 @@ radfi: {
 },
 ```
 
-### Accepted risk — the override straddle
+Other properties of this shape:
 
-With four hosts in the default, a consumer overriding **only** `radfi.apiUrl` keeps the
-packaged mainnet `authUrl` and `transactionsUrl`, because `deepMerge`
-(`packages/sdk/src/shared/utils/deepMerge.ts:12-35`) merges plain objects key by key.
-Their traffic then straddles environments, silently.
-
-This is a new hazard — today one URL means overriding it moves everything — and four hosts
-make it worse than the two-host version. Accepted, with three mitigations:
-
-1. **The backend cannot straddle** — `buildRadfiConfig`'s all-or-nothing refusal extends to
-   every `RADFI_*` override it accepts.
-2. **Docs state the contract**: override all of them or none.
-3. **A chains-config test** pins the packaged hosts as one environment set.
-
-Exposed set: `intents-whitelabel` (out of scope, and on an SDK old enough to have no new
-fields to inherit) plus any partner pinning `apiUrl` by hand. See §Open decisions for a
-runtime guard we deliberately did not build.
+- **The companion table stays internal.** No consumer-facing routing table; the public
+  surface stays at the explicit URL fields callers already understand.
+- **Optional in both type copies** (`sodax-config.ts:41-47` and the inline duplicate at
+  `chains.ts:546-553`), so nothing hand-constructing either shape breaks. Strictly additive.
+- **Naming.** `transactionsUrl` over `txUrl` — inside a `RadfiConfig` where every field is
+  RadFi's, naming the *path family* is the only unambiguous option. Reviewer may prefer
+  `txUrl`; pick one and pin it in the docs.
+- Precedent for flat-or-split host config: `ApiConfig = BackendApiConfig | CustomApiConfig`
+  (`packages/types/src/common/constants.ts:69-74`).
 
 ### Signing does not change
 
@@ -194,22 +345,33 @@ conclusion holds.
 neither type copy changes an existing member. Anything constructing a `RadfiConfig` or a
 `BitcoinSpokeChainConfig` today still compiles.
 
-**Runtime: three real vectors, all on upgrade.** The packaged default changes, so a
+**Runtime: two real vectors, both on upgrade.** The packaged default changes, so a
 consumer who bumps `@sodax/*` and relies on defaults moves hosts. That is the intended
 migration, but it is a behaviour change and must be prominent in the release notes.
 
-### 1. `api.radfi.co` is a new registrable domain — CSP and egress allowlists
+### 1. New hostnames — CSP `connect-src`, egress and proxy allowlists
 
-The sharpest one, and it only appeared with the four-host mapping. `svc.` and `auth.` are
-subdomains of `bound.exchange`, so a consumer whose CSP says
-`connect-src https://*.bound.exchange` keeps working. **`api.radfi.co` does not match
-that.** Same for corporate egress allowlists and any proxy rule written against the
-`bound.exchange` domain.
+Every host in the mapping is new except UMS. What breaks depends on how a consumer wrote
+their allowlist:
 
-The three affected calls are all browser calls — BTC withdraw, renew-utxo, max-spent — so
-the failure lands on end users, not on our servers, and it fails as a blocked request
-rather than a clean error. **Call this out at the top of the release notes**, not in a
-migration appendix.
+| Allowlist shape | svc | auth | api.radfi.co | Net effect |
+| --- | --- | --- | --- | --- |
+| `https://api.bound.exchange` (exact host) | blocked | blocked | blocked | **everything Bitcoin breaks** |
+| `https://*.bound.exchange` (wildcard) | ok | ok | **blocked** | withdraw + renew-utxo break |
+| no CSP / no allowlist | ok | ok | ok | nothing breaks |
+
+The exact-host row is the severe one and it is not exotic — a CSP naming one API host is a
+normal thing to write. The wildcard row is the one `api.radfi.co` introduces on its own,
+because it is a different *registrable domain*, not a subdomain.
+
+Concretely, the wildcard row blocks exactly these five calls, all browser-side:
+`withdrawToUser`, `signAndBroadcastWithdraw`, `buildRenewUtxoTransaction`,
+`signAndBroadcastRenewUtxo`, `getMaxWithdrawable` — i.e. **BTC withdrawal and UTXO renewal**.
+Swaps and sign-in survive. The exact-host row takes those too.
+
+The same reasoning applies to corporate egress rules and any server-side proxy allowlist.
+**Put this at the top of the release notes**, with both rows spelled out — it is the only
+failure mode a consumer cannot diagnose from our types or our errors.
 
 ### 2. CORS on `api.radfi.co`
 
@@ -218,34 +380,48 @@ Bound's origin allowlist on `api.radfi.co` does not match `api.bound.exchange`, 
 withdrawal breaks for every consumer on the new default. Untestable from outside — see
 §Risks. This is not our bug, but it is our outage.
 
-### 3. Partial overrides silently straddle
+### 3. The partial-override straddle — eliminated, not accepted
 
-A consumer who overrides **only** `radfi.apiUrl` — pointing at a proxy, signet, or their
-own gateway — used to move *all* their Bound traffic with that one value. After this
-change they keep the packaged `authUrl` and `transactionsUrl`, so auth and transaction
-traffic goes to Bound production while `/sodax/*` goes to their host. Silent, and worse
-with four hosts than it would have been with two.
+An earlier draft listed this as the third vector and accepted it. With the companion hosts
+out of the packaged default (§Why the default carries `apiUrl` only) it cannot occur: a
+consumer overriding `radfi.apiUrl` alone has no packaged `authUrl`/`transactionsUrl` to
+inherit, so every family follows the host they named. Recorded here because the earlier
+plan shipped the opposite claim, and a reviewer comparing revisions should see why it moved.
 
-Mitigations are in §Accepted risk. The consumer-visible half is the docs contract: **set
-all four or none.**
+### Consumers who stay on an old SDK
+
+Unaffected. Nothing we publish reaches them — their bundled `@sodax/types` still carries
+`apiUrl: 'https://api.bound.exchange/api'` and the single-host `request()`. They keep
+working until **Bound** retires that host, which is Bound's event, not this release's.
+`intents-whitelabel` (pinned `2.0.0-rc.12`) is in this group today.
+
+Worth noting for their eventual upgrade: because an `apiUrl` that is not `BOUND_HOSTS.api`
+sends every family to itself, upgrading changes nothing for them
+until they *also* point `apiUrl` at the packaged svc host — at which point the companions
+switch on and they are fully migrated. So after the SDK bump their migration really is the
+one env line `#425` claimed; the ticket was only wrong that no bump was needed.
 
 ### Not breaking
 
-- Consumers who explicitly pin `radfi.apiUrl` to `https://api.bound.exchange/api` keep
-  working unchanged until Bound retires it — the fallback sends every family to that one
-  host, exactly as today. This is what `#426` asked for as "keep `apiUrl` working for one
-  release", and the design gets it for free rather than as extra work.
-- signet/staging consumers: no `svc.`/`auth.` hosts exist there, they set `apiUrl` alone,
-  and the fallback preserves today's behaviour.
-- The backend: it sets its own URLs by env and calls two endpoints. `RADFI_AUTH_URL` is
-  additive, and an unset value falls back.
+These are now true by construction, not by convention:
+
+- **Any consumer who sets `radfi.apiUrl` explicitly** keeps working exactly as on the old
+  SDK: an `apiUrl` other than `BOUND_HOSTS.api` resolves all three hosts to itself,
+  which is precisely the old single-host behaviour. That covers the old host, signet,
+  staging, proxies and the backend. This is `#426`'s "keep `apiUrl` working for one
+  release", obtained for free.
+- **signet / staging** consumers: no `svc.`/`auth.` hosts exist there, they set `apiUrl`
+  alone, and every family follows it.
+- **The backend**: sets its URLs by env and calls two endpoints. `RADFI_AUTH_URL` is
+  additive; `RADFI_API_URL` alone is safe.
+- **Type surface**: additive optional fields only.
 
 ### Version semantics
 
 Additive types plus a default-host change. Under this repo's lockstep versioning that is a
 minor, not a major — but the release notes carry the weight, because the risky part is a
-*default* moving, not an API changing. Reviewer should decide whether the CSP item alone
-justifies calling it out as breaking in the changelog headline.
+*default* moving, not an API changing. The CSP item above is the one that deserves the
+changelog headline: it is the only failure a consumer cannot diagnose from our types.
 
 ## Step 0 — measure before writing code (blocking)
 
@@ -261,16 +437,17 @@ Now that the mapping is complete, Step 0 confirms **three** things:
 
 1. `auth.bound.exchange` serves the four `/auth/*` + `/wallets/*` routes.
 2. `api.radfi.co` serves the three `/transactions/*` routes.
-3. `svc.bound.exchange` serves `/sodax/*` — and, as a fallback check, still answers the
-   other families while the old host lives.
+3. `svc.bound.exchange` serves `/sodax/*` — and, as a fallback check, answers the other
+   families if a companion must be withheld.
 
 | Step 0 result | What ships |
 | --- | --- |
-| all three hosts serve their families | the full plan. Both new defaults set |
-| a host returns `ROUTE ABSENT` for its family | ship everything **except** that host's default value; the family falls back to `apiUrl`, where it is served today. Tell Bound |
+| all three hosts serve their families | the full plan, `BOUND_HOSTS` as written |
+| a companion host returns `ROUTE ABSENT`, and the same family is `route present` on `[SVC]` | point that `BOUND_HOSTS` entry at `BOUND_HOSTS.api` — the family then resolves to svc. Tell Bound |
+| a companion host returns `ROUTE ABSENT`, and `[SVC]` is absent too | block the migration for that family. Do not silently point it at svc; ask Bound, or consciously keep the old host if product accepts that temporary dependency |
 
-Either branch is a complete, shippable pass — the fallback is the same code with one
-config value withheld.
+The runtime routing shape does not change between outcomes: no `if`, no `switch`, no route
+matcher. Step 0 only decides the three values in `BOUND_HOSTS`.
 
 ## What recon settled
 
@@ -361,26 +538,49 @@ Branch off `main`: `feat/426-bound-svc-auth-hosts`.
 ### 1. Type — both copies
 
 Add `authUrl?: string` and `transactionsUrl?: string` to `RadfiConfig`
-(`sodax-config.ts:41-47`) and to the inline duplicate (`chains.ts:546-553`). Both optional,
-each documented as falling back to `apiUrl`.
+(`sodax-config.ts:41-47`) and to the inline duplicate (`chains.ts:546-553`). Both optional.
+
+Export `BOUND_HOSTS` and `DEPRECATED_BOUND_HOSTS` from `@sodax/types`. `BOUND_HOSTS` is the
+single place the packaged host set lives; keeping it out of the `chains.ts` default is what
+stops a partial override inheriting a companion. Document that intent where it is defined,
+not only here.
 
 ### 2. Routing — `RadfiProvider.ts`
 
-Add the `HOST_PREFIXES` table and `baseUrlFor()` from §Design. At `:657` replace
-`` `${this.config.apiUrl}${endpoint}` `` with `` `${this.baseUrlFor(endpoint)}${endpoint}` ``.
-Extend the constructor's trailing-slash strip (`:145-152`) to both new fields, following the
-optional shape already used for `umsUrl`. Leave the signer block (`:653-656`) alone.
+Add `BOUND_HOSTS` to `@sodax/types`, resolve `this.hosts` in
+the constructor per §Design, then change `request()` (`:650`) to take `host` as a
+**required first parameter** and prefix with `this.hosts[host]` at `:657`. Fold the `apiUrl` trailing-slash strip (`:145-152`) into that
+resolution rather than writing back into `this.config`; add an optional-strip helper for
+`authUrl` and `transactionsUrl`; leave the `umsUrl` strip as it is.
 
-**Pre-existing hazard, do not fix here:** the constructor does `this.config = config` then
-writes back into `this.config.apiUrl`, mutating the caller's object — the packaged
-`spokeChainConfig` singleton, since `deepMerge` shallow-copies untouched branches. The new
-fields follow the same pattern. Note it in the PR body so a reviewer does not read it as new.
+Making it required and first is the point: all eleven `this.request(...)` call sites stop
+compiling until each declares its host, so the compiler — not a test — enforces that every
+call is routed. Declare them per §Endpoint inventory: `'auth'` for the two `/auth/*` and two
+`/wallets*` calls, `'transactions'` for the five `/transactions*` calls, `'api'` for the two
+`/sodax/*` calls. Leave `getBalance` (`:310`) and `getExpiredUtxos` (`:431`) alone — they
+bypass `request()` and build from `umsUrl`, and there is deliberately no `'ums'` host member.
+Extend the constructor's trailing-slash strip (`:145-152`) to both new fields, following the
+optional shape already used for `umsUrl`. Keep signing semantics unchanged; using an
+optional signer call is fine if the request body is already being touched for routing.
+
+**Pre-existing hazard, partially cleaned here:** the constructor does `this.config = config`
+then writes back into `this.config.apiUrl` / `this.config.umsUrl`, mutating the caller's
+object — the packaged `spokeChainConfig` singleton, since `deepMerge` shallow-copies
+untouched branches. This PR should stop mutating `apiUrl` because the host map needs the
+stripped value anyway. Do not extend the mutation pattern to `authUrl` or `transactionsUrl`;
+they feed `explicitHosts` only. Leave the existing `umsUrl` write-back scoped out and note it
+in the PR body so a reviewer does not read it as new.
 
 ### 3. Packaged default — `chains.ts:863-869`
 
-Set `apiUrl` → svc, `authUrl` → auth, `transactionsUrl` → `https://api.radfi.co/api`.
-Leave `umsUrl`. **Each of the two new values is conditional on its Step 0 row** — omit any
-that came back `ROUTE ABSENT` and comment why, so the next reader does not "fix" it.
+Change exactly one value: `apiUrl` → `BOUND_HOSTS.api`. **Do not add `authUrl` or
+`transactionsUrl` here** — that is the whole point of §Why the default carries `apiUrl` only.
+Leave `umsUrl`. Add a comment saying the companions are resolved in `RadfiProvider` and why,
+so the next reader does not "helpfully" inline them.
+
+Step 0 gates the *values* in `BOUND_HOSTS`: if a companion host does not serve its family,
+point that entry at `BOUND_HOSTS.api` only after the `[SVC]` rows prove the same family is
+present there. Otherwise block that family and tell Bound.
 
 ### 4. Stale JSDoc
 
@@ -395,19 +595,29 @@ URL fetched, so they stay green through a total misroute.
 
 In `RadfiProvider.test.ts`:
 
-- **all three routed hosts set** — `/auth/authenticate`, `/auth/refresh-token`, `/wallets`,
-  `/wallets/details/:addr` → `authUrl`; `/transactions`, `/transactions/sign`,
-  `/transactions/max-spent` → `transactionsUrl`; `/sodax/transaction`,
-  `/sodax/transaction/sign` → `apiUrl`;
-- **each optional field omitted independently** — that family falls back to `apiUrl` while
-  the others keep their host. Three cases; this is what pins the Step-0 fallback branch;
-- **both omitted** — all nine hit `apiUrl`, byte-identical to today;
+- **packaged `apiUrl`, companions unset** — `/auth/*` and `/wallets*` → the table's `auth`;
+  `/transactions*` → `.transactions`; `/sodax/*` → `.api`. This is the shipped default;
+- **`apiUrl` overridden, companions unset** — *all nine* go to the overridden host. This is
+  the anti-straddle test and the most important case in the file. Cover it with the old host
+  (`https://api.bound.exchange/api`) and with a signet host;
+- **companions set explicitly** — honoured, including alongside an overridden `apiUrl`;
+- **per-host resolution** — `this.hosts.auth` and `this.hosts.transactions` resolve to the
+  explicit field, else the packaged companion, else `apiUrl`; `this.hosts.api` is `apiUrl`;
 - the signer fires on every routed host;
 - `getBalance` / `getExpiredUtxos` still bypass `request()`, hit `umsUrl`, stay unsigned —
-  this is what pins `/wallets/balance` out of the `/wallets` prefix;
-- trailing slashes stripped on both new fields.
+  this is what pins `/wallets/balance` on the UMS host;
+- trailing slashes stripped on all three fields, and a trailing-slash `apiUrl` still still makes `split` true (the strip runs before the comparison);
+- an **unknown** `apiUrl` resolves all three hosts to it — the anti-straddle property, and
+  the row that fails if someone reintroduces a packaged companion;
+- **the retirement guard** — `apiUrl` set to `https://api.bound.exchange/api` warns **once**,
+  names the replacement, and still routes (no throw); signet / staging / a proxy warn **not
+  at all**; an injected logger receives it instead of `console`.
 
-Plus a chains-config test pinning the packaged hosts as one environment set.
+Plus a chains-config test asserting the packaged default sets **only** `apiUrl` — it fails
+loudly if someone inlines the companions and reintroduces the straddle.
+
+No exhaustiveness test is needed: with `host` required on `request()`, an unrouted call does
+not compile.
 
 `baseConfig` (`RadfiProvider.test.ts:9-15`) is typed `: RadfiConfig`; the fields are
 optional, so no existing construction site needs touching.
@@ -417,9 +627,10 @@ optional, so no existing construction site needs touching.
 Edit the source only — `packages/sdk/docs/BITCOIN_INTEGRATION.md:11,62-63` — then
 `node scripts/sync-docs-pages.mjs` regenerates `docs/developers/how-to/bitcoin-integration.md`
 (mapping at `scripts/docs-pages-map.json:124-128`). Editing the `docs/` copy alone fails
-`.github/workflows/docs-drift.yml`. Document the override contract: all hosts or none, and
-that `api.radfi.co` is a different registrable domain — relevant to anyone with a CSP or
-egress allowlist.
+`.github/workflows/docs-drift.yml`. Document two things: that overriding `radfi.apiUrl`
+moves **every** family to that host unless the companions are set explicitly, and that the
+default set now includes `api.radfi.co`, a different registrable domain — relevant to
+anyone with a CSP `connect-src` or an egress allowlist written against `*.bound.exchange`.
 
 ### 7. apps/node — leave the URLs alone
 
@@ -482,8 +693,17 @@ return { secretKey, secretWord, ...apiUrl, ...authUrl, ...umsUrl };
 The new URL joins the refusal **inside** the check. Extend the comment at `:134-142` to say
 three URLs now straddle.
 
-Note `RADFI_UMS_URL` already configures a host the backend never calls (verified:
-`BitcoinSpokeService` has zero UMS references). Harmless and correct — leave it.
+Two notes:
+
+- **`RADFI_AUTH_URL` is optional, and omitting it is safe.** The refusal above is
+  all-or-nothing over *malformedness*, not over *presence* — a supplied `RADFI_API_URL` with
+  no `RADFI_AUTH_URL` simply omits the field. That would have straddled under the earlier
+  design; under §Why the default carries `apiUrl` only it resolves to the supplied `apiUrl`,
+  or to the packaged companion when `apiUrl` is still the packaged mainnet host. Setting it
+  explicitly in production is still recommended for legibility, and it is the escape hatch
+  if Bound ever needs the auth host to differ.
+- `RADFI_UMS_URL` already configures a host the backend never calls (verified:
+  `BitcoinSpokeService` has zero UMS references). Harmless and correct — leave it.
 
 ### 3. `config.class.ts` — swaps `:361-381`
 
@@ -570,8 +790,8 @@ bridge-api's `safeConfigForLog()` allowlist excludes it by construction.
 | --- | --- |
 | **CORS on `api.radfi.co`.** All three `/transactions/*` are browser calls with a user JWT, and `api.radfi.co` is a *different registrable domain*. Our own code records that radfi.co URLs once stopped answering and broke Bound sign-in (`intents-whitelabel/src/lib/rpc.ts:38-39`). Preflight cannot be tested from outside — all hosts gate `OPTIONS` with 403 | Ask Bound to confirm the origin allowlist matches `api.bound.exchange`. Test from a real browser on canary, step 3 above. **This is the highest-severity item in the plan** |
 | **`api.radfi.co` may itself be deprecated later.** Bound is retiring the newer brand host and sending this family to the older one — that reads as transitional | Ask before shipping. If it is transitional, consider leaving `transactionsUrl` unset and letting `/transactions/*` fall back to `apiUrl` until the destination is stable |
-| A host does not serve its family | Step 0 measures each independently; ship without that one default |
-| Consumer overrides `apiUrl` alone and straddles | Backend all-or-nothing; docs; chains-config test. Accepted |
+| A companion host does not serve its family | Step 0 measures each independently; point that `BOUND_HOSTS` entry at `.api` only if `[SVC]` proves the same family is present there. Otherwise block and tell Bound |
+| ~~Consumer overrides `apiUrl` alone and straddles~~ | **Eliminated by design** — the packaged default carries no companion hosts, so there is nothing to inherit. Pinned by a chains-config test and the anti-straddle routing tests |
 | The local `pnpm.overrides` reaches a PR | Pre-push diff check, called out in §Sequencing and §Verification |
 | `signet.`/`staging.` deprecated with no replacement | Unanswered by Bound — asked |
 | Whitelabel breaks first when the old host dies | Schedule its SDK bump against the deprecation date |
@@ -611,17 +831,12 @@ The mapping is complete; these three remain.
 
 ## Open decisions for the reviewer
 
-1. **A runtime straddle guard.** The packaged hosts are exported constants, so
-   `RadfiProvider` could detect "`apiUrl` overridden but the others still packaged values"
-   and fall back. Three lines, fail-safe, no new config surface — deliberately not built,
-   because it silently overrides a consumer who genuinely wants that combination. Four hosts
-   make the straddle likelier than two did; worth re-deciding.
-2. **Field naming.** `transactionsUrl` vs `txUrl`. Pick one, pin it in the docs.
-3. **CI host guard.** `.github/workflows/ci.yml:61-84` runs an ungated `private-hosts` grep.
+1. **Field naming.** `transactionsUrl` vs `txUrl`. Pick one, pin it in the docs.
+2. **CI host guard.** `.github/workflows/ci.yml:61-84` runs an ungated `private-hosts` grep.
    An `api.bound.exchange` guard would stop the old host creeping back, but should land only
    once it is deprecated. If added, simulate the grep locally before every push in that PR —
    a text guard can match its own documentation.
-4. **Observability.** `radfiFailureKind` (`apps/*/src/api/*/error-mapper.ts`) discriminates
+3. **Observability.** `radfiFailureKind` (`apps/*/src/api/*/error-mapper.ts`) discriminates
    only `service-credential` from `user-token`. A misrouted host returns the ALB's HTML
    `403`, surfacing as `RadfiApiError: … non-JSON response (HTTP 403)` and matching neither.
 

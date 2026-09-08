@@ -42,8 +42,10 @@ Bound completed the mapping on 2026-09-08: **four hosts**, `api.bound.exchange` 
 - [ ] **CORS verified from a real browser** on canary — `api.radfi.co` is a different
       registrable domain and all three `/transactions/*` calls are browser calls.
       Highest-severity item; the probe script cannot cover it.
-- [ ] #426 ships **two** new optional fields (`authUrl`, `transactionsUrl`) + three-way
-      prefix routing + the packaged defaults, each gated on its Step 0 row.
+- [ ] #426 ships **two** optional fields (`authUrl`, `transactionsUrl`), first-segment
+      host declared per call site, and `BOUND_HOSTS`. The packaged `chains.ts` default sets
+      **`apiUrl` only** — companions resolve in `RadfiProvider`, so a partial override
+      cannot straddle. Step 0 gates the values in that constant.
 - [ ] #1215 ships `RADFI_AUTH_URL` — **only that**; the backend calls 2 endpoints and never
       reaches `/api/transactions/*` or UMS. After the SDK release; coded in parallel
       against a locally-linked SDK with the override reverted before commit.

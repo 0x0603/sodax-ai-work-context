@@ -212,3 +212,80 @@ that a stale router is worse than none. Its load-bearing content (the Host-heade
 probe, the DNS table, the radfi-be guard citations, the method note about default branches)
 moved into `plan.md` §Appendix. `plan.md` is now the single artifact to review.
 
+### 2026-09-08 (review) — Codex review, and a design error it caught
+
+Five findings, all valid. Two were P1 and both were mine.
+
+**The straddle was not an acceptable risk — it falsified the plan's own claims.** When the
+design flipped to setting `authUrl` and `transactionsUrl` in the packaged `chains.ts`
+default, the fallback reasoning was never re-examined. It only ever held while the default
+left them unset. With them set, `deepMerge` hands a partial override the packaged mainnet
+companions, so "old-host / signet / staging / backend fall back unchanged" was false in
+every case, and the backend's "cannot straddle" mitigation was false too — that refusal is
+all-or-nothing over *malformedness*, not over *presence*, which the earlier adversarial
+audit had already flagged and this plan had not acted on.
+
+Fixed structurally rather than with a guard: the packaged default carries `apiUrl` only,
+the companions move to an exported `BOUND_COMPANION_HOSTS` lookup table, and
+`RadfiProvider` resolves them **only while `apiUrl` is still the packaged mainnet host**.
+Nothing is left in the merged config to leak, so no comparison heuristic, no "override all
+or none" doc contract, and no runtime guard are needed. The former Open-decision #1 is
+therefore deleted rather than answered.
+
+Also fixed: the probe script tested `GET /wallets` where the SDK calls **POST**
+(`RadfiProvider.ts:271`), and classified any 404 as ROUTE ABSENT — but `getTradingWallet`
+has an explicit "Trading wallet not found" branch (`:287-299`), so a live route can answer
+a JSON 404. It now reports `AMBIGUOUS json-404` and only treats Nest's `Cannot POST /path`
+as absence.
+
+P3 asked for segment-aware prefix matching. Went one step further on the user's prompt for
+a more general fix: routing now keys on the **first path segment** via a small map rather
+than scanning prefixes at all. `wallets-export` is a different key, so the collision class
+disappears instead of being guarded against — and the map reads 1:1 against Bound's own
+mapping table, which is what a reviewer diffs it against. Unmatched segments still fall
+through to `apiUrl` (that is what `/sodax/*` relies on), so an exhaustiveness test that
+walks all 11 endpoints was added to stop a newly added call routing silently.
+
+Method note: three of the five findings were things this session had the evidence for and
+had not connected — the audit had already surfaced the malformedness-vs-presence
+distinction. Recording a finding is not the same as propagating it through the claims that
+depend on it.
+
+**Routing reshaped again, on the user's question "why not separate the API per concern
+instead of checking HOST_BY_SEGMENT?"** The answer is that they were right. A path→host map
+is a derivation — a second source of truth to keep in sync — while declaring the host at the
+call site is a statement of fact. `request()` now takes a required `RadfiHost` first
+parameter.
+
+What that buys over the segment map: an unrouted call **fails to compile** rather than
+falling through to `apiUrl` silently (the map's one irreducible hole, since `/sodax/*` relies
+on that fall-through and it therefore cannot be made fail-closed); the `/wallets-export`
+collision class and the query-string parsing edge both stop existing; and the standing
+`/wallets/balance` landmine dissolves, because a refactor routing it through `request()` must
+name a host and there is no `'ums'` member.
+
+Cost is eleven call sites gaining one argument. `request()` is private with no caller outside
+the class, so no public API moves. Compile-time enforcement also removes the exhaustiveness
+test the map version needed — less code and a stronger guarantee, which is the tell that this
+was the right shape.
+
+**Branching removed on the user's push for something explicit and maintainable.** The
+resolve-once version still carried `api === BOUND_API_HOST ? companions : {auth: api, …}`,
+which reads as cleverness: you have to reason about *why* a URL is compared to a constant.
+
+Replaced with a lookup table keyed by api host plus a three-step `??` chain — explicit
+config, else the registered companion, else the api host itself. Host selection has no `if`,
+no `switch`, no ternary. Every property the design needs now falls out of that ordering
+instead of a rule someone has to remember, and maintenance became a data edit: Bound moving
+`/transactions/*` again is one string, and a future signet host set is one new row that
+needs no change to `RadfiProvider`.
+
+Follow-up review tightened that shape into the artifacts: stale "prefix routing" wording
+was removed, the broken Design code fence was fixed, and Step 0's fallback rule now requires
+the `[SVC]` probe rows to prove the same family is present before deleting a companion key.
+The host-routing implementation remains table lookup plus `??`; Step 0 changes data, not
+code.
+
+One type detail had to follow from that release-gate rule: `BOUND_COMPANION_HOSTS` cannot be
+typed as requiring both companion keys if Step 0 may withhold exactly one. The plan now uses
+optional `auth` / `transactions` keys under a `BoundCompanionHosts` type.
