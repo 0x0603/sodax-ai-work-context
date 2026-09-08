@@ -13,7 +13,7 @@ related_decisions: []
 Parent `icon-project/sodax-sdks#425`. Sub-issues: `sodax-sdks#426` (SDK),
 `sodax-backend#1215` (swaps-api + bridge-api).
 
-**Evidence: [`plan-evidence.md`](plan-evidence.md) · Probe: [`artifacts/probe-bound-hosts.sh`](artifacts/probe-bound-hosts.sh)**
+**Probe: [`artifacts/probe-bound-hosts.sh`](artifacts/probe-bound-hosts.sh) · Evidence: §Appendix**
 
 ## Goal
 
@@ -274,7 +274,7 @@ config value withheld.
 
 ## What recon settled
 
-Reproduction in [`plan-evidence.md`](plan-evidence.md).
+Reproduction in §Appendix.
 
 | # | Question | Answer |
 | --- | --- | --- |
@@ -624,3 +624,95 @@ The mapping is complete; these three remain.
 4. **Observability.** `radfiFailureKind` (`apps/*/src/api/*/error-mapper.ts`) discriminates
    only `service-credential` from `user-token`. A misrouted host returns the ALB's HTML
    `403`, surfacing as `RadfiApiError: … non-JSON response (HTTP 403)` and matching neither.
+
+## Appendix — evidence, and how to re-run it
+
+Everything below was measured, not assumed. Re-run any of it before trusting a claim.
+
+**Method.** Verify against the **default branch**, never the working tree.
+sodax-sdks is `main`; sodax-backend is `development` (`main` is the same commit
+`0dac3169`; there is no `develop`); Bound's `radfi-be` is `dev`, and the local clone at
+`~/Documents/GitHub/radfi-be` is stale at `c1c1e06` (2026-08-18) — read current source via
+`gh api repos/lydialabs/radfi-be/contents/<path>?ref=dev | base64 -d`.
+Do not use `git diff main...HEAD`: the three-dot form diffs from the merge base and hides
+everything `main` gained after the branch point.
+
+### The hosts are not one backend
+
+DNS puts `api`, `svc`, `auth` and `api.radfi.co` on one ALB
+(`prod-radfi-alb-ecs-419127908.us-east-1.elb.amazonaws.com`). That does **not** make them
+one backend. Pin an IP and vary only the `Host` header:
+
+```bash
+IP=3.215.246.204
+for h in api.radfi.co api.bound.exchange svc.bound.exchange auth.bound.exchange; do
+  printf "%-24s " "$h"
+  curl -s --resolve "$h:443:$IP" "https://$h/.well-known/jwks.json" -w " %{http_code}\n" | head -c 90
+done
+```
+
+| Host | `/.well-known/jwks.json` | Backend |
+| --- | --- | --- |
+| `api.radfi.co` | `404` NestJS | `radfi-be` |
+| `api.bound.exchange` | `404` NestJS | `radfi-be` |
+| `svc.bound.exchange` | `404` NestJS | `radfi-be` |
+| `auth.bound.exchange` | **`200`** ES256 key set | **a different service** |
+
+`radfi-be` sets `app.setGlobalPrefix('api')` (`src/main.ts:31`), so it cannot serve
+`/.well-known/*` — that 404 is `radfi-be` answering. This is what proves `api.radfi.co`
+and `svc` share a backend while `auth` does not.
+
+`/.well-known/jwks.json` is the **only** unauthenticated path that gets through. `/`,
+`/api`, `/health`, `/healthz` and every `/api/*` route return a gate `403` from outside,
+with or without browser headers — which is also why CORS cannot be tested from here.
+
+### DNS
+
+```bash
+for h in api.ums.bound.exchange svc.ums.bound.exchange auth.ums.bound.exchange \
+         signet.svc.bound.exchange signet.auth.bound.exchange \
+         staging.svc.bound.exchange staging.auth.bound.exchange; do
+  printf "%-30s " "$h"; dig +short "$h" | tr '\n' ' '; echo
+done
+```
+
+- `svc.ums`, `auth.ums`, `ums.bound.exchange` → **NXDOMAIN**. UMS does not split, and
+  `api.ums` is separate infra (nginx/Express, own IP) answering `200` unauthenticated.
+- `signet.svc`, `signet.auth`, `staging.svc`, `staging.auth` → **NXDOMAIN**. No split hosts
+  exist for testnet/staging; `signet.api.` and `staging.api.` still resolve.
+- `api.radfi.co` carries its own `*.radfi.co` certificate — a different registrable domain,
+  which is what makes the CSP item in §Breaking changes real.
+
+### Bound's source — `lydialabs/radfi-be` at `dev`
+
+- One monolith owns every prefix we call: `@Controller('auth')` (`auth.controller.ts:21`,
+  `authenticate` `:50`, `refresh-token` `:74`), `('wallets')` (`wallet.controller.ts:22`),
+  `('transactions')` (`transaction.controller.ts:33`), `('sodax')`
+  (`partner/sodax/sodax.controller.ts:29`).
+- `SodaxApiKeyGuard` is the only global `APP_GUARD` (`app.module.ts:203`) and a missing
+  `x-api-signature` means "not a partner, proceed" (`sodax-api-key.guard.ts:27-31`).
+- `TransactionRateLimitGuard` is **not** global — hand-applied on six controllers, none of
+  them `auth` or `wallets`. `SodaxRateLimitGuard` is opt-**in** on the partner flag
+  (`sodax-rate-limit.guard.ts:32-34`) and draws from one shared bucket
+  (`cache.constant.ts:31`). That is the basis for §Q4.
+- `docs/swagger/openapi-bound.yaml` lists 130 paths and declares one server,
+  `https://api.bound.exchange`. It is auto-generated and last regenerated **2026-07-03** —
+  before the auth-service split and before the domain-split announcement. A route
+  inventory, not evidence about hosts.
+
+### Our side
+
+- Every Bound HTTP call in the workspace is in `RadfiProvider.ts`: 13 call sites, 11
+  endpoints. `packages/` has no other caller; `sodax-backend` and `intents-whitelabel`
+  reach Bound only through the SDK.
+- `apps/node/src/bitcoin-radfi.ts` hand-builds 6 of the same paths with raw `fetch`
+  (`:214, :283, :374, :479, :539, :648, :748`) — a subset, no new endpoints.
+  `btc.ts:125` is the relayer, not Bound; `bitcoin-raw-intent-check.ts:102` is a logger
+  predicate.
+- `api.radfi.co` appears in **no** repo as an endpoint — only in a comment at
+  `intents-whitelabel/src/lib/rpc.ts:38-39` claiming the radfi.co URLs "no longer answer".
+  Measurably they do; that was almost certainly an allowlist change, and it is the reason
+  the CORS risk is not hypothetical.
+- `.changeset/` still exists on `origin/main` with one orphan file
+  (`add-lsoda-susds-vault.md`) — PR #407 removed changesets, PR #387 re-added it from a
+  branch cut before that. Nothing consumes it.

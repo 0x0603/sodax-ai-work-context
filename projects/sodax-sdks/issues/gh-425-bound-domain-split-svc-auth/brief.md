@@ -87,9 +87,9 @@ BTC withdraw from a browser on canary before trusting the migration.
 
 | Question | File | ~tok |
 | -------- | ---- | ---: |
-| The design, the steps, the risks, the Bound reply | `plan.md` | 8k |
+| The design, the steps, the risks, the Bound reply, the evidence | `plan.md` | 9k |
 | Full endpoint inventory: backend vs browser, per host | `plan.md` §Endpoint inventory | — |
-| Why any claim is true; commands to re-run | `plan-evidence.md` | 4.7k |
+| Why any claim is true; commands to re-run | `plan.md` §Appendix | — |
 | Step 0 itself | `artifacts/probe-bound-hosts.sh` | 1.6k |
 | Session log | `process.md` | 3k |
 | Bound's original mapping + the five questions as filed | GitHub #425 (body) | — |

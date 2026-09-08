@@ -204,3 +204,11 @@ Artifacts updated in this pass: `plan.md` rewritten for four hosts,
 `artifacts/probe-bound-hosts.sh` extended to probe `api.radfi.co` first for the
 `/transactions/*` family and to state that CORS is out of its reach, `brief.md` re-routed.
 
+**Folder consolidated.** `plan-evidence.md` was deleted, not archived: written for the
+two-host design, it stated at `:156` that Q1 was answered as "`/transactions/*` is
+radfi-be's, and svc reaches radfi-be" and never mentioned `api.radfi.co`. Two documents
+disagreeing about the same fact is worse than one document — and the brief's own rule is
+that a stale router is worse than none. Its load-bearing content (the Host-header JWKS
+probe, the DNS table, the radfi-be guard citations, the method note about default branches)
+moved into `plan.md` §Appendix. `plan.md` is now the single artifact to review.
+
