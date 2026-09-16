@@ -2,7 +2,7 @@
 type: process
 repo: sodax-sdks
 github: 378
-updated: 2026-08-24
+updated: 2026-08-25
 ---
 
 # Process
@@ -116,9 +116,121 @@ during attribution (unused imports are consequences of removal, fixed at the end
 - Oddity noted: the scratch branch ref pointed at ff345adac (an old main commit) at deletion —
   provably an ancestor of main with 0 unique commits, so nothing was lost; cause unknown.
 
+### Session 1f — 2026-08-25 (CI confirmation)
+
+- Final commit 2c40b3043 CI green: Build and Test pass (8m18s, run 32716193116); the log shows the
+  guard ran in all five packages (76/22/15/8/6 test files in the tsc program + 5× "cast comments ok").
+  Changeset check skips correctly via `no-changeset` label; title lint pass. Nothing left but review.
+
+## Session 2 — 2026-08-25 (full re-research: "research lại hết")
+
+- Branch gained **d6eb127b9** `test(wallet-sdk-core): guard test typechecking and tighten test casts`
+  — authored by the user's own account (login 0x0603, verified; author name "0xILTW") from the second
+  machine, with no context-repo session note. Strip-tested wallet-sdk-core's 17 casts (all
+  load-bearing, none deleted), converted `as any` → type-only annotations / `as never` / `CustomEvent`,
+  added why-comments, wired the shared guard; no baseline needed. CI green on that head
+  (run 32736448879, 14:04 UTC).
+- **Main advanced 6 commits** past merge-base 79659b891: NEAR RPC #397 (the user's other PR, merged),
+  2 dependabot bumps, speed-tier #280, x-api-key #394, ai-drift-check #365. #394 (15:21 UTC) and
+  #365 (19:41 UTC) landed AFTER that CI run — the green check does not cover current main. GitHub
+  now reports the PR **CONFLICTING / DIRTY**.
+- **Worktree merge probe** (scratchpad worktree, no commits, removed after): only conflict =
+  `packages/swaps-api/src/http.test.ts` (ours: 8× `vi.fn<typeof globalThis.fetch>` + instanceof
+  narrowing; main: apiguard-503 retry suite + renamed it-title + new imports). Resolved with main's
+  version + retyped vi.fn, then install + build + checkTs ×6: **types / wallet-sdk-core /
+  wallet-sdk-react OK; swaps-api 13, dapp-kit 12, sdk 1 = 26 tsc errors**, all in main's new tests,
+  all the familiar untyped-fetch `mock.calls` tuple pattern (client.test.ts ×10, _apiKeyWire ×8,
+  SodaxProvider ×4) + http.test.ts err-unknown ×3 (vanishes if our instanceof line is kept) +
+  BridgeService.test.ts:1159 `value: undefined` vs boolean.
+- Hidden behind the tsc failures: main added **6 undocumented `as unknown as`** in tests
+  (PartnerFeeClaimService.apiKeyWire.test.ts ×4, http.test.ts ×2 partial-Response stubs) — the
+  cast-comment guard will fail until they get why-comments. 4 new `as never` partial stubs are
+  guard-legal.
+- Coverage census: guard wired in all 6 test-bearing packages; `libs` has checkTs but **0 test
+  files** (guard wiring moot); `apps/node` has 6 test files but is pre-existing excluded from root
+  checkTs (`--filter=!./apps/node`) — apps out of issue scope. No `.spec.*` files, no tests outside
+  `src/`. Unswept never/any casts: dapp-kit 4, wallet-sdk-react 21 (sdk + wallet-sdk-core swept;
+  types/swaps-api/libs zero).
+- New `ai-drift-check` workflow (#365) triggers on synchronize and has never run on this PR (opened
+  before it landed); it will fire on the next push. PR edits 5 AGENTS.md files, all verified accurate
+  by the Claude-bot review, so expect pass; `no-ai-drift` label is the escape hatch.
+- Claude-bot PR review (user-triggered `@claude PR review`, Aug 24): re-ran builds/checkTs/tests
+  independently, **no blocking issues**; 3 cosmetic notes (same-line `//` heuristic looseness,
+  multi-line-cast blind spot, types' double typecheck cost) — deliberately not acted on.
+- Live working tree: mid-session the user switched to a new branch `fix/demo-staging-solver-submit`
+  (tracking origin/main) and staged `apps/demo/src/providers.tsx` (+5 lines: staging opt-out of
+  backend submit-tx) — untouched by us. `test/sdk-typecheck-tests` local ref was ff'd to d6eb127b9
+  before the switch. All probe work stayed in the scratch worktree.
+
+### Session 2b — 2026-08-25 (main merged + fixed, user: "fix đi")
+
+Done in scratch worktree `<scratchpad>/gh378-merge` with the REAL branch checked out (the user's main
+checkout stayed on their demo branch, by then 4 modified files, pushed to origin). Merge staged,
+**deliberately uncommitted** — commit/push waits for the user's explicit word.
+
+- `git merge --no-commit origin/main`: single conflict, `packages/swaps-api/src/http.test.ts` —
+  resolved as main's renamed it-title ('…on a plain 503') + our `vi.fn<typeof globalThis.fetch>`
+  typing. Everything else auto-merged, pnpm-lock included (we add no deps).
+- Correction to Session 2's estimate: http.test.ts's two `as unknown as Response` casts are the SAME
+  two grandfathered in the baseline (main only shifted their lines) — so only 4 casts needed
+  comments, not 6.
+- Fixes (all in main's pre-gate test files): typed fetch mocks at source — client.test.ts ×4
+  (`vi.fn<typeof globalThis.fetch>`), _apiKeyWire.test.ts fetchMock, SodaxProvider.test.ts fetchMock
+  (kills all 22 mock.calls tuple errors); BridgeService.test.ts sodaxKeyed verifyTxHash stub
+  `value: undefined` → `true`; PartnerFeeClaimService.apiKeyWire.test.ts 4 why-comments (comment
+  above EVM_WALLET; same-line markers on the ConfigService/HubProvider/SpokeService closers).
+- Gates in the worktree: pnpm i + build:packages OK; **checkTs OK ×7** (types libs swaps-api
+  wallet-sdk-core sdk dapp-kit wallet-sdk-react) with guards green — coverage grew to **sdk 80,
+  dapp-kit 28** test files (main's new files auto-covered); tests OK for swaps-api / dapp-kit / sdk;
+  root checkTs + full root test run kicked off after. Biome on the 6 edited files: our lines clean;
+  1 format error + 3 unused-suppression warnings are pre-existing inside #394's _apiKeyWire code —
+  left untouched to keep the merge diff minimal.
+- 6 files staged beyond the auto-merge: http.test.ts, client.test.ts, _apiKeyWire.test.ts,
+  SodaxProvider.test.ts, BridgeService.test.ts, PartnerFeeClaimService.apiKeyWire.test.ts (explicit
+  paths, never directories).
+- Commit plan when the user triggers: merge commit (all fixes folded in — an intermediate red merge
+  could not pass the husky hook anyway), default merge subject + short body listing the fix-ups;
+  English, no attribution, no issue refs.
+
 ### State at session end
 
 - `packages/sdk` checkTs: **0 errors** with all 76 test files included.
 - Biome on changed files: clean except 2 pre-existing warnings on main (noTemplateCurlyInString in BitcoinSpokeService.test.ts it-titles).
 - Diff audit: 0 new `as never` / `as any` / `@ts-*`; 14 documented `as unknown as` deliberate casts.
 - Unit suite re-run pending completion at write time; root checkTs/build after.
+
+## Session 3 — 2026-08-25 (dual-agent review findings verified + fixed)
+
+Bot comment 5406493167 (`R0bi7-sodax-worker`) on PR #395: 3 low findings. All
+three verified true in code; fixed 1 and 2 in the `gh378-merge` scratch worktree
+(on top of the still-staged main merge, left **unstaged** so the merge can be
+committed first, fixes as a separate commit):
+
+1. **Cast scanner gaps** (`scripts/check-tests-typechecked.mjs`) — `indexOf` once
+   per line missed 2nd+ casts; `//` inside a string after the cast counted as
+   documentation. Fixed: line-local quote-aware `commentStart` scanner, counts
+   every cast occurrence, casts after a real `//` are commented-out code. Scanner
+   extracted as exported `undocumentedCastLines` + `isMain` guard (check-doc-links
+   idiom). New `scripts/check-tests-typechecked.test.mjs` (6 cases) registered in
+   root `test:ci-scripts`. Verified: counts match baseline in all 6 packages
+   (no baseline churn — repo had no multi-cast lines or string-`//` masks).
+2. **Turbo cache blind to guard script** — `checkTs` cacheable, root `scripts/**`
+   not hashed. Fixed in `turbo.json`: `checkTs.inputs =
+   ["$TURBO_DEFAULT$", "$TURBO_ROOT$/scripts/check-tests-typechecked.mjs"]`
+   (turbo 2.9.14 supports `$TURBO_ROOT$`). Verified empirically: sdk checkTs
+   dry-run hash changes when the guard script changes.
+3. **`GetAddressType` maps NEAR→`Address`, Solana/Stellar→`Hex`**
+   (`packages/types/src/common/common.ts:84`) — factually correct but
+   pre-existing and a public-API change rippling through every service; left as
+   follow-up per the review's own disposition. NOT fixed in this PR.
+
+Verification: new tests 6/6, full `test:ci-scripts` 51/51, guard green e2e in
+swaps-api and types (incl. `--project` path), biome clean on the 4 changed files.
+
+### Session 3 addendum — committed and pushed
+
+User asked to commit + push. Merge commit `bbc4d6c70` (--no-edit), fixes commit
+`d41cf0fb7` (4 files, explicit paths staged). Pre-commit gate (checkTs + build +
+test, TURBO_CONCURRENCY=2) green both times. Pushed `d6eb127b9..d41cf0fb7`;
+PR flipped CONFLICTING → MERGEABLE (BLOCKED = review/CI pending). First-ever
+ai-drift-check run triggered on this push.

@@ -5,7 +5,7 @@ github: 330
 status: Blocked
 tags: [bitcoin, bound, radfi, inventory, config, proxy]
 updated: 2026-08-12
-related_issues: [gh-1024-bound-auth-email-provider]
+related_issues: [gh-1024-bound-auth-email-provider, gh-425-bound-domain-split-svc-auth]
 related_decisions: []
 ---
 

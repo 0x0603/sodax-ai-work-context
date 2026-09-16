@@ -3,8 +3,8 @@ type: brief
 repo: sodax-sdks
 github: 378
 status: Active
-next: await review on PR #395 (now whole-repo scope); on merge fill outcome.md and set status Done
-updated: 2026-08-24
+next: await human review on PR #395 (CI fully green); on merge fill outcome.md and set status Done
+updated: 2026-08-26
 ---
 
 # GH-378 Typecheck Test Files · brief
@@ -14,15 +14,16 @@ then opens exactly one row from the map below.**
 
 ## State in five lines
 
-- **PR open: https://github.com/icon-project/sodax-sdks/pull/395**, retitled `test: typecheck .test files in every package` — 5 commits (head 2c40b3043), `no-changeset` label, CI green through commit 4; commit 5 CI pending at last check.
-- ALL five packages now typecheck tests: sdk (138 errors fixed + 153-cast sweep) and types/swaps-api/dapp-kit/wallet-sdk-react (74 errors fixed; types via `tsconfig.check.json` since its tsc emits dist).
-- Shared guard `scripts/check-tests-typechecked.mjs` (repo root) wired into all five `checkTs` scripts: test-in-program assert + `as unknown as` why-comment ratchet with per-package shrink-only baselines.
-- 7-agent audit of the sdk half: 0 blockers/should-fix. Zero new escape hatches anywhere in the diff.
-- Follow-ups flagged in the PR body (not tracker issues): GetAddressType wart, swaps-api schema factory generics, wallet-sdk-react chainRegistry keying.
+- **PR open: https://github.com/icon-project/sodax-sdks/pull/395** — now 6 commits: head **d6eb127b9** extends the guard to wallet-sdk-core (17 casts tightened, no baseline), pushed by the user's own account from the second machine (author name "0xILTW", login 0x0603, verified).
+- **Conflict resolved and pushed** (2026-08-25): merge commit `bbc4d6c70` + review fixes `d41cf0fb7` pushed; PR is MERGEABLE (BLOCKED = awaiting review/CI). The `gh378-merge` scratch worktree no longer holds unique state and is disposable.
+- Merged-tree probe (2026-08-25): **26 tsc errors** in main's new tests — swaps-api 13 (client.test.ts 10, http.test.ts 3), dapp-kit 12 (_apiKeyWire 8, SodaxProvider 4), sdk 1 (BridgeService.test.ts:1159) — plus **6 undocumented `as unknown as`** the cast-comment guard will reject (PartnerFeeClaimService.apiKeyWire ×4, http.test.ts ×2).
+- Guard now wired in all 6 test-bearing packages (sdk 76 / dapp-kit 22 / wallet-sdk-react 15 / types 8 / swaps-api 6 / wallet-sdk-core 10 test files); libs has 0 tests; apps out of scope. Unswept never/any casts remain only in dapp-kit (4) and wallet-sdk-react (21).
+- Claude-bot PR review (user-triggered): no blockers, 3 cosmetic notes, no action needed. Human review still pending (REVIEW_REQUIRED).
+- Dual-agent bot review (comment 5406493167): 3 low findings, all verified true. #1 (cast-scanner gaps) and #2 (Turbo cache missing guard script) **fixed, unstaged in the worktree** (see process.md Session 3); #3 (`GetAddressType` NEAR/Solana/Stellar mismatch) is pre-existing public-API scope — left as follow-up.
 
 ## Next action
 
-Await review on PR #395. On merge: fill `outcome.md`, set `status: Done` here. The PR body already carries the two out-of-scope notes (GetAddressType wart, sibling packages' exclude-gap).
+Merge + review fixes pushed (`bbc4d6c70`, `d41cf0fb7`); **CI fully green on head `d41cf0fb7`** — including the first-ever ai-drift-check run (pass, 2m47s) and Build and Test (pass, 7m59s); E2E and changeset skipped as designed. Only human review remains (REVIEW_REQUIRED). On merge: fill `outcome.md`, set `status: Done`. Follow-up candidate (not tracked as an issue per convention): `GetAddressType` NEAR/Solana/Stellar mismatch, see process.md Session 3.
 
 ## Map
 

@@ -4,7 +4,7 @@ repo: sodax-sdks
 github: 425
 status: Active
 next: Run artifacts/probe-bound-hosts.sh from canary (Step 0), then browser-test CORS on api.radfi.co
-updated: 2026-09-08
+updated: 2026-09-09
 ---
 
 # GH-425 Bound Domain Split · brief
@@ -75,7 +75,8 @@ BTC withdraw from a browser on canary before trusting the migration.
 
 ## Settled — do not re-litigate
 
-- **One pass**, two PRs, one per repo. Do not stack PR 2 on #1097's branch.
+- **One pass**, two PRs, one per repo. PR 2 branches from `development` — #1097 merged
+  2026-09-09, so there is no longer a branch to stack on, and no reason to.
 - **SDK ships first**, but PR 2 is coded in parallel against a locally-linked SDK via
   `pnpm.overrides`. **Revert the override before committing.**
 - **Both new fields are optional, and the packaged default sets neither.** Overriding
@@ -110,10 +111,15 @@ verification contradicted. Prefer `plan.md`.
 
 ## Landmines
 
-- **Verify against the default branch, never the working tree.** `sodax-backend` is checked
-  out on PR #1097's branch, where bridge-api has Radfi config it does **not** have on
-  `development`. `git diff main...HEAD` also hides commits `main` gained after the branch
-  point — that is how an earlier pass wrongly concluded `.changeset/` was gone.
+- **Verify against the default branch, never the working tree.** `git diff main...HEAD` hides
+  commits `main` gained after the branch point — that is how an earlier pass wrongly concluded
+  `.changeset/` was gone. Note the local `sodax-backend` checkout is still parked on
+  `feat/bridge-api-bound-auth-usdt-approve` **with an uncommitted change**, so the working tree
+  is not `development` even now that the branch has merged.
+- **bridge-api's Radfi config is now ON `development`** — #1097 merged 2026-09-09
+  (`9d3d8b06`). An earlier version of this brief said the opposite, which was true only while
+  that PR was open. PR 2 (sodax-backend#1215) therefore branches from `development` and finds
+  both apps already wired.
 - **The local `pnpm.overrides` must never reach a PR.** Check
   `git diff origin/development -- package.json` before every push.
 - **`radfiEndpointOverride`'s `field` param is typed `'apiUrl' | 'umsUrl'`** — widen it.
