@@ -2,9 +2,10 @@
 type: brief
 repo: sodax-sdks
 github: 741
+related_issues: [753]
 status: Active
-next: PR #405 open (fix/audit-741-quick-wins, 8 commits). Await review; @R0bi7 to confirm relayData + bnUSD product question.
-updated: 2026-08-27
+next: Pass 2/3 delta now has its own issue — ICON-Projects-Planning#753 (43 items, 49 checkboxes, Batches F/G/H/CI). Bot-review-2 R1 has LANDED (`7f287f56b`, encodeTokenIdentifier + BOT-R1 tests), so it no longer blocks. Front of queue: finish the remaining bot-review-2 replies, then work #753 Batch F starting at P2-1 — see plan-pass23.md and #753.
+updated: 2026-09-03
 ---
 
 # GH-741 Security Audit Review · brief
@@ -26,11 +27,22 @@ effective is 0 High / 15 Medium. Full assessment + per-finding table in
 
 ## Next action
 
-On branch `fix/audit-741-quick-wins` (5 deps commits pushed: axios, ws,
-protobufjs, next, bigint-patch). Still to do: (1) switch bigint patch → alias
-`@trufflesuite/bigint-buffer@1.1.10` (D-007), (2) #6 CI token scope, then #7-#10
-code fixes. Separately: post the sign-off comment (`review-comment.md`) — user
-posts. All decisions logged in `decisions.md`.
+On branch `fix/audit-741-quick-wins` (PR #405, 16 commits @ `a97059d49`;
+hardening 7/7 complete; ICONEX bot-review parcel D-021 uncommitted in tree).
+Bot review 2 (comment 5441564727, "Request changes") verified 2026-08-28 via
+`wf_2cbcbf78`: R1 correct+blocking (our 6d321f36a broke Bitcoin/Injective/
+native-NEAR deposit simulation — token identifiers hit the new recipient
+validators; fix = encodeTokenIdentifier split), R2 already fixed in the
+uncommitted D-021 parcel, R3 partially correct (pre-existing #1137 — reply,
+follow-up), R4 correct (deliberate D-019 scope; approve is the single approval
+funnel — S fix, user call), R5 correct (refutes D-020's raw-conditions claim;
+S fix). Details + reply pack in **`plan-pass23.md`** §"Bot review 2". Then the
+Pass 2/3 delta batches (same file, `wf_67271d66`, 32/33 confirmed): Batch F
+(fund-loss: P2-1, P2-4, CORR-1, P2-3, N1) → Batch G (packages) → Batch H
+(apps) → Batch CI (confirm scope first) → consolidated admin follow-up
+comment. Same PR per D-014, one item per confirm cycle; PR body
+table gains a "Pass 2/3" section. Separately: post the sign-off comment
+(`review-comment.md`) — user posts. Decisions in `decisions.md` (next: D-031).
 
 ## Deferred — do not start without a fresh decision
 
@@ -58,6 +70,8 @@ posts. All decisions logged in `decisions.md`.
 
 | Question | File | ~tok |
 | -------- | ---- | ---: |
+| Pass 2/3 delta triage: duplicate-vs-new + execution batches for PR #405 | `plan-pass23.md` | ~3k |
+| Pass 2/3 as a trackable checklist (43 items, stale corrections, fund-loss order) | [#753](https://github.com/icon-project/ICON-Projects-Planning/issues/753) | — |
 | What shipped (PR #405 tables) + full verdicts + fix recommendation | `outcome.md` | ~5k |
 | Decisions made while implementing fixes | `decisions.md` | ~0.6k |
 | The issue itself, AC, report links | `issue.md` | ~0.5k |

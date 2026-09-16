@@ -203,6 +203,12 @@ verify) are correctly Low because no signing/fund path gates on those values.
 
 ## Fix recommendation (fix or not)
 
+> **Status snapshot 2026-08-27** (PR #405, 13 commits): 🟢 8/10 shipped, 2
+> deferred (M-4 bigint→D-008, bnUSD M-1→D-012). 🔵 5/7 shipped — secrets:M-2
+> `8db565497`, secrets:M-1 `aeab1dd80`, secrets:H-3 `2e216a5f2`, crosschain:M-4
+> `c0c2d0354`, bridge-migration:M-2 `6d321f36a`; remaining: intent-fund-flow
+> M-1 + M-2. 🟠 0/4 — raise in the PR thread. Details per commit: `decisions.md`.
+
 Legend: 🟢 fix now (cheap + verified-real) · 🔵 should fix (hardening, not urgent) ·
 🟠 split into its own issue (architecture decision / cross-repo) · ⚪ optional
 (defense-in-depth / usage-dependent) · ⚫ no action (already fixed / refuted /
@@ -240,9 +246,9 @@ doc-only).
 | ID | Note | Effort |
 | --- | --- | --- |
 | swap:M-1 | biggest finding. Min: tighten schemas 0.5d. Full decode-and-verify is an architecture decision | 4-6d (0.5d min) |
-| dapp-kit:M-1 | move tokens out of localStorage SDK-side; true logout-revoke needs Bound server | 0.5-1d + server |
-| wallet-sdk-core:M-1 | domain-separate login message fast; replay-proofing needs server nonce | 1h + server |
-| wallet-react-store:M-1 | re-verify address on rehydrate (BTC/NEAR/STACKS) | 1-3d |
+| dapp-kit:M-1 | ~~move tokens out of localStorage~~ **downgraded → ⚪ (D-022)**: 10-min/7-day TTLs, tokens are view/initiate-only, fund moves gated by user-wallet multisig | — |
+| wallet-sdk-core:M-1 | ~~domain-separate login message~~ **accepted, won't fix (D-023)**: Bound's design, not ours to change; multisig caps the residual | — |
+| wallet-react-store:M-1 | ~~re-verify on rehydrate~~ **won't fix (D-023)**: display-only spoof, no fund loss; rework risks breaking reconnect UX | — |
 
 ### ⚪ Optional — defense-in-depth / usage-dependent
 

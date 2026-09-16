@@ -1,0 +1,377 @@
+diff --git a/packages/dapp-kit/src/hooks/swapsApi/useSwapsApiApproveAndBroadcast.test.ts b/packages/dapp-kit/src/hooks/swapsApi/useSwapsApiApproveAndBroadcast.test.ts
+index 7a3c20273..c5ebce538 100644
+--- a/packages/dapp-kit/src/hooks/swapsApi/useSwapsApiApproveAndBroadcast.test.ts
++++ b/packages/dapp-kit/src/hooks/swapsApi/useSwapsApiApproveAndBroadcast.test.ts
+@@ -11,6 +11,7 @@
+ import { ChainKeys } from '@sodax/sdk';
+ import type { ApprovalProgress } from '../../utils/approvalPlan.js';
+ import { beforeEach, describe, expect, it, vi } from 'vitest';
++import { encodeFunctionData, erc20Abi } from 'viem';
+ 
+ const approve = vi.fn();
+ const invalidateQueries = vi.fn();
+@@ -19,7 +20,16 @@ const invalidateQueries = vi.fn();
+ let captured: any;
+ 
+ vi.mock('../shared/useSodaxContext.js', () => ({
+-  useSodaxContext: () => ({ sodax: { api: { swaps: { approve } } } }),
++  useSodaxContext: () => ({
++    sodax: {
++      api: { swaps: { approve } },
++      // The semantic verification resolves the expected spender from the same config SwapService uses.
++      config: {
++        solver: { intentsContract: SPENDER },
++        getChainConfig: () => ({ addresses: { assetManager: SPENDER } }),
++      },
++    },
++  }),
+ }));
+ vi.mock('@tanstack/react-query', () => ({ useQueryClient: () => ({ invalidateQueries }) }));
+ vi.mock('../shared/useSafeMutation.js', () => ({
+@@ -32,12 +42,25 @@ vi.mock('../shared/useSafeMutation.js', () => ({
+ 
+ const { useSwapsApiApproveAndBroadcast } = await import('./useSwapsApiApproveAndBroadcast.js');
+ 
+-const RESET_TX = { from: '0x1', to: '0x2', value: 0n, data: '0xreset' };
+-const APPROVE_TX = { from: '0x1', to: '0x2', value: 0n, data: '0xapprove' };
++// Verification-valid fixtures: the hook now decodes these before broadcasting (SWAP-M-1).
++const TOKEN = '0x2222222222222222222222222222222222222222';
++const SPENDER = '0x3333333333333333333333333333333333333333';
++const RESET_TX = {
++  from: '0x1111111111111111111111111111111111111111',
++  to: TOKEN,
++  value: 0n,
++  data: encodeFunctionData({ abi: erc20Abi, functionName: 'approve', args: [SPENDER, 0n] }),
++};
++const APPROVE_TX = {
++  from: '0x1111111111111111111111111111111111111111',
++  to: TOKEN,
++  value: 0n,
++  data: encodeFunctionData({ abi: erc20Abi, functionName: 'approve', args: [SPENDER, 1n] }),
++};
+ const RESET_HASH = '0xreset-hash';
+ const APPROVE_HASH = '0xapprove-hash';
+ 
+-const body = (srcChainKey: string) => ({ srcChainKey, inputToken: '0xtoken', inputAmount: '1' });
++const body = (srcChainKey: string) => ({ srcChainKey, inputToken: TOKEN, inputAmount: '1' });
+ 
+ /**
+  * Records the interleaving of sends and waits so ordering can be asserted, not assumed.
+@@ -47,7 +70,7 @@ function evmProvider(calls: string[], onWait?: (hash: string) => string | void)
+   return {
+     sendTransaction: vi.fn(async (tx: { data: string }) => {
+       calls.push(`send:${tx.data}`);
+-      return tx.data === '0xreset' ? RESET_HASH : APPROVE_HASH;
++      return tx.data === RESET_TX.data ? RESET_HASH : APPROVE_HASH;
+     }),
+     waitForTransactionReceipt: vi.fn(async (hash: string) => {
+       calls.push(`wait:${hash}`);
+@@ -77,7 +100,12 @@ describe('useSwapsApiApproveAndBroadcast', () => {
+ 
+     expect(result).toEqual({ resetTxHash: RESET_HASH, approveTxHash: APPROVE_HASH });
+     // The wait has to sit between the two sends; approving over an unconfirmed reset reverts.
+-    expect(calls).toEqual(['send:0xreset', `wait:${RESET_HASH}`, 'send:0xapprove', `wait:${APPROVE_HASH}`]);
++    expect(calls).toEqual([
++      `send:${RESET_TX.data}`,
++      `wait:${RESET_HASH}`,
++      `send:${APPROVE_TX.data}`,
++      `wait:${APPROVE_HASH}`,
++    ]);
+   });
+ 
+   it('never sends the approve when the reset fails to confirm', async () => {
+@@ -91,7 +119,7 @@ describe('useSwapsApiApproveAndBroadcast', () => {
+ 
+     // A retry is cheap — the allowance is untouched, so the next plan is a single transaction.
+     expect(walletProvider.sendTransaction).toHaveBeenCalledTimes(1);
+-    expect(calls).toEqual(['send:0xreset', `wait:${RESET_HASH}`]);
++    expect(calls).toEqual([`send:${RESET_TX.data}`, `wait:${RESET_HASH}`]);
+   });
+ 
+   it('never sends the approve when the reset is mined but reverts', async () => {
+@@ -106,7 +134,7 @@ describe('useSwapsApiApproveAndBroadcast', () => {
+     );
+ 
+     expect(walletProvider.sendTransaction).toHaveBeenCalledTimes(1);
+-    expect(calls).toEqual(['send:0xreset', `wait:${RESET_HASH}`]);
++    expect(calls).toEqual([`send:${RESET_TX.data}`, `wait:${RESET_HASH}`]);
+   });
+ 
+   it('reports a reverted approve, whichever spelling of the status the provider returns', async () => {
+diff --git a/packages/dapp-kit/src/hooks/swapsApi/useSwapsApiApproveAndBroadcast.ts b/packages/dapp-kit/src/hooks/swapsApi/useSwapsApiApproveAndBroadcast.ts
+index 990284175..a175f645d 100644
+--- a/packages/dapp-kit/src/hooks/swapsApi/useSwapsApiApproveAndBroadcast.ts
++++ b/packages/dapp-kit/src/hooks/swapsApi/useSwapsApiApproveAndBroadcast.ts
+@@ -11,6 +11,9 @@ import { unwrapResult } from '../shared/unwrapResult.js';
+ import type { MutationHookParams } from '../shared/types.js';
+ import { useSafeMutation, type SafeUseMutationResult } from '../shared/useSafeMutation.js';
+ import { runApprovalPlan, type ApprovalHashes, type ApprovalProgressListener } from '../../utils/approvalPlan.js';
++import { verifyEvmApprovalPlan } from '../../utils/verifyEvmApprovalPlan.js';
++import { isEvmSpokeOnlyChainKeyType, isHubChainKeyType } from '@sodax/sdk';
++import type { Address } from 'viem';
+ 
+ /** Hashes of the transactions this hook broadcast, in the order they were sent. */
+ export type SwapsApiApprovalHashes = ApprovalHashes;
+@@ -62,9 +65,22 @@ export const useSwapsApiApproveAndBroadcast = <K extends SpokeChainKey = SpokeCh
+     mutationFn: async ({ body, walletProvider, apiConfig, onProgress }): Promise<SwapsApiApprovalHashes> => {
+       const plan: ApproveResponseV2 = unwrapResult(await sodax.api.swaps.approve(body, apiConfig));
+ 
++      const srcChainKey = body.srcChainKey as SpokeChainKey;
++      // Backend-built EVM txs are verified semantically before any signature (SWAP-M-1);
++      // the expected spender comes from the same config the local SwapService approve uses.
++      if (isHubChainKeyType(srcChainKey) || isEvmSpokeOnlyChainKeyType(srcChainKey)) {
++        verifyEvmApprovalPlan(plan, {
++          token: body.inputToken as Address,
++          spender: isHubChainKeyType(srcChainKey)
++            ? (sodax.config.solver.intentsContract as Address)
++            : (sodax.config.getChainConfig(srcChainKey).addresses.assetManager as Address),
++          inputAmount: BigInt(body.inputAmount),
++        });
++      }
++
+       return runApprovalPlan({
+         plan,
+-        srcChainKey: body.srcChainKey as SpokeChainKey,
++        srcChainKey,
+         walletProvider,
+         hookName: 'useSwapsApiApproveAndBroadcast',
+         onProgress,
+diff --git a/packages/dapp-kit/src/utils/verifyEvmApprovalPlan.test.ts b/packages/dapp-kit/src/utils/verifyEvmApprovalPlan.test.ts
+new file mode 100644
+index 000000000..ec495e606
+--- /dev/null
++++ b/packages/dapp-kit/src/utils/verifyEvmApprovalPlan.test.ts
+@@ -0,0 +1,75 @@
++/**
++ * verifyEvmApprovalPlan must reject every way a hostile backend could bend an approval plan
++ * (SWAP-M-1) while passing exactly what a legitimate backend builds.
++ */
++import { describe, expect, it } from 'vitest';
++import { type Address, encodeFunctionData, erc20Abi, maxUint256 } from 'viem';
++import { verifyEvmApprovalPlan } from './verifyEvmApprovalPlan.js';
++
++const TOKEN = '0x2222222222222222222222222222222222222222' as Address;
++const SPENDER = '0x3333333333333333333333333333333333333333' as Address;
++const ATTACKER = '0x4444444444444444444444444444444444444444' as Address;
++const USER = '0x1111111111111111111111111111111111111111' as Address;
++
++const expected = { token: TOKEN, spender: SPENDER, inputAmount: 1_000n };
++
++const approveTx = (spender: Address, amount: bigint, overrides: object = {}) => ({
++  from: USER,
++  to: TOKEN,
++  value: 0n,
++  data: encodeFunctionData({ abi: erc20Abi, functionName: 'approve', args: [spender, amount] }),
++  ...overrides,
++});
++
++describe('verifyEvmApprovalPlan', () => {
++  it('passes a legitimate exact-amount approve', () => {
++    expect(() => verifyEvmApprovalPlan({ tx: approveTx(SPENDER, 1_000n) }, expected)).not.toThrow();
++  });
++
++  it('passes a max-uint approve and a zeroing resetTx', () => {
++    expect(() =>
++      verifyEvmApprovalPlan({ tx: approveTx(SPENDER, maxUint256), resetTx: approveTx(SPENDER, 0n) }, expected),
++    ).not.toThrow();
++  });
++
++  it('rejects an approve to an attacker spender', () => {
++    expect(() => verifyEvmApprovalPlan({ tx: approveTx(ATTACKER, 1_000n) }, expected)).toThrow(/spender/);
++  });
++
++  it('rejects a tx targeting a different token contract', () => {
++    expect(() => verifyEvmApprovalPlan({ tx: approveTx(SPENDER, 1_000n, { to: ATTACKER }) }, expected)).toThrow(
++      /input token/,
++    );
++  });
++
++  it('rejects non-approve calldata (e.g. transfer)', () => {
++    const transferTx = approveTx(SPENDER, 1_000n, {
++      data: encodeFunctionData({ abi: erc20Abi, functionName: 'transfer', args: [ATTACKER, 1_000n] }),
++    });
++    expect(() => verifyEvmApprovalPlan({ tx: transferTx }, expected)).toThrow(/instead of approve/);
++  });
++
++  it('rejects unknown calldata', () => {
++    expect(() => verifyEvmApprovalPlan({ tx: approveTx(SPENDER, 1_000n, { data: '0xdeadbeef' }) }, expected)).toThrow(
++      /not a known ERC-20 call/,
++    );
++  });
++
++  it('rejects an approve below the input amount', () => {
++    expect(() => verifyEvmApprovalPlan({ tx: approveTx(SPENDER, 999n) }, expected)).toThrow(/below the input amount/);
++  });
++
++  it('rejects a resetTx that does not zero the allowance', () => {
++    expect(() =>
++      verifyEvmApprovalPlan({ tx: approveTx(SPENDER, 1_000n), resetTx: approveTx(ATTACKER, maxUint256) }, expected),
++    ).toThrow(/resetTx/);
++  });
++
++  it('rejects a tx that attaches native value to the approve', () => {
++    expect(() => verifyEvmApprovalPlan({ tx: approveTx(SPENDER, 1_000n, { value: 5n }) }, expected)).toThrow(/value/);
++  });
++
++  it('rejects a non-EVM-shaped tx', () => {
++    expect(() => verifyEvmApprovalPlan({ tx: { payload: 'xx' } as never }, expected)).toThrow(/not an EVM transaction/);
++  });
++});
+diff --git a/packages/dapp-kit/src/utils/verifyEvmApprovalPlan.ts b/packages/dapp-kit/src/utils/verifyEvmApprovalPlan.ts
+new file mode 100644
+index 000000000..9531bf21b
+--- /dev/null
++++ b/packages/dapp-kit/src/utils/verifyEvmApprovalPlan.ts
+@@ -0,0 +1,65 @@
++import type { EvmRawTransaction, RawTxReturnType } from '@sodax/sdk';
++import { type Address, decodeFunctionData, erc20Abi, type Hex, isAddressEqual } from 'viem';
++import type { ApprovalPlan } from './approvalPlan.js';
++
++/** What the user actually asked to approve — the only thing the backend's txs may express. */
++export type ExpectedEvmApproval = {
++  /** ERC-20 the user is paying with — every plan tx must target it. */
++  token: Address;
++  /** The only contract allowed to become the spender (config-derived, same source as SwapService). */
++  spender: Address;
++  /** The approve amount must cover the swap input. */
++  inputAmount: bigint;
++};
++
++/**
++ * Fail-closed semantic check of a backend-built EVM approval plan before anything is signed:
++ * a compromised or mis-pointed Swaps/Bridge API must not be able to have the user's wallet
++ * sign `approve(attacker, …)` or any non-approve calldata (SWAP-M-1).
++ */
++export function verifyEvmApprovalPlan(plan: ApprovalPlan, expected: ExpectedEvmApproval): void {
++  if (plan.resetTx !== undefined) verifyApproveTx(plan.resetTx, expected, 'resetTx', 0n);
++  verifyApproveTx(plan.tx, expected, 'tx', undefined);
++}
++
++function verifyApproveTx(
++  raw: RawTxReturnType,
++  expected: ExpectedEvmApproval,
++  label: 'tx' | 'resetTx',
++  exactAmount: bigint | undefined,
++): void {
++  const tx = raw as Partial<EvmRawTransaction>;
++  if (typeof tx.to !== 'string' || typeof tx.data !== 'string') {
++    throw new Error(`[approvalPlan] backend ${label} is not an EVM transaction`);
++  }
++  if (!isAddressEqual(tx.to as Address, expected.token)) {
++    throw new Error(`[approvalPlan] backend ${label} targets ${tx.to} instead of the input token ${expected.token}`);
++  }
++  if ((tx.value ?? 0n) !== 0n) {
++    throw new Error(`[approvalPlan] backend ${label} attaches value ${tx.value} to an ERC-20 approve`);
++  }
++
++  let decoded: ReturnType<typeof decodeFunctionData<typeof erc20Abi>>;
++  try {
++    decoded = decodeFunctionData({ abi: erc20Abi, data: tx.data as Hex });
++  } catch {
++    throw new Error(`[approvalPlan] backend ${label} calldata is not a known ERC-20 call`);
++  }
++  if (decoded.functionName !== 'approve') {
++    throw new Error(`[approvalPlan] backend ${label} calls ${decoded.functionName} instead of approve`);
++  }
++
++  const [spender, amount] = decoded.args as readonly [Address, bigint];
++  if (!isAddressEqual(spender, expected.spender)) {
++    throw new Error(`[approvalPlan] backend ${label} approves spender ${spender}, expected ${expected.spender}`);
++  }
++  if (exactAmount !== undefined) {
++    if (amount !== exactAmount) {
++      throw new Error(`[approvalPlan] backend ${label} must zero the allowance but approves ${amount}`);
++    }
++  } else if (amount < expected.inputAmount) {
++    throw new Error(
++      `[approvalPlan] backend ${label} approves ${amount}, below the input amount ${expected.inputAmount}`,
++    );
++  }
++}
+diff --git a/packages/swaps-api/src/rawTxSchemas.test.ts b/packages/swaps-api/src/rawTxSchemas.test.ts
+index 7a00a118b..6b8c6b8dc 100644
+--- a/packages/swaps-api/src/rawTxSchemas.test.ts
++++ b/packages/swaps-api/src/rawTxSchemas.test.ts
+@@ -31,13 +31,25 @@ describe('EvmRawTxSchema', () => {
+     const { data, ...incomplete } = evmTxWire;
+     expect(v.safeParse(EvmRawTxSchema, incomplete).success).toBe(false);
+   });
++
++  // The old bare `typeof === 'string'` scalars let any string pass as an address or calldata —
++  // a hostile backend response must fail the parse, not reach the wallet (SWAP-M-1).
++  it.each([
++    ['non-address to', { ...evmTxWire, to: 'attacker' }],
++    ['short to', { ...evmTxWire, to: '0x1234' }],
++    ['over-length to', { ...evmTxWire, to: `0x${'1'.repeat(41)}` }],
++    ['non-hex data', { ...evmTxWire, data: 'not-calldata' }],
++    ['odd-length hex data', { ...evmTxWire, data: '0xabc' }],
++  ])('rejects malformed wire scalars (%s)', (_label, wire) => {
++    expect(v.safeParse(EvmRawTxSchema, wire).success).toBe(false);
++  });
+ });
+ 
+ describe('InjectiveRawTxSchema', () => {
+   it('rebuilds index-object bytes into a Uint8Array and converts accountNumber to bigint', () => {
+     const parsed = v.parse(InjectiveRawTxSchema, {
+-      from: '0xfrom',
+-      to: '0xto',
++      from: '0x1111111111111111111111111111111111111111',
++      to: '0x2222222222222222222222222222222222222222',
+       signedDoc: {
+         bodyBytes: { '0': 1, '1': 2, '2': 255 },
+         authInfoBytes: { '0': 9 },
+@@ -52,8 +64,8 @@ describe('InjectiveRawTxSchema', () => {
+ 
+   it('orders bytes by ascending numeric key regardless of insertion order', () => {
+     const parsed = v.parse(InjectiveRawTxSchema, {
+-      from: '0xfrom',
+-      to: '0xto',
++      from: '0x1111111111111111111111111111111111111111',
++      to: '0x2222222222222222222222222222222222222222',
+       signedDoc: {
+         bodyBytes: { '2': 3, '0': 1, '1': 2 }, // scrambled insertion order
+         authInfoBytes: { '0': 0 },
+@@ -68,8 +80,8 @@ describe('InjectiveRawTxSchema', () => {
+     // Uint8Array.from would silently map 300→44, -1→255, 3.7→3; the byte-range gate fails the parse.
+     for (const bad of [300, -1, 3.7]) {
+       const result = v.safeParse(InjectiveRawTxSchema, {
+-        from: '0xfrom',
+-        to: '0xto',
++        from: '0x1111111111111111111111111111111111111111',
++        to: '0x2222222222222222222222222222222222222222',
+         signedDoc: {
+           bodyBytes: { '0': bad },
+           authInfoBytes: { '0': 9 },
+@@ -92,9 +104,9 @@ describe('rawTxSchemaForChainKey', () => {
+     expect(
+       v.parse(rawTxSchemaForChainKey('solana'), { from: 'B58', to: 'B58', value: '42', data: 'b64' }),
+     ).toMatchObject({ value: 42n });
+-    expect(v.parse(rawTxSchemaForChainKey('sui'), { from: '0xsui', to: 'sui', value: '7', data: 'b64' })).toMatchObject(
+-      { value: 7n },
+-    );
++    expect(
++      v.parse(rawTxSchemaForChainKey('sui'), { from: '0xabc123', to: 'sui', value: '7', data: 'b64' }),
++    ).toMatchObject({ value: 7n });
+     expect(v.parse(rawTxSchemaForChainKey('stellar'), { from: 'G', to: 'G', value: '0', data: 'xdr' })).toMatchObject({
+       value: 0n,
+     });
+diff --git a/packages/swaps-api/src/rawTxSchemas.ts b/packages/swaps-api/src/rawTxSchemas.ts
+index e64cedf31..66214006a 100644
+--- a/packages/swaps-api/src/rawTxSchemas.ts
++++ b/packages/swaps-api/src/rawTxSchemas.ts
+@@ -8,9 +8,12 @@ import { getChainType } from '@sodax/types';
+ import type { Address, ContractArgs, Hex, RawTxReturnType, SpokeChainKey } from '@sodax/types';
+ import * as v from 'valibot';
+ 
+-// Nominal scalars: runtime-validated as strings, typed as the branded type.
+-const AddressSchema = v.custom<Address>(input => typeof input === 'string');
+-const HexSchema = v.custom<Hex>(input => typeof input === 'string');
++// Nominal scalars: runtime-validated against the real wire format, typed as the branded type.
++// Bare `typeof === 'string'` would let any string pass as an address/calldata (audit SWAP-M-1).
++const ADDRESS_REGEX = /^0x[0-9a-fA-F]{40}$/;
++const EVEN_HEX_REGEX = /^0x(?:[0-9a-fA-F]{2})*$/;
++const AddressSchema = v.custom<Address>(input => typeof input === 'string' && ADDRESS_REGEX.test(input));
++const HexSchema = v.custom<Hex>(input => typeof input === 'string' && EVEN_HEX_REGEX.test(input));
+ 
+ /**
+  * Decimal-string wire numeric → `bigint`. The `^\d+$` gate rejects inputs that `v.toBigint`'s
