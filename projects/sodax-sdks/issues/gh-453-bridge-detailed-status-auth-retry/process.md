@@ -120,14 +120,28 @@ Recorded because each one would have shaped the diff wrongly.
    that would require `sodax-backend` work. #453 does not ask for it and the SDK reaches the relay
    unaided — so the correct framing is "an option not taken", not "no such pattern exists".
 
-## Semantic note on `dst_tx_hash`
+## Semantic note on `dst_tx_hash` — CORRECTED 2026-09-17
 
-For swaps the relay's "dst" is the **hub** (`SwapService.ts:569` assigns it to `hubTxHash`, then
-the solver leg follows). For bridge the same field is the **destination chain**
-(`BridgeService.ts:604` → `dstChainTxHash`), and `sodax-backend`
-`tasks/submit-bridge-txs/submit-bridge-txs.task.ts:307` agrees: "dstIntentTxHash is therefore
-always the packet's destination hash". Same field, different meaning per feature — say so in
-`BRIDGE.md` so nobody reads swap's docs onto bridge.
+**The first version of this section was wrong** and would have shipped a false sentence in
+`BRIDGE.md`. It said bridge's `dst_tx_hash` is the destination-chain hash. It is not:
+
+- **Spoke-source bridge** (the common row): the packet's `dst_tx_hash` is the **hub settlement
+  tx**, exactly as for swap. `BridgeService.ts:467-468` states it outright — "`srcChainTxHash`
+  is the spoke deposit tx and `dstChainTxHash` is the hub settlement tx" — and `BRIDGE.md:171`
+  describes the flow as "spoke deposit → relay → hub settlement". The hub→destination hop is a
+  further leg the SDK's relay read does not cover, and the backend states it is not tracked for
+  spoke→spoke.
+- **Hub-source bridge** (first-class: `BridgeService.ts:217`, `:373`): the same field is a
+  **destination spoke** tx.
+
+So arm 2 proves "the deposit reached the hub", not "the funds landed". No field name is true in
+both directions — which is why the corrected plan hoists no hash field at all and returns the
+matched `PacketData` as-is.
+
+Related non-issue checked: the relay can track a packet under a derived id instead of the submit
+tx hash (`IntentRelayApiService.ts:544-547` `pollTxHash`; `BitcoinSpokeService.ts:273-277`
+`od:<hash>`). Used only by MoneyMarket (Bitcoin on-demand borrow/withdraw) and swap cancel —
+bridge never sets it, so a bridge router keyed on the real spoke tx hash is safe.
 
 Related non-issue checked: the relay can track a packet under a derived id instead of the submit
 tx hash (`IntentRelayApiService.ts:544-547` `pollTxHash`; `BitcoinSpokeService.ts:273-277`
@@ -142,34 +156,128 @@ bridge never sets it, so a bridge router keyed on the real spoke tx hash is safe
 | method + relay leg + error helper | `packages/sdk/src/swap/SwapService.ts:450-590` | ~140 |
 | poll hook | `packages/dapp-kit/src/hooks/swap/useDetailedStatus.ts` | 70 |
 | poll policy (solver-coupled) | `packages/dapp-kit/src/hooks/swap/getSwapStatusRefetchInterval.ts` | 126 |
-| unit tests | `SwapService.test.ts:1954-2322` (19 cases) + `useDetailedStatus.test.ts` | ~565 |
+| unit tests | `SwapService.test.ts:1954-2321` (**13** cases) + `useDetailedStatus.test.ts` | ~565 |
+| predicate test | `packages/sdk/src/swap/detailedStatus.test.ts` (2 cases) | 24 |
 | e2e | `packages/sdk/src/e2e-tests/detailedStatus.e2e.test.ts` | 50 |
 
 Bridge's version is smaller: no solver leg (−63 lines of `resolveSolverStatus`), no
 `isHubChainKeyType` short-circuit, no `isHex` validation. Tests and docs are the bulk of the work,
 not the method.
 
-There is **no leverage-yield precedent** to reconcile against (`packages/sdk/src/leverageYield/`
-has no `detailedStatus.ts`, and no `getDetailedStatus` anywhere under it) — swap is the single
-reference, which makes the design cheaper than the hook count suggests.
+**Corrected:** the first version of this section said "19 cases" (hand-recount: 13 `it(` between
+`:1954` and the next top-level `describe(` at `:2323`) and claimed there is "no leverage-yield
+precedent … swap is the single reference". The second claim was the plan's worst error — see
+§ Review of revision 1, item 1. `detailedStatus.test.ts` is the cheap fence on the one predicate
+the bridge work widens, and revision 1 never mentioned it.
+
+## Review of revision 1 — 2026-09-17, second session
+
+Revision 1 of `plan.md` was reviewed by a 9-agent workflow (3 source probes → 2 competing
+architectures → 3 judges on distinct lenses: reviewability, scalability, correctness) and every
+load-bearing finding was then re-verified by hand. The panel produced **19 defects**. One
+proposal agent died on a malformed structured output; its thesis survives in the record because
+the scalability winner argued the same extraction, and its one unique argument (below, item 2)
+was recovered from its transcript and verified independently.
+
+Judge outcome: 2-1 for "bridge owns its own router, reuse by import, never parameterize"
+(reviewability 9, correctness 9) over "extract the relay leg into `backendApi/`" (scalability 8).
+The corrected plan takes the winner's stance plus the loser's one extraction, which both winning
+judges explicitly grafted.
+
+### The three defects that changed the design
+
+1. **"No leverage-yield precedent" was false, and it was the premise driving the architecture.**
+   #452 is OPEN, assigned to the same person, filed 2026-09-14T10:03:50Z — eight minutes before
+   #453 — and its body names `LeverageYieldService.getDetailedStatus({ srcChainKey, srcTxHash })`,
+   the same routing rules, both symbols (`DETAILED_STATUS_NOT_DELIVERED`,
+   `isBackendSubmitTxAbandoned`) and `useLeverageYieldDetailedStatus` "(or generalize
+   `useDetailedStatus` to take a feature)". A shared core has 2 callers today and 3 in the filed
+   backlog — and a hard ceiling of 3 (`ConfigService.ts:502/506/512`).
+2. **The block revision 1 planned to copy is already the second copy.**
+   `SwapService.ts:533-539` says so in a comment ("Same envelope, attribution and delivery guards
+   `pollForExecutedPacket` applies"), duplicating `IntentRelayApiService.ts:412-426`. And the
+   `backendAnswered` rule is already written twice inside `SwapService.ts` alone — `:423`
+   (comment at `:418`: "Same reading as `getDetailedStatus`") and `:477`. Bridge would be the
+   third copy, #452 the fourth. Hence the one narrow extraction in § Step 2a.
+3. **A design bug that reintroduced the defect this issue exists to fix.**
+   `GET /swaps/submit-tx/status` carries **no** `@RequireApiKey`; `GET /bridge/submit-tx/status`
+   carries `@RequireApiKey('bridge:read')` (`bridge.controller.ts:219`). So on bridge a rejected
+   key → `record.ok === false` with `context.status` 401 → `backendAnswered === false` →
+   `DETAILED_STATUS_NOT_DELIVERED` never set → the new hook polls every 3s forever, with the 401
+   invisible because the outer `LOOKUP_FAILED` wraps the *relay* error as cause. Swap cannot hit
+   this; bridge can. Fixed by the arm-1 auth branch in § Step 2c, following the repo's own
+   precedent at `pollBackendSubmitTx.ts:105`.
+
+### Compile-level defects (all verified by hand)
+
+4. Re-declaring `DETAILED_STATUS_NOT_DELIVERED` in `bridge/detailedStatus.ts` → ambiguous star
+   export: `sdk/src/index.ts:5` and `:8` are both flat `export *` over the swap and bridge
+   barrels, and `swap/index.ts:11` already exports it.
+5. `PacketData` is in `@sodax/sdk` (`shared/types/relay-types.ts:24`), **not** `@sodax/types`
+   (which has only `PacketDataV2`, `backendApiV2.ts:665`). Revision 1's snippet showed no import
+   line and implied swap's single `@sodax/types` import would do.
+6. `useDetailedStatus` is already exported from `hooks/swap/index.ts:4`, and `hooks/index.ts`
+   flat-exports both `swap/` and `bridge/` → the bridge hook must be `useBridgeDetailedStatus`.
+7. `DetailedStatusError` is swap's unprefixed alias (`swap/errors.ts:24,:43`), already imported
+   by dapp-kit under that name → a bridge twin collides; use a prefixed alias.
+
+### Wrong public claims it would have shipped
+
+8. `dstTxHash` documented as the destination chain — see § Semantic note above. Arm 2 proves the
+   deposit reached the **hub**, and for hub-source rows the field is a destination *spoke* tx.
+   No hoisted field name is true in both directions.
+9. "Arm 1 already answers where it landed" — `dstIntentTxHash` is required only inside the
+   optional `result?`, "present when executed" (`backendBridgeApiV2.ts:223-224`,
+   `bridgeApiSchemas.ts:114`). Pending/relaying/abandoned records carry no hash.
+
+### Execution defects
+
+10. **Wrong template for Step 1.** `useLeverageYieldApiSubmitTxStatus.ts` already contains all
+    four changes verbatim, including the exact `@remarks` sentence revision 1 proposed to author
+    (`:2`, `:4`, `:30`, `:48`, `:51`). `leverageYieldApi/` has 32 files on the helper and zero on
+    `retry: 3` — bridge is the last feature, not the second.
+11. **The dapp-kit reusability table contradicted itself.** `advanceNotFoundStreak` and
+    `nextNotFoundStreak` are typed on `SwapStatusResult`, i.e. as solver-coupled as the
+    `toNotFoundBudgetRead` the plan rejected. "Sibling is the smaller diff" was also backwards:
+    the module is package-internal with two consumers and its own test file, so parameterizing is
+    ~8 lines while a sibling re-copies the streak machinery. Moot now — arm 2 is terminal by
+    construction, so bridge needs no streak at all and that module is untouched.
+12. `hooks/bridge/` already exists with five `sodax.bridge.*` hooks; revision 1 framed a settled
+    convention as an open question, and its stated reason was inverted.
+13. `BRIDGE_API.md` is in `docs-pages-map.json`'s **`unpublished`** array (`:5-14`, line 9), not
+    "the map's flat list". Per `:3`, editing it is not a Docs Drift signal — no sync output.
+14. `SWAPS.md` headings are at `:1066` / `:1081`, not `:1061` / `:1075`.
+15. "19 test cases" → 13. `detailedStatus.test.ts` (2 cases) was never mentioned and is the
+    cheapest proof that widening `isBackendSubmitTxAbandoned` is safe.
+16. The `#451` fixture-harvest suggestion was this plan's own inference. #451's body is one
+    sentence and mentions no fixture.
+17. Do not propagate the stale "SwapsApiService and BridgeApiService both satisfy it" comments
+    (`runBackendSubmitTx.ts:7-9`, `SwapService.ts:869`, `BridgeService.ts:622`) into `BRIDGE.md`
+    — leverage-yield is a live third caller and only `LeverageYieldService.ts:1342` says so.
+18. `backendApi/index.ts` is a **curated** barrel (25 lines; `pollBackendSubmitTx` deliberately
+    absent). The new shared module must not be added to it.
+19. Revision 1 scheduled the docs while leaving the arm-2 union — the contract everything else
+    waits on — as an open question. The corrected plan settles the contract in Step 2b, before
+    the router and before the docs.
 
 ## Changes During Work
 
-None. No file in any `icon-project` repo was modified in this session; the work was read-only
-scoping. Next session starts at `plan.md` § Step 1.
+None. No file in any `icon-project` repo has been modified; both sessions were read-only.
+Next session starts at `plan.md` § Step 1.
 
 ## Open questions
 
-1. **Per-call `apiConfig` on the new SDK method** — add it (bridge already has the surface) or
-   match swap's signature exactly? See `plan.md` § Step 2.
-2. **Arm-2 payload shape** — raw `PacketData` + `dstTxHash`, or a narrowed bridge-specific view?
-3. **Hook name and location** — `hooks/bridge/useDetailedStatus.ts` (mirrors swap) vs
-   `hooks/bridgeApi/useBridgeApiDetailedStatus.ts` (mirrors the bridge folder).
-4. **Generalise `getSwapStatusRefetchInterval` or write a bridge sibling?** Sibling is the smaller
-   diff; generalising avoids a third copy when leverage-yield eventually wants one.
-5. **Unverifiable from source:** whether `api.sodax.com/v1/relay` (a public HAProxy edge; the
+Revision 1's questions 2, 3 and 4 are now closed in source (arm-2 shape, hook name/location, and
+the refetch-policy question, which the terminal-by-construction finding deletes). Remaining:
+
+1. **Enforcement mode for bridge-api** — `@RequireApiKey` rejects only in `mode === 'enforce'`;
+   under `monitor`/`off` a bad key still returns 200. Not stated in source for bridge-api (the
+   swaps controller says enforcement is not yet on for *its* deployment). Affects only how
+   visible Step 1 and the arm-1 auth branch are in practice, not whether they are correct.
+2. **Whether swap should get the same arm-1 auth branch.** Its route is unguarded today, so the
+   bug is latent, not live. Raise in the PR thread; belongs to #452, not here.
+3. **Unverifiable from source:** whether `api.sodax.com/v1/relay` (a public HAProxy edge; the
    backend deliberately bypasses it via `RELAY_URL` → origin `xcall-relay.nw.iconblockchain.xyz`,
-   see `sodax-backend packages/shared-utils/src/constants.ts:38-51`) will keep accepting
-   unauthenticated reads. Swap already depends on it in production, so bridge adds no new
-   exposure. Confirm with a live call only if the relay leg starts 401ing.
+   `sodax-backend packages/shared-utils/src/constants.ts:38-51`) keeps accepting unauthenticated
+   reads. Swap's shipped router already depends on it, so bridge adds no new exposure.
 </content>

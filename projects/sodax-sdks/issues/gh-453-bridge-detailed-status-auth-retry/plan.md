@@ -7,49 +7,81 @@ updated: 2026-09-17
 
 # Plan
 
-All line numbers are against `sodax-sdks` `origin/main` @ `b5aaca0e` (2026-09-17).
-Re-stamp with `git -C sodax-sdks rev-parse --short origin/main` before trusting them.
+All line numbers are against `sodax-sdks` `origin/main` @ `b5aaca0e` and `sodax-backend`
+`9d3d8b06` (2026-09-17). Re-stamp before trusting them.
+
+**Revision 2.** Revision 1 was reviewed by a 9-agent panel (3 probes, 2 architectures, 3
+judges) and by hand; it had 19 defects, including three that do not compile, two false
+sentences it would have shipped in `BRIDGE.md`, and one design bug that reintroduced the
+exact defect this issue exists to fix. The corrections are folded in below and logged in
+`process.md` § Review of revision 1.
 
 ## Goal
-
-Close the two real gaps the issue names, in one branch:
 
 1. `BridgeService.getDetailedStatus` + a dapp-kit poll hook, so a caller holding only the
    spoke tx hash can resolve a bridge whose backend record is missing, stale or abandoned.
 2. `retryUnlessAuthFailure` across the `bridgeApi` hooks, plus an auth stop in the status
    hook's `refetchInterval`.
-
-Plus the docs/skills text both changes need. The e2e pin stays deferred.
+3. The docs/skills text both changes need. The e2e pin stays deferred.
 
 ## Approach
 
-Order: **retry first, router second, docs third.** Reasons:
+Order: **retry first, contract second, router third, docs last.** One branch.
 
-- The retry fix is 10 one-line edits plus one guard line, with the helper and its test
-  already in the repo. It is mergeable on its own and de-risks the branch early.
-- The router is the only design work, and its docs text (`BRIDGE.md`) can only be written
-  once the arm-2 return shape is settled.
-- Docs last, in one pass, so `pnpm docs:sync-pages` runs once. One branch for the whole
-  issue (no stacked branches).
+- The retry fix is 10 one-line edits plus one guard line, with the helper, its test and an
+  exact template already in the repo. Mergeable on its own; it de-risks the branch.
+- The **arm-2 contract is settled before any code**, because it is the one decision that
+  cannot be revised after release without a `!`, and both the router and the docs wait on it.
+- Docs last, one pass.
 
-Bridge's router is **strictly smaller than swap's**: swap needs 3 legs (backend record →
-relay packet only to extract the hub tx hash → solver `/status`), bridge has no solver so
-the relay packet *is* the terminal answer. 2 legs. Also no hub-source short-circuit —
-`BridgeService.ts:555` states "Bridge always relays — there is no hub-source short-circuit",
-so swap's `isHubChainKeyType` branch and its trailing `isHex` validation both drop out.
+### The three facts that shape the design
+
+1. **There is a filed third consumer.** #452 (OPEN, same assignee, filed 2026-09-14T10:03:50Z
+   — eight minutes *before* #453) specifies `LeverageYieldService.getDetailedStatus({ srcChainKey,
+   srcTxHash })` by name, with the same routing rules and the same two symbols
+   (`DETAILED_STATUS_NOT_DELIVERED`, `isBackendSubmitTxAbandoned`), plus
+   `useLeverageYieldDetailedStatus` "(or generalize `useDetailedStatus` to take a feature)".
+   Revision 1 called leverage-yield "no precedent … eventually wants one". That was wrong and
+   it was the premise pushing the design toward copy-per-feature.
+2. **Exactly three features can ever want this**, so the abstraction has a hard ceiling:
+   `ConfigService.ts:502/506/512` (`swap|bridge|leverageYield UseBackendSubmitTx`), three
+   `runBackendSubmitTx` call sites (`SwapService.ts:885`, `BridgeService.ts:639`,
+   `LeverageYieldService.ts:1360`), three clients with `getSubmitTxStatus`. No fourth exists.
+3. **Leverage-yield is a clone of swap, not of bridge** — it relays, then calls the solver
+   (`LeverageYieldService.ts:1286→1300→1303`), it *has* the hub-source short-circuit bridge
+   lacks (`:1283` vs `BridgeService.ts:555` "Bridge always relays"), and it reuses swap's wire
+   types verbatim (`leverageYieldApiV2.ts:462` returns `SubmitTxStatusResponseV2`). Bridge is
+   the outlier on every axis. So "bridge is smaller than swap" is an argument for a copy only
+   if bridge is the last consumer — and it is not.
+
+### What that buys, and what it does not
+
+**Bridge still owns its own router.** Zero lines change under `packages/sdk/src/swap/` or
+`packages/dapp-kit/src/hooks/swap/` in this PR. Swap's router is fenced by 13 unit cases
+(`SwapService.test.ts:1954-2321`) and a 195-line hook-policy test; reshaping it belongs to
+#452, where leverage-yield forces the third caller anyway.
+
+**But exactly one block gets extracted, not the router** — see Step 2a. Its justification is
+not "future features": that block is *already the second copy*. `SwapService.ts:533-539` says
+so out loud ("Same envelope, attribution and delivery guards `pollForExecutedPacket` applies"),
+duplicating `IntentRelayApiService.ts:412-426`. A bridge copy makes three, #452 makes four. The
+`backendAnswered` rule is likewise already written twice inside `SwapService.ts` alone (`:423`
+under a comment at `:418` saying "Same reading as `getDetailedStatus`", and `:477`).
 
 ## Step 1 — `retryUnlessAuthFailure` in the bridgeApi hooks
 
-Helper already exists, 18 lines, with a unit test:
-`packages/dapp-kit/src/hooks/shared/retryUnlessAuthFailure.ts:17`
+Helper: `packages/dapp-kit/src/hooks/shared/retryUnlessAuthFailure.ts:17` (18 lines, has its
+own test).
 
-```ts
-export const retryUnlessAuthFailure = (failureCount: number, error: unknown): boolean =>
-  !isAuthFailure(error) && failureCount < MAX_RETRIES;   // MAX_RETRIES = 3
-```
+**Copy from the leverage-yield hook, not from swap.**
+`packages/dapp-kit/src/hooks/leverageYieldApi/useLeverageYieldApiSubmitTxStatus.ts` already
+contains all four changes verbatim — `:2` imports `isAuthFailure`, `:4` imports the helper,
+`:30` carries the exact `@remarks` sentence ("or once the backend rejects the API key (401/403
+is terminal — a retry cannot fix it)"), `:48` `retry: retryUnlessAuthFailure`, `:51`
+`if (isAuthFailure(query.state.error)) return false;`. `leverageYieldApi/` has 32 files on the
+helper and zero on `retry: 3`; `bridgeApi/` has 0 and 10. Bridge is the only feature left.
 
-**Exactly 10 files** hard-code `retry: 3,` (verified by hand on `origin/main`; earlier
-estimates of 11 and 12 were wrong — see `process.md` § Corrections):
+**Exactly 10 files** hard-code `retry: 3,` (hand-verified on `origin/main`):
 
 | File (`packages/dapp-kit/src/hooks/bridgeApi/`) | Line |
 | ----------------------------------------------- | ---: |
@@ -65,254 +97,258 @@ estimates of 11 and 12 were wrong — see `process.md` § Corrections):
 | `useBridgeApiTokensByChain.ts`                   |   37 |
 
 `useBridgeApiApproveAndBroadcast.ts` is the 11th hook and sets no `retry` — leave it.
-`useBridgeApiSubmitTx.ts:23` also mentions `retry: 3` in its doc comment — update that line too.
+`useBridgeApiSubmitTx.ts:23` mentions `retry: 3` in prose — update that line too.
 
-**The status hook is not a one-line swap.** `useBridgeApiSubmitTxStatus.ts` is a near-exact
-twin of `useSwapsApiSubmitTxStatus.ts`; port all four differences:
+The status hook needs all four parts, not just `retry`: without the `refetchInterval` guard the
+1s poll keeps firing, because `retry` bounds attempts *within* a tick.
 
-1. import `isAuthFailure` from `@sodax/sdk` and `retryUnlessAuthFailure` from `../shared/`
-2. `retry: retryUnlessAuthFailure`
-3. first line of `refetchInterval`, under the same comment swap uses
-   (`useSwapsApiSubmitTxStatus.ts:52-53`):
-   ```ts
-   // `retry` bounds attempts within a tick, not the interval itself — so stop it here too.
-   if (isAuthFailure(query.state.error)) return false;
-   ```
-4. extend the `@remarks` bullet with "or once the backend rejects the API key (401/403 is
-   terminal — a retry cannot fix it)"
+**Test:** `bridgeApi/` has one test file today (`useBridgeApiApproveAndBroadcast.test.ts`), so
+`useBridgeApiSubmitTxStatus.test.ts` ("stops polling on 401") is net-new.
 
-Without (3) the defect the issue names survives: `retry` bounds attempts *within* a tick,
-the 1s interval keeps firing.
+**Out of scope:** `packages/dapp-kit/src/hooks/backend/` has ~12 more hooks on a bare
+`retry: 3` (`useBackendOrderbook.ts:38`, `useBackendIntentByTxHash.ts:38`,
+`useBackendUserIntents.ts:40`, …). Raise in the PR thread; do not widen the diff, do not open
+a follow-up issue.
 
-**Test:** `bridgeApi/` has exactly one test file today
-(`useBridgeApiApproveAndBroadcast.test.ts`), so a `useBridgeApiSubmitTxStatus.test.ts`
-covering "stops polling on 401" is net-new. The helper itself needs no new test
-(`retryUnlessAuthFailure.test.ts` exists).
+## Step 2 — settle the public contract, then build the router
 
-**Out of scope, do not grow into it:** `packages/dapp-kit/src/hooks/backend/` has ~12 more
-hooks on a bare `retry: 3` (`useBackendOrderbook.ts:38`, `useBackendIntentByTxHash.ts:38`,
-`useBackendUserIntents.ts:40`, …) on the same `x-api-key` surface. Raise it in the PR thread,
-do not open a follow-up issue and do not widen the diff.
+### 2a. Extract the relay delivered-packet leg (the one shared piece)
 
-## Step 2 — `BridgeService.getDetailedStatus`
+New module, `packages/sdk/src/backendApi/` — chosen from precedent, not taste: that folder
+already holds the 3-caller submit-tx machinery (`runBackendSubmitTx.ts`, `pollBackendSubmitTx.ts`,
+`submitTxAttempt.ts`) and nothing under it imports `swap/`, whereas a core under `shared/`
+would deepen the existing `shared/entities/Sodax.ts` → `SwapService` edge.
 
-Reference implementation to mirror, with its own doc comments intact:
-
-- `packages/sdk/src/swap/detailedStatus.ts` — 43 lines, the whole pure contract
-- `packages/sdk/src/swap/SwapService.ts:457-495` — `getDetailedStatus`
-- `packages/sdk/src/swap/SwapService.ts:503-581` — `resolveHubTxHash` (the relay leg)
-- `packages/sdk/src/swap/SwapService.ts:585-590` — `detailedStatusLookupFailed`
-- exports at `packages/sdk/src/swap/index.ts:10-11`
-
-### New file: `packages/sdk/src/bridge/detailedStatus.ts`
-
-Pure, no I/O, mirroring swap's:
+A module-level **pure function**, not a private method, so the four relay outcomes are testable
+without constructing a `Sodax`:
 
 ```ts
+// packages/sdk/src/backendApi/resolveDeliveredPacket.ts
+export type DeliveredPacketResult =
+  | { ok: true; packet: PacketData }
+  | { ok: false; cause: unknown; budgetable: boolean };
+
+export async function resolveDeliveredPacket(params: {
+  srcChainKey: SpokeChainKey;
+  srcTxHash: string;
+  relayerApiEndpoint: string;
+  backendAnswered: boolean;
+}): Promise<DeliveredPacketResult>;
+```
+
+- Untagged cause + a boolean, no `SodaxError` and no feature tag — the same shape
+  `runBackendSubmitTx.ts:32` already uses, so the caller owns the wrapping.
+- Body is `SwapService.ts:511-570` minus the hub short-circuit and the `isHex` guard: relay 404
+  → `budgetable: true`; garbage envelope → `budgetable: false`; no matching packet →
+  `budgetable: true`; match on all four fields (`src_tx_hash`, `src_chain_id`,
+  `status === 'executed'`, non-empty `dst_tx_hash`) → `{ ok: true, packet }`.
+- Keep `RELAY_REQUEST_TIMEOUT_MS` (15s); a budget expiry is **not** budgetable.
+- **Do not export it from `packages/sdk/src/backendApi/index.ts`** — that barrel is curated
+  (25 lines; `pollBackendSubmitTx` is deliberately absent). Exporting it would make
+  `DETAILED_STATUS_NOT_DELIVERED` ambiguous under the flat `export *`s in `sdk/src/index.ts`.
+- Swap keeps its own `resolveHubTxHash` byte-identical in this PR. #452 migrates both.
+
+### 2b. The arm-2 contract — settle this first, it cannot be revised cheaply
+
+```ts
+// packages/sdk/src/bridge/detailedStatus.ts
+import type { PacketData } from '../shared/types/relay-types.js';   // NOT from @sodax/types
+import { DETAILED_STATUS_NOT_DELIVERED, isBackendSubmitTxAbandoned } from '../swap/detailedStatus.js';
+
 export type DetailedBridgeStatusKey = { srcChainKey: SpokeChainKey; srcTxHash: string };
 
 export type DetailedBridgeStatus =
   | { source: 'backend'; data: BridgeSubmitTxStatusDataV2 }
-  | { source: 'relay'; dstTxHash: string; data: PacketData };   // shape to settle, see below
-
-export const DETAILED_STATUS_NOT_DELIVERED = 'relay_not_delivered';   // reuse swap's literal
+  | { source: 'relay'; data: PacketData };          // no hoisted hash field
 ```
 
-Open design points, decide before writing:
+Four decisions, each forced by source:
 
-1. **Arm-2 payload.** Swap's arm 2 is `{ source: 'solver'; dstTxHash; data: SolverIntentStatusResponse }`.
-   Bridge has no solver, so the natural analog is the delivered `PacketData` itself plus its
-   `dst_tx_hash`. Returning the raw packet keeps the "each arm returns that source's payload
-   unmodified" contract (`detailedStatus.ts:12-13`) and drops nothing.
-2. **`dstTxHash` type.** Swap types it `Hex` because the hash is handed to the solver next and
-   must validate (`SwapService.ts:573`). Bridge hands it to nobody, and non-EVM destinations
-   are in play, so `string` is right — `BridgeService.ts:604` already returns
-   `dstChainTxHash: packetResult.value.dst_tx_hash` as a plain string. Do **not** copy the
-   `isHex` guard.
-3. **Reuse the `DETAILED_STATUS_NOT_DELIVERED` literal** rather than minting a second one —
-   dapp-kit's budget policy keys off the string value.
+1. **No hoisted `dstTxHash` / `hubTxHash` field.** For a spoke-source bridge the packet's
+   `dst_tx_hash` is the **hub settlement tx** (`BridgeService.ts:468`: "`dstChainTxHash` is the
+   hub settlement tx"), and the hub→destination hop is not tracked for spoke→spoke. For a
+   hub-source bridge (a first-class flow — `BridgeService.ts:217`, `:373`) the same field is a
+   **destination spoke** tx. No name is true in both directions, so invent none: the caller
+   reads `data.dst_tx_hash` with the packet's own semantics. This also kills the
+   `Hex`-vs-`string` sub-question, since nothing downstream consumes the hash.
+2. **`PacketData` is declared in `@sodax/sdk`** at `packages/sdk/src/shared/types/relay-types.ts:24`.
+   `@sodax/types` has only the structural twin `PacketDataV2` (`backendApiV2.ts:665`). Copying
+   swap's single `from '@sodax/types'` import line does not compile.
+3. **Import `DETAILED_STATUS_NOT_DELIVERED`, never re-declare it.** `sdk/src/index.ts:5` and
+   `:8` are both flat `export *` over the swap and bridge barrels, and swap already exports it
+   (`swap/index.ts:11`). A same-named bridge export is an ambiguous star export.
+   `isBackendSubmitTxAbandoned` is deliberately *not* exported (`swap/index.ts:8-9`), so import
+   it from the module path and widen its parameter to
+   `BackendSubmitTxStatusEnvelope` (`pollBackendSubmitTx.ts:13-18`) — a one-line change fenced
+   by `packages/sdk/src/swap/detailedStatus.test.ts` (24 lines, 2 cases). Bridge widens `status`
+   to `string` (`backendBridgeApiV2.ts:214`), so a literal reuse does not typecheck.
+4. **Error alias must be prefixed.** Swap's `DetailedStatusError` (`swap/errors.ts:24,:43`) is
+   the one unprefixed feature-error alias in the SDK and dapp-kit already imports it by that
+   name. Use `BridgeDetailedStatusError = SodaxError<Extract<SodaxErrorCode, 'LOOKUP_FAILED'>>`
+   (tighter than the existing `BridgeLookupError`, whose union also carries
+   `VALIDATION_FAILED | UNKNOWN`).
 
-### `isBackendSubmitTxAbandoned` does not compile against a bridge record
-
-`detailedStatus.ts:41` types its parameter as swap's `SubmitTxStatusDataV2`, whose `status` is
-the closed union `SubmitSwapTxStatusV2` (`packages/types/src/backend/backendApiV2.ts:710`).
-Bridge deliberately widens `status` to `string` (`backendBridgeApiV2.ts:214`).
-
-Fix is one line, not a twin: widen the parameter to the envelope that already exists for
-exactly this purpose — `BackendSubmitTxStatusEnvelope<TResult>` at
-`packages/sdk/src/backendApi/pollBackendSubmitTx.ts:13-18`, whose own doc comment says both
-`SubmitTxStatusDataV2` and `BridgeSubmitTxStatusDataV2` are assignable to it. The predicate
-touches only `status` and `abandonedAt`, so nothing else changes.
-
-### `BridgeService.getDetailedStatus` body
-
-Copy the routing verbatim from `SwapService.ts:461-478`, then replace the solver leg:
+### 2c. `BridgeService.getDetailedStatus` — routing, with one deliberate difference from swap
 
 ```
 record = await this.backendApi.bridge.getSubmitTxStatus({ txHash, srcChainKey })
+
 if (record.ok && record.value.success && !isBackendSubmitTxAbandoned(record.value.data))
     -> { source: 'backend', data: record.value.data }
+
+if (!record.ok && isAuthFailure(record.error))        // <-- NOT in swap. See below.
+    -> { ok: false, error: lookupFailed(...) } with the auth error as cause, terminal
+
 backendAnswered = record.ok || (isSodaxError(record.error) && record.error.context?.status === 404)
--> resolveDeliveredPacket(key, backendAnswered)   // the relay leg, no solver call after it
+-> resolveDeliveredPacket({ ..., backendAnswered })
+   ok    -> { source: 'relay', data: packet }
+   !ok   -> lookupFailed('bridge', 'getDetailedStatus', cause,
+                          { srcChainKey, action: 'bridge', reason: budgetable ? DETAILED_STATUS_NOT_DELIVERED : undefined })
 ```
 
-The relay leg is `SwapService.ts:511-570` minus the hub/solver framing:
+**Why the auth branch exists, and why swap does not have it.**
+`GET /swaps/submit-tx/status` carries **no** `@RequireApiKey` (`sodax-backend
+apps/swaps-api/src/api/swaps/swaps.controller.ts`, the `@Get('submit-tx/status')` block — only
+`@ApiOperation`/`@ApiOkResponse`/`@ApiNotFoundResponse`; no class-level decorator either).
+`GET /bridge/submit-tx/status` carries `@RequireApiKey('bridge:read')`
+(`apps/bridge-api/src/api/bridge/bridge.controller.ts:219`). So swap's arm 1 can never 401;
+bridge's can. Without the branch, on an enforcing deployment a rejected or wrong-scope key
+gives `record.ok === false` with `context.status` 401/403 → `backendAnswered === false` →
+`DETAILED_STATUS_NOT_DELIVERED` is **never** emitted → the new hook polls every 3s forever, and
+the 401 is invisible to it because the outer `LOOKUP_FAILED` wraps the *relay* error as `cause`.
+That is precisely the defect Step 1 exists to fix, reintroduced by Step 2 in the same branch.
 
-- `getIntentRelayChainId(srcChainKey)` → `getTransactionPackets({ action: 'get_transaction_packets',
-  params: { chain_id, tx_hash: srcTxHash } }, endpoint, RELAY_REQUEST_TIMEOUT_MS)`
-- `packets.error instanceof HttpRelayError && status === 404` → budgetable miss
-- envelope guard (`!packets.value?.success || !Array.isArray(packets.value.data)`) → unbudgeted
-- match on `(src_tx_hash, src_chain_id, status === 'executed', non-empty dst_tx_hash)` — match,
-  do not take the first executed entry
-- no delivered packet → budgetable miss with `missReason`
+Fix it in the SDK, not the hook — the repo already treats 401/403 as terminal at
+`pollBackendSubmitTx.ts:105` ("A rejected key cannot become success by waiting") and documents
+it at `SWAPS_API.md:247`. One network-free unit case covers it (arm 1 is a spy).
 
-Plumbing notes:
+Note for #452: swap has the same shape latent, and its route is unguarded *today* — the swaps
+controller's own comment says enforcement is not yet on for that deployment. Mention it in the
+PR thread; do not change swap here.
 
-- `BridgeService` has **no `relayerApiEndpoint` field** (unlike `SwapService.ts:280`). It reads
-  `this.config.relay.relayerApiEndpoint` inline at `BridgeService.ts:581`. Either add the field
-  or keep reading inline; adding it is the tidier match to every other service.
-- `BridgeService` has **no status-read method at all** today (public surface: `getFee:184`,
-  `isAllowanceValid:204`, `approve:276`, `buildApproveTxs:383`, `bridge:490`,
-  `getBridgeableAmount:997`, `isBridgeable:1108`, `getBridgeableTokens:1157`, …). This is the
-  first one.
-- Error plumbing is already there: `BridgeLookupError` / `LOOKUP_FAILED`
-  (`packages/sdk/src/bridge/errors.ts:43,57,65,91`) and the shared wrapper
-  `lookupFailed(feature, method, cause, ctx)` (`packages/sdk/src/errors/wrappers.ts:123`).
-  So `detailedStatusLookupFailed` is a 3-line private method.
-- Keep the relay read budgeted (`RELAY_REQUEST_TIMEOUT_MS`, 15s, from
-  `packages/sdk/src/shared/services/intentRelay/IntentRelayApiService.ts`), and keep a budget
-  expiry **unbudgeted** — it is a dependency failing now, not an ambiguous miss.
+**Plumbing:** `BridgeService` has no `relayerApiEndpoint` field (unlike `SwapService.ts:280`);
+it reads `this.config.relay.relayerApiEndpoint` inline at `:581`. Add the field for symmetry.
+`BridgeService` has no status-read method at all today — this is its first.
 
-### Free simplification bridge gets and swap does not
+**Per-call `apiConfig`:** swap's `getDetailedStatus` takes none, but
+`BridgeApiService.getSubmitTxStatus` accepts a `RequestOverrideConfig` and
+`useBridgeApiSubmitTxStatus.ts:47` passes one. Add an optional trailing `RequestOverrideConfig`
+that reaches arm 1 only — the relay leg is unauthenticated. Dropping it would silently remove
+the per-action key surface the issue says bridge already has.
 
-The bridge status record **already carries the destination hash and the packet**:
-`dstIntentTxHash!: string` (required) and `packetData?` in
-`sodax-backend apps/bridge-api/src/api/bridge/dto/submit-bridge-tx-status.dto.ts:23,26`, typed
-SDK-side at `packages/types/src/backend/backendBridgeApiV2.ts:195-200`. So arm 1 already answers
-"where did it land". Arm 2 exists **only** for the missing/404/abandoned case — i.e. precisely
-the post-fallback hole the issue describes. Say this in the docs; it is the clearest statement
-of why the method exists for bridge.
+## Step 3 — dapp-kit poll hook (smaller than revision 1 thought)
 
-### Per-call `apiConfig` — an open question swap's signature cannot answer
+**Arm 2 is terminal by construction.** The router returns a relay packet only after matching it
+as `status === 'executed'` with a non-empty `dst_tx_hash`, so a successful arm-2 read *is* the
+end state. There is no in-flight relay answer, no solver status to compare, and nothing to mint
+a synthetic `NOT_FOUND` from. Therefore:
 
-`getDetailedStatus` takes no `RequestOverrideConfig` (`SwapService.ts:457-459`), while the
-bridge status hook does pass one (`useBridgeApiSubmitTxStatus.ts:47`) and
-`BridgeApiService.getSubmitTxStatus` accepts one. Copying swap's signature silently drops the
-per-action API-key surface the issue says bridge already has. **Decide:** add an optional
-trailing `RequestOverrideConfig` on the bridge method (it only reaches arm 1 — the relay leg is
-unauthenticated), or match swap exactly and document the omission.
+- Bridge needs **none** of the not-found streak machinery. The only budgetable condition is a
+  `LOOKUP_FAILED` whose `context.reason === DETAILED_STATUS_NOT_DELIVERED`.
+- `packages/dapp-kit/src/hooks/swap/getSwapStatusRefetchInterval.ts` stays **untouched**. The
+  revision-1 question "generalise vs sibling" is deleted, not answered. (For the record:
+  revision 1 claimed a sibling was the smaller diff and listed `advanceNotFoundStreak` /
+  `nextNotFoundStreak` as "reusable as-is" — both wrong. They are typed on
+  `SwapStatusResult`, so reusing them requires the solver laundering the same plan rejected.
+  #452, which *does* need the streak, should boolean-parameterize that module in place — it is
+  package-internal with two consumers and its own test file, ~8 changed lines.)
+- Bridge's policy is ~25 lines: terminal on `status === 'executed' | 'failed'` or `abandonedAt`
+  for the backend arm, stop on any relay arm, stop on auth failure, 3s otherwise, with an
+  optional budget on the not-delivered reason.
 
-## Step 3 — dapp-kit poll hook
+**Name and location.** `packages/dapp-kit/src/hooks/bridge/` already exists with five
+SDK-backed hooks calling `sodax.bridge.*` (`useBridge.ts`, `useBridgeAllowance.ts`,
+`useBridgeApprove.ts`, `useGetBridgeableAmount.ts`, `useGetBridgeableTokens.ts`) — the
+`hooks/bridge` (SDK) vs `hooks/bridgeApi` (backend API) split already mirrors
+`hooks/swap` vs `hooks/swapsApi`, so the folder is settled convention, not an open question.
+But the symbol **cannot** be `useDetailedStatus`: `hooks/index.ts` flat-exports both `swap/`
+and `bridge/`, and `hooks/swap/index.ts:4` already exports `useDetailedStatus`,
+`UseDetailedStatusResult` and `UseDetailedStatusParams`. Use `useBridgeDetailedStatus`
+(and `UseBridgeDetailedStatus*`), which is also the vocabulary #452 implies for LY.
 
-Reference: `packages/dapp-kit/src/hooks/swap/useDetailedStatus.ts` (70 lines) plus its policy
-module `packages/dapp-kit/src/hooks/swap/getSwapStatusRefetchInterval.ts` (126 lines).
-
-What is reusable and what is not:
-
-- **Reusable as-is:** `advanceNotFoundStreak`, `INITIAL_NOT_FOUND_STREAK`, `nextNotFoundStreak`
-  shape, `MAX_NOT_FOUND_POLLS = 40`, `STATUS_POLL_MS = 3000`, and the composite `pollKey`
-  (`${srcChainKey}:${srcTxHash}`) so a new bridge starts its own budget.
-- **Not reusable:** `toNotFoundBudgetRead` and `getDetailedStatusRefetchInterval` are written in
-  solver vocabulary — they launder a read into a `SolverIntentStatusResponse` and mint a synthetic
-  `SolverIntentStatusCode.NOT_FOUND` (`getSwapStatusRefetchInterval.ts:99-126`). Bridge needs its
-  own terminal predicate. Either generalise the module over a terminal-predicate callback or write
-  a `getBridgeStatusRefetchInterval.ts` sibling; a sibling is the smaller, lower-risk diff.
-- Bridge's terminal vocabulary: backend arm stops on `status === 'executed' | 'failed'` or
-  `abandonedAt` (same rule `useBridgeApiSubmitTxStatus.ts:51-57` already applies); relay arm is
-  terminal the moment it answers at all — a delivered `executed` packet is the end state.
-- Keep the module free of React/context imports so it stays unit-testable in dapp-kit's `node`
-  test env (the reason swap split it out — `getSwapStatusRefetchInterval.ts:33-35`).
-
-Naming: swap's is `useDetailedStatus` under `hooks/swap/`. Bridge's SDK-backed hooks live under
-`hooks/bridgeApi/` but this one wraps `sodax.bridge.*`, not `sodax.api.bridge.*`. Settle on
-`hooks/bridge/useDetailedStatus.ts` (mirrors swap's layout) and export it from `hooks/bridge/index.ts`.
-
-**Consumer check:** `sodax-frontend@aa73a308` has zero references to `useDetailedStatus` /
-`useBridgeApiSubmitTxStatus`, so the hook ships with no external caller. `apps/demo`'s
-`src/components/bridge-api/{BridgeCard,OrderStatus}.tsx` do consume the bridgeApi hooks, so the
-demo is the plausible first caller — wire it there rather than shipping surface for nobody.
+**Consumer:** `sodax-frontend@aa73a308` has zero references to either symbol.
+`apps/demo/src/components/bridge-api/{BridgeCard,OrderStatus}.tsx` consume the bridgeApi hooks,
+so the demo is the plausible first caller — wire it there rather than shipping surface for nobody.
 
 ## Step 4 — docs and skills
 
-Bridge docs currently have **zero** hits for `401`, `403`, `retry` or "detailed status"
-(`git grep -c -E "401|403|[Dd]etailed [Ss]tatus" origin/main -- packages/sdk/docs/BRIDGE.md
-packages/sdk/docs/BRIDGE_API.md` → no output).
+Bridge docs have **zero** hits for `401`, `403`, `retry` or "detailed status".
 
 | Target | Size | Change |
 | ------ | ---: | ------ |
-| `packages/sdk/docs/BRIDGE.md` | 35 KB | new `## Get Detailed Status` + `### Why it exists` + `### When it fails`, mirroring `SWAPS.md:1035-1097` |
-| `packages/sdk/docs/BRIDGE_API.md` | 9.2 KB | the 401/403 paragraph, mirroring `SWAPS_API.md:238-251` |
+| `packages/sdk/docs/BRIDGE.md` | 35 KB | new `## Get Detailed Status` + `### Why it exists` + `### When it fails`, mirroring `SWAPS.md:1035` / `:1066` / `:1081` |
+| `packages/sdk/docs/BRIDGE_API.md` | 9.2 KB | the 401/403 paragraph, mirroring `SWAPS_API.md:247` |
 | `packages/skills/skills/sodax-sdk/bridge/SKILL.md` | 3.4 KB | the new method |
 | `packages/skills/skills/sodax-sdk/bridge-api/SKILL.md` | 6.6 KB | 401/403 terminal-ness |
 | `packages/skills/skills/sodax-sdk/integration/knowledge/features/bridge.md` | 12 KB | method + caveat |
 | `packages/skills/skills/sodax-sdk/integration/knowledge/features/bridge-api.md` | 9.3 KB | 401/403 |
 | `packages/skills/skills/sodax-dapp-kit/bridge/SKILL.md` | 5.4 KB | the new hook |
 | `packages/skills/skills/sodax-dapp-kit/integration/knowledge/features/bridge.md` | 4.1 KB | the new hook |
-| `packages/skills/skills/sodax-dapp-kit/integration/knowledge/reference/hooks-index.md` | 20 KB | add the hook row (already lists `useDetailedStatus`) |
+| `packages/skills/skills/sodax-dapp-kit/integration/knowledge/reference/hooks-index.md` | 20 KB | add the hook row |
 
-Text to mirror, in order of usefulness:
+**Three sentences revision 1 would have shipped wrong — do not write them:**
 
-- `SWAPS.md:1061` "### Why it exists" — the stale-vs-404 explanation, including
-  "abandonment — not a 404 — is what usually signals the fallback ran".
-- `SWAPS.md:1075` "### When it fails" — the `LOOKUP_FAILED` / `context.reason` retry-budget split.
-- `SWAPS_API.md:247` — "Auth failures surface as `EXTERNAL_API_ERROR` with `context.status` 401
-  (missing/invalid key) or 403 (suspended organisation / missing scope) — terminal config problems
-  — while the transient verification 503 is retried by the wire client."
+1. ❌ "`dstTxHash` is the destination-chain hash." It is the **hub settlement** tx for a
+   spoke-source bridge and a destination spoke tx for a hub-source one. Arm 2 proves *the
+   deposit reached the hub*, not *the funds landed*. Say that, and name no field.
+2. ❌ "Arm 1 already answers where it landed." `dstIntentTxHash` is required only *inside*
+   `result?`, which is "present when executed" (`backendBridgeApiV2.ts:223-224`,
+   `bridgeApiSchemas.ts:114`). A pending / relaying / abandoned record carries no hash at all.
+3. ❌ "`BackendSubmitTxStatusEnvelope` is the swap+bridge shared piece." That doc comment
+   (`runBackendSubmitTx.ts:7-9`, `SwapService.ts:869`, `BridgeService.ts:622`) is stale —
+   leverage-yield is a live third caller (`LeverageYieldService.ts:1360`), and only
+   `LeverageYieldService.ts:1342` says so. Do not propagate it.
 
-Docs mirror rules:
+**Mirror rules:**
 
-- `BRIDGE.md` is mirrored (`scripts/docs-pages-map.json:38-41` → `developers/packages/foundation/
-  sdk/functional-modules/bridge.md`). Edit the source under `packages/sdk/docs/`, then run
-  `pnpm docs:sync-pages`. **Never hand-edit `docs/developers/**`** — it is generated.
-- `BRIDGE_API.md` is in the map's flat list (`docs-pages-map.json:9`).
-- **No new page under `docs/developers/http-api/`.** There is no bridge page there, and
-  `docs/bridge/index.mdx:19` currently states "No Bridge write API yet" — adding one is a
-  launch-posture change the issue never asks for. The published 401/403 semantics already live in
-  `docs/developers/how-to/api-keys.md:181-184`, which already names `sodax.api.bridge` at :128.
+- `BRIDGE.md` is mirrored (`scripts/docs-pages-map.json:37-42`) → edit the source under
+  `packages/sdk/docs/`, then `pnpm docs:sync-pages`. Never hand-edit `docs/developers/**`.
+- `BRIDGE_API.md` sits in the map's **`unpublished`** array (`docs-pages-map.json:5-14`, line 9),
+  not a publish list. Per `:3`, editing an unpublished page is not a Docs Drift signal — expect
+  **no** `docs:sync-pages` output from it.
+- No new page under `docs/developers/http-api/`. The published 401/403 text already lives at
+  `docs/developers/how-to/api-keys.md:181-184`, which already names `sodax.api.bridge` at `:128`.
 
 ## Step 5 — e2e pin (deferred, no work)
 
-`packages/sdk/src/e2e-tests/e2e-relay.test.ts:11-14` already carries the deferral in-source:
-relay idempotency is covered by the shared swap case, and the bridge-specific assertion waits on
-a real already-relayed bridge tx plus its `relayData` `{ address, payload }` to hardcode.
-Nothing to do until such a fixture exists. If #451 (bridge manual test) produces a funded bridge
-run, harvest the fixture there and close this bullet.
+`packages/sdk/src/e2e-tests/e2e-relay.test.ts:11-14` carries the deferral in-source: relay
+idempotency is covered by the shared swap case, and the bridge assertion waits on a real
+already-relayed bridge tx plus its `relayData` `{ address, payload }` to hardcode. Nothing to do
+until such a fixture exists. (Revision 1 said to harvest it from #451 — that was this plan's own
+inference; #451's body is one sentence, "Manually test feature (SDK and API demo flows)", and
+mentions no fixture.)
 
 ## Verification
 
 ```bash
-# fresh branch: install + build first, or the pre-commit hook fails on unrelated packages
-cd sodax-sdks && pnpm i && TURBO_CONCURRENCY=2 pnpm build:packages
+cd sodax-sdks && pnpm i && TURBO_CONCURRENCY=2 pnpm build:packages   # fresh branch, or the hook fails
 
-# unit
-pnpm --filter @sodax/sdk test -- src/bridge
+pnpm --filter @sodax/sdk test -- src/bridge src/backendApi src/swap/detailedStatus.test.ts
 pnpm --filter @sodax/dapp-kit test -- src/hooks/bridgeApi src/hooks/bridge
 
-# gates
-pnpm check:ai-dev-files        # skills gate
-pnpm docs:sync-pages           # after any packages/sdk/docs edit; commit the generated diff
+pnpm check:ai-dev-files      # skills gate
+pnpm docs:sync-pages         # after a BRIDGE.md edit only; commit the generated diff
 ```
 
-Format only the files touched (`main` carries Biome drift — a repo-wide `pnpm pretty` would
-sweep unrelated files into the diff).
+Regression fence to keep green untouched: `SwapService.test.ts:1954-2321` (13 cases),
+`packages/dapp-kit/src/hooks/swap/{useDetailedStatus,getSwapStatusRefetchInterval}.test.ts`.
+Format only the files touched — `main` carries Biome drift.
 
 ## Risks
 
-1. **PR #308 conflict.** `origin/feat/bridge-api-package` is ~61 commits ahead of main and adds a
-   tracked standalone `@sodax/bridge-api` client (20 files under `packages/bridge-api/`). It is
-   unmerged and unreferenced from main (`git grep "@sodax/bridge-api" origin/main` → nothing), but
-   any bridge file touched here will conflict there. What sits in the working tree at
-   `packages/bridge-api/` is only that branch's leftover `dist/` + `node_modules/`.
-2. **A hook nobody calls.** No frontend consumer exists. Wire the demo, or the router ships as
-   surface for a hypothetical caller.
+1. **PR #308 conflict.** `origin/feat/bridge-api-package` is ~61 commits ahead of main and adds
+   a tracked standalone `@sodax/bridge-api` client. Unmerged and unreferenced from main, but any
+   bridge file touched here conflicts there.
+2. **A hook nobody calls.** No frontend consumer. Wire the demo or it is surface for nobody.
 3. **Relay auth assumption.** The SDK reaches the relay unauthenticated at
-   `https://api.sodax.com/v1/relay` (`DEFAULT_RELAYER_API_ENDPOINT`,
-   `packages/types/src/common/constants.ts:29`), which is a public HAProxy edge in front of the
-   relay origin. Source proves the SDK *sends* no credential, not that the edge accepts anonymous
-   traffic forever. Mitigation: swap's `getDetailedStatus` already ships against that exact call in
-   production, so bridge inherits no *new* exposure — but if the gateway ever enforces a key, both
-   features break together.
-4. **`status: string` widening.** Bridge's tolerant wire types mean a literal copy of swap's
-   predicates will not typecheck; widen via `BackendSubmitTxStatusEnvelope` rather than casting.
-5. **Scope creep into `hooks/backend/`.** 12 more hooks share the defect. Out of scope; PR thread.
+   `https://api.sodax.com/v1/relay` (`packages/types/src/common/constants.ts:29`), a public
+   HAProxy edge; `sodax-backend` deliberately bypasses it (`shared-utils/src/constants.ts:38-51`).
+   Swap's shipped router already depends on that call, so bridge adds no new exposure — but both
+   break together if the edge starts enforcing a key.
+4. **Enforcement mode.** `@RequireApiKey` only rejects in `mode === 'enforce'`; under
+   `monitor`/`off` a bad key still gets a 200, so Step 1 and the arm-1 auth branch are both
+   no-ops on such a deployment. Bridge-api's current mode is unknown from source.
+5. **Extraction blast radius.** Step 2a adds a module and one caller; it must not be added to
+   `backendApi/index.ts`, or `DETAILED_STATUS_NOT_DELIVERED` becomes an ambiguous re-export.
+6. **Scope creep into `hooks/backend/`.** 12 more hooks share the retry defect. PR thread only.
 </content>
