@@ -73,13 +73,19 @@ Derived from the body — the issue has no checklist of its own.
       → source 2).
 - [ ] `LOOKUP_FAILED` with `context.reason = 'relay_not_delivered'` set **only** when the
       backend also answered (a record, or a definitive 404).
-- [ ] dapp-kit `useBridgeApiDetailedStatus` (or `useBridgeDetailedStatus` — name to settle)
-      polls it with a terminal-state stop and an ambiguous-read budget.
+- [ ] An arm-1 401/403 is **terminal** — the router does not degrade to the relay — and the
+      `LOOKUP_FAILED` carries `context.status`, so `isAuthFailure` returns true on it.
+- [ ] dapp-kit `useBridgeDetailedStatus` polls it with a terminal-state stop, an auth stop read
+      from `query.state.data.error` (not `query.state.error`), and a not-delivered budget that
+      advances only on `reason === 'relay_not_delivered'`, resets on every other outcome, is keyed
+      on `${srcChainKey}:${srcTxHash}` and caps at 40 consecutive.
 - [ ] All 10 `useBridgeApi*` hooks that hard-code `retry: 3` use `retryUnlessAuthFailure`.
-- [ ] `useBridgeApiSubmitTxStatus` stops its 1s poll on `isAuthFailure(query.state.error)`.
+- [ ] `useBridgeApiSubmitTxStatus` stops its 1s poll on `isAuthFailure(query.state.error)`
+      (correct **there** — that hook unwraps and throws).
 - [ ] `BRIDGE.md` gets a `## Get Detailed Status` + `### Why it exists` + `### When it fails`
       block; `BRIDGE_API.md` gets the 401/403 paragraph. Bridge skills updated.
-- [ ] Unit tests for both the router and the status hook's auth stop.
+- [ ] Unit tests: the router's four relay outcomes, the arm-1 auth terminal (asserting the relay
+      was never called), and the four poll-policy cases in `plan.md` § 3d.
 - [ ] e2e bridge pin: left deferred, with the in-source comment updated only if a fixture appears.
 
 ## Related
@@ -89,4 +95,3 @@ Derived from the body — the issue has no checklist of its own.
 - Issues: `gh-255` (bridge API v2 build-out), `gh-305` / PR #308 (standalone `@sodax/bridge-api`
   package, unmerged — will conflict), `gh-451` (bridge manual test), `gh-452` (leverage-yield
   submit-tx + api key, the same shape one feature over), `gh-429` (unified API host deprecation).
-</content>

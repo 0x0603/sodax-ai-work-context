@@ -242,6 +242,8 @@ judges explicitly grafted.
     the module is package-internal with two consumers and its own test file, so parameterizing is
     ~8 lines while a sibling re-copies the streak machinery. Moot now — arm 2 is terminal by
     construction, so bridge needs no streak at all and that module is untouched.
+    **Superseded by § Review of revision 2 item 2** — the counter is still needed; only the solver
+    laundering is not. That module is parameterized in place, not left untouched.
 12. `hooks/bridge/` already exists with five `sodax.bridge.*` hooks; revision 1 framed a settled
     convention as an open question, and its stated reason was inverted.
 13. `BRIDGE_API.md` is in `docs-pages-map.json`'s **`unpublished`** array (`:5-14`, line 9), not
@@ -260,10 +262,62 @@ judges explicitly grafted.
     waits on — as an open question. The corrected plan settles the contract in Step 2b, before
     the router and before the docs.
 
+## Review of revision 2 — 2026-09-17, Codex
+
+A second agent (Codex) read `AGENTS.md`, followed it to this dossier and reviewed revision 2. It
+passed the plan for implementation and independently re-confirmed four things in source (the
+bridge-vs-swap `@RequireApiKey` asymmetry, the 10 `retry: 3` hooks, the `useBridgeDetailedStatus`
+naming forced by the flat export, and the `sodax-sdks`-only scope). It then raised three points.
+All three check out; the first is a bug revision 2 could not have shipped working.
+
+1. **The auth stop was unimplementable as written — confirmed, and fixed in § Step 2c / § 3a.**
+   Revision 2 told the new hook to "stop on auth failure" the way Step 1 does, i.e.
+   `isAuthFailure(query.state.error)`. That can never fire in a detailed-status hook:
+   - `useDetailedStatus.ts:56` returns the raw `Result` from the queryFn — it does **not** call
+     `unwrapResult`, so a failure lands in `query.state.data`, and `query.state.error` stays
+     `undefined`. (Step 1's hooks *do* unwrap and throw, which is why the same line is correct
+     there. `shared/unwrapResult.ts` is the only thing making that difference.)
+   - `isAuthFailure` is `isSodaxError(error) && isAuthStatus(error.context?.status)`
+     (`errors/guards.ts:61-62`) — it reads `context.status` and **never walks `.cause`**.
+   - `lookupFailed` builds context as `{ phase: 'lookup', method, ...context }`
+     (`errors/wrappers.ts:123-134`) and adds no status, so the outer `LOOKUP_FAILED` wrapping a
+     401 has `context.status === undefined` → `isAuthFailure` on it is `false`.
+   - `Ctx = Partial<SodaxErrorContext>` (`wrappers.ts:17`) and `SodaxErrorContext.status?: number`
+     exists (`errors/codes.ts:126+`), so lifting the status through the wrapper typechecks and is
+     exactly what the guard's doc comment promises.
+   - Corroborating: zero `isAuthFailure` references exist in `hooks/swap/` or `hooks/bridge/`
+     today. This hook is the first in either folder to need one.
+2. **The budget needed defining, and revision 2 contradicted itself — confirmed, fixed in § 3b/3c.**
+   Revision 2 said "bridge needs none of the not-found streak machinery" and then "with an optional
+   budget on the not-delivered reason". Arm-2-terminal-by-construction removes the solver
+   *vocabulary*, not the *counter*. The contract is now stated literally: advance only on
+   `reason === DETAILED_STATUS_NOT_DELIVERED`, reset on every other outcome, key on
+   `${srcChainKey}:${srcTxHash}`, de-dup per `dataUpdateCount`, cap at 40.
+   One nuance worth recording because the reviewer's framing was slightly off: it warned against
+   "a simple global `dataUpdateCount`" stopping early after many backend-pending polls.
+   `dataUpdateCount` is not the counter — it is the once-per-fetch de-dup guard
+   (`getSwapStatusRefetchInterval.ts:59-76`). What prevents the early stop is the **reset**:
+   `nextNotFoundStreak` returns 0 for any non-miss read (`:49-52`), and a backend arm maps to
+   `undefined` before it gets there. The requirement is right; the mechanism already exists.
+   Consequence: bridge *does* want that counter, so revision 2's "`getSwapStatusRefetchInterval.ts`
+   stays untouched" is replaced by boolean-parameterizing it in place (~8 lines, package-internal,
+   two consumers, existing test file) — which is what the scalability judge recommended in the
+   first review and what #452 inherits.
+3. **Ownership of the two shared symbols — agreed, fixed in § 2a-bis.** Revision 2 had bridge
+   import `DETAILED_STATUS_NOT_DELIVERED` and `isBackendSubmitTxAbandoned` out of
+   `swap/detailedStatus.js`. They now move into the neutral `backendApi/detailedStatusRouting.ts`
+   with swap re-exporting the public constant, so `swap/index.ts:11` keeps the same public name
+   and no consumer breaks. Safe only because `backendApi/index.ts` is not a star-export of that
+   module.
+
 ## Changes During Work
 
-None. No file in any `icon-project` repo has been modified; both sessions were read-only.
+None. No file in any `icon-project` repo has been modified; all three sessions were read-only.
 Next session starts at `plan.md` § Step 1.
+
+Self-inflicted artifact worth noting: the first two commits of this dossier ended every file with
+a literal `</content>` line (a tool-call closing tag written into the file body). Stripped from all
+five files on 2026-09-17; check `tail -1` after any bulk file write here.
 
 ## Open questions
 
@@ -280,4 +334,3 @@ the refetch-policy question, which the terminal-by-construction finding deletes)
    backend deliberately bypasses it via `RELAY_URL` → origin `xcall-relay.nw.iconblockchain.xyz`,
    `sodax-backend packages/shared-utils/src/constants.ts:38-51`) keeps accepting unauthenticated
    reads. Swap's shipped router already depends on it, so bridge adds no new exposure.
-</content>

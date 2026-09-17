@@ -38,4 +38,3 @@ Nothing in any `icon-project` repo. Only this dossier.
 - A bridge relay-proxy route (`POST /bridge/intents/packet`, mirroring swaps'
   `swaps.controller.ts:421`) would be the only version of this task needing backend work. Not
   asked for, not planned — noted so it is not rediscovered as a gap.
-</content>
