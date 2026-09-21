@@ -6,7 +6,7 @@ status: Active
 tags: [wallet, privy, email-login, embedded-wallet, wallet-sdk-react, evm, wagmi, walletconnect]
 updated: 2026-09-17
 related_issues: [gh-1069, gh-1024]
-related_decisions: [0001, 0002]
+related_decisions: [0003, 0001, 0002]
 ---
 
 # GH-456 Integrate Privy as a wallet source in the SDK
@@ -142,7 +142,8 @@ on the old frontend repo) — this card supersedes that for implementation.
 
 - Knowledge: `knowledge/architecture/encrypted-keystore-vs-mpc-email-wallets.md` (app-id-scoped
   key derivation — why the same email gives different addresses per Privy app)
-- Decisions: `0001-own-the-email-wallet-auth-plane` (build in-house — **superseded by the
-  14 Sep product call recorded in this issue**), `0002-key-custody-boundary-for-third-party-dapps`
+- Decisions: `0003-adopt-privy-as-the-email-wallet-provider` (records this product call),
+  `0001-own-the-email-wallet-auth-plane` (**superseded by 0003**),
+  `0002-key-custody-boundary-for-third-party-dapps`
 - Issues: sodax-frontend#1069 (superseded for implementation), sodax-backend#1024 (in-house Bound
   auth — the thing Privy replaces)

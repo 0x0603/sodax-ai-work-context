@@ -1,16 +1,21 @@
 ---
 type: decision
 scope: cross-repo
-status: Accepted
+status: Superseded by 0003
 tags: [auth, email-login, passkey, keystore, custody, build-vs-buy, bound-auth]
 date: 2026-08-18
-updated: 2026-08-18
+updated: 2026-09-18
 related_issues: [gh-1024-bound-auth-email-provider, gh-1069-email-provider-wallet-connectivity]
 ---
 
 # 0001 — Build and own the email-wallet auth plane; Bound is the blueprint, not the provider
 
 > Status and scope live in the frontmatter above (single source of truth).
+
+> **Superseded on 2026-09-18 by [[0003-adopt-privy-as-the-email-wallet-provider]].** Product
+> reversed the build call: Privy replaces the in-house email login (Anton/Fez, 14 Sep, recorded in
+> icon-project/sodax-sdks#456). The engineering analysis below is kept because it is still the
+> best statement of what building the plane would have cost — but nothing here is being built.
 
 ## Context
 

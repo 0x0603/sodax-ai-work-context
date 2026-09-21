@@ -14,7 +14,12 @@ custom-connector alternative, packaging/supply chain, security/custody, SSR/prec
 labelled **verified** / **likely** / **unverified**. Read `plan.md` first; open this file only for
 the evidence behind a specific claim (`rg -n "^## |^### " research.md`, then read one section).
 
-Corrections found by the adversarial pass AFTER this digest was written (they win over the text
+**Round 2 (2026-09-18) superseded parts of this digest.** The 38 primary-source facts the plan now
+relies on — including everything about recovery on TEE, Privy's chain registry and RPC resolution,
+session storage keys, the eager auth iframe, and the wagmi reconnect/storage semantics — are listed in
+`plan-revision-2.md` § 4 with file:line citations. Read that section before quoting anything below.
+
+Corrections found by the first adversarial pass AFTER this digest was written (they win over the text
 below): (1) §1.3 `useLogin` — `onComplete` with `wasAlreadyAuthenticated: true` is a one-shot
 broadcast from `PrivyProvider`'s init effect, never replayed to a hook that mounts later, and
 `login()` only `console.warn`s (no callback at all) when the user is already authenticated;

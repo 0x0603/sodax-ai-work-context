@@ -3,42 +3,19 @@ type: plan
 repo: sodax-sdks
 github: 456
 updated: 2026-09-18
+status: Historical — rev 1 design record
 ---
 
-# Plan — architecture detail (lead-architect synthesis)
+# Plan — architecture detail (rev 1 design record; `plan.md` rev 2 wins on every conflict)
 
-This is the long-form design the executable `plan.md` is cut from: proposal B ("Privy as a plain
-wagmi connector behind a `./privy` sub-path") with the judge-agreed grafts from proposals A and C.
-Read `plan.md` first; open a section here only when you need the reasoning or the full lifecycle.
-
-**Apply these corrections while reading** (found by the adversarial verification pass after this
-text was written; `plan.md` already has them):
-
-- §2.4 step 4 and §7.2: never wait on `useLogin` callbacks when Privy is already
-  `authenticated` — `login()` just warns and fires nothing. Branch on `ready && authenticated`
-  first. Reject the pending attempt only on `onError('exited_auth_flow')`; other `onError` codes
-  are recoverable in-modal errors (bad OTP) and must not reject. Do not rely on the
-  `wasAlreadyAuthenticated: true` event (one-shot, not replayed). Pass a ref-stable callbacks
-  object to `useLogin`.
-- §5 layer 1 and §7.1 item 7: the `'use client'` directive does NOT survive tsup's rollup
-  tree-shake pass (verified with the repo toolchain). Restore it in a post-build step
-  (`scripts/restore-use-client.mjs` before `check-entry-isolation.mjs`); the gate then asserts it.
-  `dist/index.mjs` ships without the directive today, so App Router partners already need their
-  own `'use client'` wrapper — docs must say so.
-- §2.5: `isAuthorized()` must never throw and must be self-timed (wagmi does not catch it; a
-  throw or hang blocks every later connector and wedges the module-level reconnect flag).
-  `getProvider()` must return a distinct object (never `window.ethereum`).
-- §2.7: validate the target chain against wagmi `config.chains` before touching the Privy
-  provider — its `wallet_switchEthereumChain` mutates `chainId` before throwing 4901.
-- §2.6: translating Privy `authenticated → false` into wagmi `disconnect` is required, not
-  optional — after logout the provider still answers `eth_accounts` but signing throws 4900.
-- AC3 wording: same email → same address for the same `appId` as long as the user has not been
-  deleted or unlinked (address is bound to the user record, not derived from the email).
-
-
-Lead-architect pass, 2026-09-18, over proposals A (vendor `@privy-io/wagmi` host), B (isolation-first custom connector), C (`EVM.sources` extension point) and the three judge reports (safety-regression, partner-DX, scalability/testability), all of which ranked **B > C > A**. This is B with the judge-agreed grafts, re-checked against `origin/main` 9a3ff4881 (file:line citations are to `/Users/sangnguyen/Documents/GitHub/sodax/sodax-sdks`). External facts carry a URL and a confidence label (**verified** = read in a primary source, **likely**, **unverified**). Versions: `@privy-io/react-auth` 3.40.0 (devDependency pin; registry `latest` re-read today is 3.43.0 with an exact `viem: 2.56.0` dependency, https://registry.npmjs.org/@privy-io/react-auth/latest), `@privy-io/js-sdk-core` 0.76.0, `@wagmi/core` 2.20.3, wagmi 2.16.9, viem 2.29.2.
-
----
+**Read `plan.md` first.** This file is the rev-1 long-form design, kept for the parts rev 2 does not
+repeat: the full mount trees, the file-by-file table, the 15-row QA matrix (§ 7.4, which rev 2 extends
+with rows 16-22) and the packaging/bundle-isolation proof. **Where it disagrees with `plan.md` rev 2,
+rev 2 wins** — rev 2 corrected five things this file states as settled: `setWalletRecovery()` throws on
+TEE (this file's recovery framing), `supportedChains` needs `privyWalletOverride` decoration, the AC5
+"reconnects are never delayed" sentence, the single 300 s `connectTimeoutMs`, and
+`loginMethods: ['email']` being enough to keep Privy from standing up its own WalletConnect stack. The
+full delta is `plan-revision-2.md`.
 
 ## 1. Decision and rationale
 
