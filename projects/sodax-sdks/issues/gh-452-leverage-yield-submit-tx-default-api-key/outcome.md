@@ -8,12 +8,13 @@ updated: 2026-09-21
 
 # Outcome
 
-- PR: not opened yet — branch pushed, waiting on the funded run
-- Branch: `feat/452-leverage-yield-submit-tx-default`, pushed to origin; worktree `sodax-sdks-452`,
-  based on `origin/fix/453-bridge-api-auth-retry` (#468 @ `444c736e`)
-- Commits: 4, all signed —
-  `2025b299` demo · `982f03f2` apiKey + status router · `24b4d08a` the flip (breaking, droppable) ·
-  `57fff8de` docs
+- PR: https://github.com/icon-project/sodax-sdks/pull/475 — open, 30 files
+- Branch: `feat/452-leverage-yield-submit-tx` off `main` @ `ae857f57`; worktree `sodax-sdks-452`
+- Commits: 5, all signed —
+  `c77d4202` demo · `525f6acf` apiKey + status router · `ec2b388d` the flip (breaking, droppable) ·
+  `44e51f47` docs · `5dcd962d` rejected-key stop
+- Superseded: `feat/452-leverage-yield-submit-tx-default` (4 commits, based on #468 pre-merge) —
+  stale on origin, no PR, safe to delete
 - Tests: 2894 sdk (84 files), 809 dapp-kit (36 files), all passing; three `checkTs` clean;
   `check:ai`, `check:doc-links`, `check:docs-nav`, `check:docs-pages` clean
 
@@ -82,6 +83,14 @@ Two edits fell out of that exercise and are improvements in their own right:
   whatever the default is.
 - `useLeverageYieldVaultSwap`'s docstring asserted which way the default points. It now describes
   both transports and tells the reader to check `config.leverageYieldUseBackendSubmitTx`.
+
+## Rebuilt after #468 merged
+
+#468 squash-merged into `main` an hour after this branch was cut from it. The four commits were
+cherry-picked onto the merged `main`; one conflict, in `getSwapStatusRefetchInterval.ts`, and it was
+the useful kind — `main`'s copy had grown a rejected-key stop during #468's review that this work's
+move to `hooks/shared/` would have dropped. Resolving it surfaced that `SwapService` had gained the
+same arm, which is what `5dcd962d` adds for leverage yield.
 
 ## Follow-ups
 

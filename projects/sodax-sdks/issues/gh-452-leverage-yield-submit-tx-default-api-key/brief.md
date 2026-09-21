@@ -2,8 +2,8 @@
 type: brief
 repo: sodax-sdks
 github: 452
-status: Pushed, no PR — unverified against a funded run
-next: Run gh-450 tier 3 F07/F08 with the demo toggle ON. That is the only thing left between this branch and a PR
+status: In review — PR 475, unverified against a funded run
+next: Watch CI on PR 475, then run gh-450 tier 3 F07/F08 with the demo toggle ON — that is what the flip commit is waiting on
 updated: 2026-09-21
 tags: [leverage-yield, leverage-yield-api, submit-tx, detailed-status, api-key, dapp-kit, demo, docs, skills]
 related_issues: [gh-453, gh-450]
@@ -15,16 +15,17 @@ related_issues: [gh-453, gh-450]
 
 ## State in five lines
 
-All seven steps of `plan.md` are **implemented and pushed** as 4 signed commits on
-`feat/452-leverage-yield-submit-tx-default` (worktree `sodax-sdks-452`), branched off **PR #468**
-(gh-453, still open). No PR opened yet. Every local gate is green: 2894 sdk + 809 dapp-kit tests, three `checkTs`,
+All seven steps of `plan.md` are **implemented** and open as **PR #475** — 5 signed commits, 30
+files, on `feat/452-leverage-yield-submit-tx` off `main` @ `ae857f57` (worktree `sodax-sdks-452`).
+#468 merged mid-session, so the branch was rebuilt off the merged `main`; the first attempt
+(`feat/452-leverage-yield-submit-tx-default`, 4 commits) is stale and unused. Every local gate is green: 2894 sdk + 809 dapp-kit tests, three `checkTs`,
 `check:ai`, `docs:sync-pages`, all three docs checks. The default **is flipped** — decided on the
 precedent that bridge shipped its ON default three days after its backend path existed, with no
 verification run (§ Settled 3). What is still missing is the funded run itself.
 
 | Step | State |
 | ---- | ----- |
-| 0: branch off #468 | done — worktree `sodax-sdks-452`, pushed |
+| 0: branch | done — rebuilt off merged `main`, PR #475 |
 | 1: demo settings row + kill the wrong local checkbox | done |
 | 2: funded run (gh-450 tier 3 F07/F08) — the gate | **not started** |
 | 3: flip the default + tests | done |
@@ -32,6 +33,7 @@ verification run (§ Settled 3). What is still missing is the funded run itself.
 | 5: `LeverageYieldService.getDetailedStatus` | done |
 | 6: `useLeverageYieldDetailedStatus` + `hooks/shared/solverStatusPolicy.ts` | done |
 | 7: docs + skills | done |
+| 8 (unplanned): rejected-key stop, to match swap/bridge | done — `5dcd962d` |
 
 ## Blocked on
 
@@ -39,14 +41,15 @@ verification run (§ Settled 3). What is still missing is the funded run itself.
    flip is safe. gh-450 tier 3 F07/F08: an EVM-spoke deposit and withdraw through
    `submit-tx → relay → postExecution → getStatus → solved`. Step 1 unblocked it; the demo now has a
    Leverage Yield SDK submit-tx row in Sodax Settings.
-2. **#468 must merge first**, or this branch's base moves. Merge `main` in after it lands — merge,
-   never rebase.
+2. ~~#468 must merge first~~ — it merged 2026-09-21 08:28 as a squash (`ae857f57`). Branch rebuilt
+   on top of it. The stale `feat/452-leverage-yield-submit-tx-default` is still on origin with no
+   PR; delete it.
 
 ## Next action
 
-Run gh-450 tier 3 (F00 prereqs first — `apps/demo/.env` points swaps at a dead `localhost:3108`).
-If it passes, open the PR. If the flip turns out to be wrong, revert `24b4d08a` — it is the only
-commit that carries it, and the other three stand without it.
+Watch CI on PR #475, then run gh-450 tier 3 (F00 prereqs first — `apps/demo/.env` points swaps at a
+dead `localhost:3108`). If the flip turns out to be wrong, revert `ec2b388d` — it is the only commit
+that carries it, and the other four stand without it.
 
 ## Settled — do not re-litigate
 
@@ -117,6 +120,13 @@ commit that carries it, and the other three stand without it.
   import site; run `src/hooks/swap` after touching either.
 - **dapp-kit resolves `@sodax/sdk` from `dist/`** — an SDK source change is invisible to
   `pnpm --filter @sodax/dapp-kit checkTs` until the sdk package is rebuilt.
+- **Branching off an unmerged PR branch costs twice.** #468 squash-merged mid-session, so the
+  original 3 commits stayed on the branch and a PR would have claimed 69 files. Worse, #468 kept
+  changing during review *after* the copy: `main` gained a rejected-key stop in the very module this
+  work moved to `hooks/shared/`, plus an auth arm in `SwapService`. Diff the base against `main`
+  before assuming a cherry-pick is mechanical.
+- **A new branch off a moved `main` needs `pnpm i` again.** The pre-commit hook failed in
+  `wallet-sdk-core`, a package untouched here, because `main` had bumped deps.
 - **A declared `@RequireApiKey` scope is not enforcement.** `ApiKeyGuard` has three modes and only
   `enforce` rejects; `API_KEY_ENFORCEMENT` defaults to `'off'`
   (`apps/swaps-api/src/config/configuration.ts:77`). Probed 2026-09-21: an unkeyed
