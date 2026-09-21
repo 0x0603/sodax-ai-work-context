@@ -2,8 +2,8 @@
 type: brief
 repo: sodax-sdks
 github: 452
-status: Planned
-next: Decide the base branch (§ Blocked on 1) — then Step 1 of `plan.md`, the demo settings toggle, because gh-450's funded run is blocked on it
+status: Pushed, no PR — unverified against a funded run
+next: Run gh-450 tier 3 F07/F08 with the demo toggle ON. That is the only thing left between this branch and a PR
 updated: 2026-09-21
 tags: [leverage-yield, leverage-yield-api, submit-tx, detailed-status, api-key, dapp-kit, demo, docs, skills]
 related_issues: [gh-453, gh-450]
@@ -15,43 +15,38 @@ related_issues: [gh-453, gh-450]
 
 ## State in five lines
 
-Make LY's submit-tx flow feel like swaps': **default ON**, **per-action `extras.apiKey`**,
-**`getDetailedStatus`**, **`useLeverageYieldDetailedStatus`**. Nothing is implemented; no branch
-exists. The plan is written and reviewed against source at `origin/main` @ `898b7e6a`. Scope is
-**`sodax-sdks` only** — the backend already has everything, because LY's `submit-tx` delegates to
-swaps' pipeline verbatim. Two hard external dependencies: **PR #468** (gh-453) supplies the shared
-routing module this plan builds on, and **gh-450 tier 3** is the funded run that justifies the flip.
+All seven steps of `plan.md` are **implemented and pushed** as 4 signed commits on
+`feat/452-leverage-yield-submit-tx-default` (worktree `sodax-sdks-452`), branched off **PR #468**
+(gh-453, still open). No PR opened yet. Every local gate is green: 2894 sdk + 809 dapp-kit tests, three `checkTs`,
+`check:ai`, `docs:sync-pages`, all three docs checks. The default **is flipped** — decided on the
+precedent that bridge shipped its ON default three days after its backend path existed, with no
+verification run (§ Settled 3). What is still missing is the funded run itself.
 
-| Item | State |
+| Step | State |
 | ---- | ----- |
-| Plan reviewed against source | done — `plan.md`, `process.md` |
-| Step 0: branch off #468 | **blocked on a decision** |
-| Step 1: demo settings toggle + kill the wrong local checkbox | not started |
-| Step 2: funded run (gh-450 tier 3 F07/F08) — the gate | not started |
-| Step 3: flip the default + tests | not started, gated by Step 2 |
-| Step 4: `extras.apiKey` | not started |
-| Step 5: `LeverageYieldService.getDetailedStatus` | not started, needs #468 |
-| Step 6: `useLeverageYieldDetailedStatus` + move the policy helpers to `hooks/shared/` | not started, needs #468 |
-| Step 7: docs + skills | not started |
+| 0: branch off #468 | done — worktree `sodax-sdks-452`, pushed |
+| 1: demo settings row + kill the wrong local checkbox | done |
+| 2: funded run (gh-450 tier 3 F07/F08) — the gate | **not started** |
+| 3: flip the default + tests | done |
+| 4: `extras.apiKey` | done |
+| 5: `LeverageYieldService.getDetailedStatus` | done |
+| 6: `useLeverageYieldDetailedStatus` + `hooks/shared/solverStatusPolicy.ts` | done |
+| 7: docs + skills | done |
 
 ## Blocked on
 
-1. **Base branch decision.** Off `origin/fix/453-bridge-api-auth-retry` (#468, open, not merged), or
-   wait for it to merge into `main`? Off `main` this work conflicts in `swap/detailedStatus.ts`,
-   `SwapService.ts` and `getSwapStatusRefetchInterval.ts`, and duplicates a module about to land.
-   Recommendation in `plan.md` § Approach: branch off #468, merge `main` in after it lands.
-2. **The funded run.** Step 3 only. gh-450 tier 3 has not started and its own blocker #2 is this
-   plan's Step 1, so Step 1 unblocks it. Everything except Step 3 can ship without it.
-3. **One unverified claim**, `plan.md` § 5c: does a leverage-yield vault intent appear in
-   `backendApi.getIntentByTxHash`? If not, ship `getDetailedStatus` without swap's
-   durable-intent reconcile.
+1. **The funded run.** Not a blocker for the code, which is finished — a blocker for *claiming* the
+   flip is safe. gh-450 tier 3 F07/F08: an EVM-spoke deposit and withdraw through
+   `submit-tx → relay → postExecution → getStatus → solved`. Step 1 unblocked it; the demo now has a
+   Leverage Yield SDK submit-tx row in Sodax Settings.
+2. **#468 must merge first**, or this branch's base moves. Merge `main` in after it lands — merge,
+   never rebase.
 
 ## Next action
 
-Answer Blocked-on 1, then Step 1 of `plan.md` — `sodaxSettings.ts` + `SodaxSettingsModal.tsx` +
-`providers.tsx`, and delete the local checkbox at `apps/demo/src/pages/leverage-yield/page.tsx:267`
-that posts a vault swap to the *swaps* submit-tx route. The demo default must mirror
-`defaultUseBackendSubmitTx(solverApiEndpoint)`, not a hardcoded `?? true`.
+Run gh-450 tier 3 (F00 prereqs first — `apps/demo/.env` points swaps at a dead `localhost:3108`).
+If it passes, open the PR. If the flip turns out to be wrong, revert `24b4d08a` — it is the only
+commit that carries it, and the other three stand without it.
 
 ## Settled — do not re-litigate
 
@@ -63,17 +58,33 @@ that posts a vault swap to the *swaps* submit-tx route. The demo default must mi
    `DETAILED_STATUS_NOT_DELIVERED` + `isBackendSubmitTxAbandoned` into
    `backendApi/detailedStatusRouting.ts`, migrated swap onto it, and extracted the poll budget into
    `hooks/shared/notFoundStreak.ts`. gh-453's brief names #452 as the anticipated third consumer.
-3. **No 401/403-terminal arm.** `GET /leverage-yield/submit-tx/status` is ungated
-   (`leverage-yield.controller.ts:558`), unlike bridge's. LY is swap-shaped here.
-4. **LY's arms are `backend | solver`**, not bridge's terminal `relay` — a vault swap IS a solver
-   intent (`terminalStatus: 'solved'`). So the swap refetch policy applies unchanged.
-5. **No new `getStatus`.** Extend the existing `getIntentStatus` (`LeverageYieldService.ts:1475`) via
-   a shared private `resolveSolverStatus`.
-6. **Position flows are out of scope** — they never touch submit-tx; the body admits only
+3. **The flip needs no bedding-in period, because neither swap nor bridge had one.** `#362`
+   (2026-08-09) defaulted both ON in a single commit — and *created* `runBackendSubmitTx` /
+   `submitTxAttempt` in that same commit, so bridge's path was 3 days old (`#261`, 2026-08-06). PR
+   #362's body contains no verification evidence at all; its whole argument is "on any backend
+   non-success, the SDK automatically falls back to the client-side relay". Same author as #452. One
+   revert (`b66725de`) was a same-day review catch, re-landed with a timeout fix; nothing since has
+   turned a default back off. So `ConfigService`'s "opt-in while it beds in" comment was one person's
+   caution, not a policy this repo follows.
+4. **No 401/403-terminal arm.** `GET /leverage-yield/submit-tx/status` declares no scope
+   (`leverage-yield.controller.ts:558`), unlike bridge's `bridge:read`. LY is swap-shaped here.
+   Separately: `POST /leverage-yield/submit-tx` declares `swaps:write`, but **declaring a scope is
+   not the same as enforcing it** — see Landmines. Do not write "requires a key" as present tense.
+5. **LY's arms are `backend | solver`**, not bridge's terminal `relay` — a vault swap IS a solver
+   intent (`terminalStatus: 'solved'`). So the swap refetch policy applies unchanged, and it was
+   moved to `hooks/shared/solverStatusPolicy.ts` rather than copied: `hooks/` has no cross-feature
+   imports anywhere, and swap's 33 cases passed unedited across the move.
+6. **No new `getStatus`.** `getIntentStatus` and `getDetailedStatus` both go through one private
+   `resolveSolverStatus`, which also carries the durable-intent reconcile.
+7. **The reconcile does apply to leverage yield** — the open question in the first revision of this
+   brief. `createVaultIntent` builds through the same `EvmSolverService.constructCreateIntentData` a
+   swap does, so the intent lands on the same hub Intents contract, and the backend's
+   `intent_journal` is fed by that contract's `IntentCreated` / `IntentFilled` events.
+8. **Position flows are out of scope** — they never touch submit-tx; the body admits only
    `deposit|withdraw`.
-7. **`partnerFee` / `hubWalletSwap` stay intersected at the alias site**, not moved into `extras`.
-8. **No follow-up issue for the deferred LY e2e pin** — defer in-source, same fixture gap as gh-453
-   Step 5.
+9. **`partnerFee` / `hubWalletSwap` stay intersected at the alias site**, not moved into `extras`.
+10. **No follow-up issue for the deferred LY e2e pin** — defer in-source, same fixture gap as gh-453
+    Step 5.
 
 ## Which file answers what
 
@@ -81,8 +92,8 @@ that posts a vault swap to the *swaps* submit-tx route. The demo default must mi
 | -------- | ---- | ---: |
 | What do I build, in what order, with which citations and snippets? | `plan.md` | 6.2k |
 | The issue body verbatim + acceptance criteria | `issue.md` | 2.1k |
-| What was verified vs. what the draft plan got wrong, and why | `process.md` | 1.7k |
-| What shipped | `outcome.md` | — |
+| What was verified, what the draft plan got wrong, the implementation session, the backend probe | `process.md` | 3.2k |
+| What shipped, file by file, and the suggested commit split | `outcome.md` | 1.0k |
 
 ## Landmines
 
@@ -98,11 +109,20 @@ that posts a vault swap to the *swaps* submit-tx route. The demo default must mi
   `VALIDATION_FAILED` / `UNKNOWN` too. And there is no *type* collision with swap's
   `DetailedStatusError` — both are `SodaxError<Extract<SodaxErrorCode,'LOOKUP_FAILED'>>`. The barrel
   is the constraint, not the type.
-- **`LeverageYieldService.test.ts:115`'s bare `new Sodax()` is load-bearing** for every client-side
-  assertion in a 139 KB file. Flipping the default without pinning it there fails a lot of tests for
-  the wrong reason.
-- **Step 6 moves code out from under swap's dapp-kit tests.** Run `src/hooks/swap` before committing;
-  the cases should pass unedited, and if they do not the move is wrong.
+- **`LeverageYieldService.test.ts`'s module-level instance is load-bearing** for every client-side
+  assertion in a 139 KB file. It is now pinned to `{ useBackendSubmitTx: false }`; a second instance,
+  `sodaxDefaults`, is what the default assertions read. Do not "tidy" the pin away.
+- **`hooks/shared/solverStatusPolicy.ts` is shared by swap and leverage yield.** Changing it moves
+  both. Swap's `getSwapStatusRefetchInterval.ts` is now a thin named face over it and keeps swap's
+  import site; run `src/hooks/swap` after touching either.
+- **dapp-kit resolves `@sodax/sdk` from `dist/`** — an SDK source change is invisible to
+  `pnpm --filter @sodax/dapp-kit checkTs` until the sdk package is rebuilt.
+- **A declared `@RequireApiKey` scope is not enforcement.** `ApiKeyGuard` has three modes and only
+  `enforce` rejects; `API_KEY_ENFORCEMENT` defaults to `'off'`
+  (`apps/swaps-api/src/config/configuration.ts:77`). Probed 2026-09-21: an unkeyed
+  `POST /v1/leverage-yield/submit-tx` on `api.sodax.com` returns **400 validation**, not 401 — and
+  `/v1/swaps/submit-tx` behaves identically. A first draft of this PR's docs asserted the 401 as
+  current fact and had to be corrected in four places. Re-probe before restating it.
 - **`main` has Biome drift** — format only the files you touched, never a blanket `pnpm pretty`.
 - **Fresh worktree needs `pnpm i && pnpm build:packages`** before the first commit, or the pre-commit
   hook fails on unrelated packages. `TURBO_CONCURRENCY=2`.

@@ -50,6 +50,83 @@ Claims that **did not** check out — see `plan.md` § Approach:
    constraint is the flat `export *` root barrel, which is what forced bridge to prefix.
 4. The draft proposed adding `getStatus` alongside the existing `getIntentStatus`.
 
+### Session 2 — 2026-09-21 · implementation
+
+Branched `feat/452-leverage-yield-submit-tx-default` off `origin/fix/453-bridge-api-auth-retry`
+(#468 @ `444c736e`) into worktree `sodax-sdks-452`. Ran all seven steps except the funded run.
+
+Two questions were settled mid-session with evidence rather than judgement:
+
+**1. Does the repo actually gate a default flip on verification?** No. `git log -S` on
+`ConfigService.ts` gives three commits, all one change: `73549b5b` (2026-08-07) → reverted same day by
+`b66725de` → re-landed as `c5a2b007` / PR #362 (2026-08-09) with an added "give submit-tx and relay
+separate timeouts" fix, i.e. a review catch, not a production incident. Swap's flag was born
+2026-07-01 (#210), bridge's 2026-08-06 (#261) — so **bridge was defaulted ON three days after its
+backend path existed**, and `runBackendSubmitTx.ts` / `submitTxAttempt.ts` were *created in the flip
+commit itself*. PR #362's body argues entirely from the fallback ("On any backend non-success, the
+SDK automatically falls back to the client-side relay") and contains no verification evidence.
+`defaultUseBackendSubmitTx` in the demo (#402, 2026-09-03) is a demo-only staging guard, not a
+walk-back. Nothing since 2026-08-09 has turned a default back off. Decision: flip, as its own commit.
+
+**2. Does the durable-intent reconcile apply to leverage yield?** Yes — this was the one unverified
+claim in `plan.md` § 5c. `LeverageYieldService.createVaultIntent` builds through
+`EvmSolverService.constructCreateIntentData(..., this.config, ...)`, the same helper `SwapService`
+uses, so the intent lands on `config.solver.intentsContract`. Backend side,
+`GET /intent/tx/:txHash` reads `intent_journal`, which `data-transformator`'s
+`intent-journal-transform.service.ts` builds from `IntentCreated` / `IntentFilled` / `IntentCancelled`
+events off that contract. So the reconcile ships.
+
+Deviations from `plan.md`:
+
+1. **The demo's Auto default reuses swap's helper rather than getting its own.** `plan.md` § 1a left
+   it open. `defaultUseBackendSubmitTx(solverApiEndpoint)` already encodes exactly the right rule
+   (gh-401: the backend route is served by the production solver), and a vault swap is a solver
+   intent, so its JSDoc was widened to cover both features instead of duplicating the predicate.
+2. **`getSwapStatusRefetchInterval.ts` was not deleted.** The plan said move the three helpers to
+   `hooks/shared/`. Done — but swap's module stays as a thin named face re-exporting them, so swap's
+   import site and its 33 test cases are untouched. That is what made the move verifiable.
+3. **`getIntentStatus` gained the reconcile too**, not just `getDetailedStatus`. Both public reads go
+   through one private `resolveSolverStatus`; splitting them would have meant two solver reads with
+   different amnesia behaviour.
+4. **One extra test beyond the plan's list**: the LY hook counts a solver `NOT_FOUND` on the same
+   budget as a relay miss, and a real status resets it. Bridge has no equivalent because its second
+   arm has no solver vocabulary.
+
+Gates, all green at the end of the session: `pnpm --filter @sodax/sdk checkTs`,
+`--filter @sodax/dapp-kit checkTs`, demo `checkTs`, 2894 sdk tests, 809 dapp-kit tests, `check:ai`,
+`docs:sync-pages` (3 mirrored pages regenerated), `check:doc-links`, `check:docs-nav`,
+`check:docs-pages`. Formatted only the touched files — `main` has Biome drift.
+
+Nothing committed. The user triggers commits.
+
+### Session 3 — 2026-09-21 · backend readiness probe, and a correction
+
+Asked whether the backend side was already handled. Checked both halves.
+
+**Merged and deployed: yes.** `POST /leverage-yield/submit-tx` and `GET /leverage-yield/submit-tx/status`
+arrived in `b0bba989` / PR #928 (2026-07-30) and are on `origin/development` (the default branch) and on
+`origin/main`. Live probe of `api.sodax.com`: the status route answers
+`{"message":"Vault swap transaction not found",...,"statusCode":404}` — the controller's own message, not
+the router's `Cannot GET`, which a deliberately-bogus path returns for comparison. Swaps' equivalent
+answers the same shape. Canary matches. So the route is deployed, not just merged.
+
+**A claim from session 2 was wrong.** I had written, in four places, that a keyless caller gets a 401 on
+the submit POST because the route carries `@RequireApiKey('swaps:write')`. An unkeyed
+`POST /v1/leverage-yield/submit-tx` on production actually returns **400 validation errors** — the guard
+did not reject. `packages/api-auth-client/src/api-key.guard.ts` explains why: it has `off` / `monitor` /
+`enforce` modes and only `enforce` rejects a failed check (`:94`), and `API_KEY_ENFORCEMENT` defaults to
+`'off'` (`apps/swaps-api/src/config/configuration.ts:77`), with a comment saying enforcement "has to be an
+explicit act on a specific deployment, never something a deploy inherits". `POST /v1/swaps/submit-tx`
+behaves identically, so this was never leverage-yield-specific.
+
+Corrected in `CONFIGURE_SDK.md`, `LEVERAGE_YIELD.md`, the `leverage-yield-api` skill and the `vaultSwap`
+comment: the scope is *declared*, enforcement is per-deployment, and where it is enforced the caller
+spends one rejected attempt. Re-ran `docs:sync-pages`, `check:ai`, `check:doc-links`, `check:docs-pages`,
+`checkTs` and the leverage-yield suites — all green.
+
+This does not change the flip decision. If anything it removes the one cost the flip was going to impose
+on keyless consumers today.
+
 ## Findings
 
 ### The backend does not own a leverage-yield pipeline
@@ -112,4 +189,5 @@ Reordered: demo → funded run → flip.
 
 ## Changes During Work
 
-Nothing implemented yet. No branch, no worktree.
+Listed as deviations under Session 2 above. Nothing outside `sodax-sdks`; `sodax-backend` was read
+only, never edited.
