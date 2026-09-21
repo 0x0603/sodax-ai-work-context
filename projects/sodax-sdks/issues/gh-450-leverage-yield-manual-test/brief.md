@@ -4,7 +4,7 @@ repo: sodax-sdks
 github: 450
 status: Active
 next: Run tier 3 (funded) — F00 prereqs first, then F01/F05 deposit on one EVM spoke, then F03/F06 withdraw on that same chain
-updated: 2026-09-16
+updated: 2026-09-21
 tags: [leverage-yield, manual-test, demo, backend-api]
 related_issues: [gh-256, gh-452, gh-325]
 ---
@@ -34,9 +34,12 @@ backend team actually asked for. Six defects found along the way, all in `outcom
 1. **F00 prereqs, before any funded run.** `apps/demo/.env` points swaps at dead
    `localhost:3108` and bridge at `3109`; the SDK page's "Submit tx to API" checkbox routes
    through the swaps API and has **no relay fallback**. Comment both out, restart Vite.
-2. **F07/F08 need a one-line `providers.tsx` edit** — `leverageYield: { useBackendSubmitTx: true }`.
-   Without it the leverage backend submit-tx path is unreachable from the demo. Overlaps #452;
-   decide whether that edit belongs to this issue or that one.
+2. **F07/F08 need the demo to reach `leverageYield.useBackendSubmitTx`.** Without it the leverage
+   backend submit-tx path is unreachable from the demo. **Settled 2026-09-21: the edit belongs to
+   #452**, as a full Sodax Settings row rather than a one-line `providers.tsx` override — it is
+   Step 1 of `../gh-452-leverage-yield-submit-tx-default-api-key/plan.md`, deliberately scheduled
+   before that issue's own gate so this run can happen. That plan also deletes the local
+   `/leverage-yield` checkbox blocker #1 describes.
 3. **Solver minimum position size is unknown** and is in neither repo. Probe with free quotes
    before committing funds.
 
