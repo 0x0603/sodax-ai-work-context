@@ -34,6 +34,7 @@ verification run (§ Settled 3). What is still missing is the funded run itself.
 | 6: `useLeverageYieldDetailedStatus` + `hooks/shared/solverStatusPolicy.ts` | done |
 | 7: docs + skills | done |
 | 8 (unplanned): rejected-key stop, to match swap/bridge | done — `5dcd962d` |
+| 9 (unplanned): undo the accidental `getIntentStatus` change | done — `c98af612` |
 
 ## Blocked on
 
@@ -42,8 +43,8 @@ verification run (§ Settled 3). What is still missing is the funded run itself.
    `submit-tx → relay → postExecution → getStatus → solved`. Step 1 unblocked it; the demo now has a
    Leverage Yield SDK submit-tx row in Sodax Settings.
 2. ~~#468 must merge first~~ — it merged 2026-09-21 08:28 as a squash (`ae857f57`). Branch rebuilt
-   on top of it. The stale `feat/452-leverage-yield-submit-tx-default` is still on origin with no
-   PR; delete it.
+   on top of it; the superseded `feat/452-leverage-yield-submit-tx-default` is deleted, locally and
+   on origin, after checking every one of its four commits had a counterpart on the new branch.
 
 ## Next action
 
@@ -79,10 +80,11 @@ that carries it, and the other four stand without it.
    imports anywhere, and swap's 33 cases passed unedited across the move.
 6. **No new `getStatus`.** `getIntentStatus` and `getDetailedStatus` both go through one private
    `resolveSolverStatus`, which also carries the durable-intent reconcile.
-7. **The reconcile does apply to leverage yield** — the open question in the first revision of this
-   brief. `createVaultIntent` builds through the same `EvmSolverService.constructCreateIntentData` a
-   swap does, so the intent lands on the same hub Intents contract, and the backend's
-   `intent_journal` is fed by that contract's `IntentCreated` / `IntentFilled` events.
+7. **The reconcile does apply to leverage yield** — `createVaultIntent` builds through the same
+   `EvmSolverService.constructCreateIntentData` a swap does, so the intent lands on the same hub
+   Intents contract, and `intent_journal` is fed by that contract's events. Positions too:
+   `reportPositionIntent` notifies through the same `notifySolver({ intent_tx_hash })`. But it is
+   wired to `getDetailedStatus` **only** — see Landmines.
 8. **Position flows are out of scope** — they never touch submit-tx; the body admits only
    `deposit|withdraw`.
 9. **`partnerFee` / `hubWalletSwap` stay intersected at the alias site**, not moved into `extras`.
@@ -120,6 +122,11 @@ that carries it, and the other four stand without it.
   import site; run `src/hooks/swap` after touching either.
 - **dapp-kit resolves `@sodax/sdk` from `dist/`** — an SDK source change is invisible to
   `pnpm --filter @sodax/dapp-kit checkTs` until the sdk package is rebuilt.
+- **Do not fold `getIntentStatus` into the reconciling solver read.** It was done once for tidiness
+  and reverted in `c98af612`: the reconcile adds a round trip on every `NOT_FOUND` and turns a
+  `NOT_FOUND` behind an unreadable backend into an error. No in-repo caller, so tests stay green and
+  it lands on an external consumer instead. `solverStatus` is the plain read; `resolveSolverStatus`
+  is the reconciling one, and only `getDetailedStatus` uses it.
 - **Branching off an unmerged PR branch costs twice.** #468 squash-merged mid-session, so the
   original 3 commits stayed on the branch and a PR would have claimed 69 files. Worse, #468 kept
   changing during review *after* the copy: `main` gained a rejected-key stop in the very module this

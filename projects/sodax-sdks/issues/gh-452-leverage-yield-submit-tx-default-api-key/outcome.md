@@ -10,11 +10,11 @@ updated: 2026-09-21
 
 - PR: https://github.com/icon-project/sodax-sdks/pull/475 — open, 30 files
 - Branch: `feat/452-leverage-yield-submit-tx` off `main` @ `ae857f57`; worktree `sodax-sdks-452`
-- Commits: 5, all signed —
+- Commits: 6, all signed —
   `c77d4202` demo · `525f6acf` apiKey + status router · `ec2b388d` the flip (breaking, droppable) ·
-  `44e51f47` docs · `5dcd962d` rejected-key stop
-- Superseded: `feat/452-leverage-yield-submit-tx-default` (4 commits, based on #468 pre-merge) —
-  stale on origin, no PR, safe to delete
+  `44e51f47` docs · `5dcd962d` rejected-key stop · `c98af612` getIntentStatus left on its old contract
+- Superseded and deleted: `feat/452-leverage-yield-submit-tx-default` (4 commits, based on #468
+  pre-merge) — no PR, and each commit verified to have a counterpart on the new branch first
 - Tests: 2894 sdk (84 files), 809 dapp-kit (36 files), all passing; three `checkTs` clean;
   `check:ai`, `check:doc-links`, `check:docs-nav`, `check:docs-pages` clean
 
@@ -91,6 +91,32 @@ cherry-picked onto the merged `main`; one conflict, in `getSwapStatusRefetchInte
 the useful kind — `main`'s copy had grown a rejected-key stop during #468's review that this work's
 move to `hooks/shared/` would have dropped. Resolving it surfaced that `SwapService` had gained the
 same arm, which is what `5dcd962d` adds for leverage yield.
+
+## Safety audit (asked for explicitly, 2026-09-21)
+
+**What of `main` this can break.** Outside leverage yield the diff touches exactly two library files.
+`ConfigService.ts` is one behavioural line plus a comment, inside the leverage-yield getter — the
+swap and bridge getters have no line in the diff. `hooks/swap/getSwapStatusRefetchInterval.ts` is
+rewritten as a thin face, and the case for it being safe is three-layered: its only non-test
+importers are `useDetailedStatus.ts` and `useStatus.ts`, **neither of which is in the diff**, so they
+are byte-identical to `main`; the six symbols they import are all still exported; and the behaviour
+is branch-for-branch identical, with swap's own cases passing unedited. Nothing touches bridge,
+positions, money market, staking, dex or wallet-sdk. The one intended break is `new Sodax()`.
+
+**The idempotency the default rests on**, checked rather than inherited from a comment:
+
+| Leg | Status |
+| --- | --- |
+| Re-POST submit-tx | verified — `findOneAndUpdate` + `$setOnInsert`, no duplicate row, no overwrite |
+| Re-relay an already-relayed tx | verified — relay answers `{ success: true, message: 'Transaction registered' }`, noted at the SDK call site |
+| Solver re-affirming a seen intent | **no local evidence** — external service; the only support is that swaps and bridge have defaulted on against it since 2026-08-09 |
+
+**A behaviour change that was caught and reverted.** Folding `getIntentStatus` into the reconciling
+solver read added a round trip on every `NOT_FOUND` and turned a `NOT_FOUND` behind an unreadable
+backend into an error. Nothing in the repo calls that method, so it would have surfaced on an
+external consumer with nothing in the diff pointing at it. `c98af612` splits the plain read back out;
+only `getDetailedStatus` reconciles. The PR was carrying two breaking changes where it should carry
+one.
 
 ## Follow-ups
 
