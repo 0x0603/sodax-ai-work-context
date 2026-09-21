@@ -35,6 +35,7 @@ verification run (§ Settled 3). What is still missing is the funded run itself.
 | 7: docs + skills | done |
 | 8 (unplanned): rejected-key stop, to match swap/bridge | done — `5dcd962d` |
 | 9 (unplanned): undo the accidental `getIntentStatus` change | done — `c98af612` |
+| 10 (unplanned): self-review cleanup — drop the shim, key both legs | done — `c1ffca21` |
 
 ## Blocked on
 
@@ -122,6 +123,9 @@ that carries it, and the other four stand without it.
   import site; run `src/hooks/swap` after touching either.
 - **dapp-kit resolves `@sodax/sdk` from `dist/`** — an SDK source change is invisible to
   `pnpm --filter @sodax/dapp-kit checkTs` until the sdk package is rebuilt.
+- **`hooks/swap/getSwapStatusRefetchInterval.ts` no longer exists.** The polling policy is
+  `hooks/shared/solverStatusPolicy.ts`, imported directly by `useStatus`, `useDetailedStatus` and
+  the leverage-yield hook. Do not reintroduce a swap-named face over it — it was tried and deleted.
 - **Do not fold `getIntentStatus` into the reconciling solver read.** It was done once for tidiness
   and reverted in `c98af612`: the reconcile adds a round trip on every `NOT_FOUND` and turns a
   `NOT_FOUND` behind an unreadable backend into an error. No in-repo caller, so tests stay green and

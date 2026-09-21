@@ -10,9 +10,10 @@ updated: 2026-09-21
 
 - PR: https://github.com/icon-project/sodax-sdks/pull/475 — open, 30 files
 - Branch: `feat/452-leverage-yield-submit-tx` off `main` @ `ae857f57`; worktree `sodax-sdks-452`
-- Commits: 6, all signed —
+- Commits: 7, all signed —
   `c77d4202` demo · `525f6acf` apiKey + status router · `ec2b388d` the flip (breaking, droppable) ·
-  `44e51f47` docs · `5dcd962d` rejected-key stop · `c98af612` getIntentStatus left on its old contract
+  `44e51f47` docs · `5dcd962d` rejected-key stop · `c98af612` getIntentStatus left on its old
+  contract · `c1ffca21` drop the forwarding shim, key the whole status call
 - Superseded and deleted: `feat/452-leverage-yield-submit-tx-default` (4 commits, based on #468
   pre-merge) — no PR, and each commit verified to have a counterpart on the new branch first
 - Tests: 2894 sdk (84 files), 809 dapp-kit (36 files), all passing; three `checkTs` clean;
@@ -117,6 +118,25 @@ backend into an error. Nothing in the repo calls that method, so it would have s
 external consumer with nothing in the diff pointing at it. `c98af612` splits the plain read back out;
 only `getDetailedStatus` reconciles. The PR was carrying two breaking changes where it should carry
 one.
+
+## Self-review, 2026-09-21
+
+Asked to audit the branch against "doesn't break old logic / solves the issue / safe / best
+approach / clean / not over-engineered". Three findings, all mine, all fixed in `c1ffca21`:
+
+1. **The forwarding shim was ceremony.** `hooks/swap/getSwapStatusRefetchInterval.ts` was kept as a
+   thin face over the shared policy so swap's files would stay out of the diff. It is exported
+   through no barrel — four internal importers, nothing public — so it protected the audit story,
+   not the codebase. Deleted; importers point at `shared/` directly and the policy test moved beside
+   what it tests. Also removed two type aliases naming the same shape twice.
+2. **`getDetailedStatus`'s `config.apiKey` reached only the backend read**, leaving the solver read
+   on the instance key. It was documented, but documenting a wart does not fix it. Now reaches both
+   legs, empty string falling back as it does on the backend legs.
+3. **The two timeout constants restated `SwapService`'s reasoning verbatim.** Trimmed to a pointer.
+
+Net 59 lines lighter. Measured rather than guessed: comments are 29% of the lines this branch adds,
+against 35% in `SwapService.ts`, 30% in `BridgeService.ts`, 47% in `detailedStatusRouting.ts` — below
+the house norm, so the density is not the over-engineering to look for. The shim was.
 
 ## Follow-ups
 
