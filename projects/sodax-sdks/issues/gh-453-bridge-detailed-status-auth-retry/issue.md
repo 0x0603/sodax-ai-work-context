@@ -4,7 +4,7 @@ repo: sodax-sdks
 github: 453
 status: Active
 tags: [bridge, bridge-api, detailed-status, api-key, dapp-kit, relay, docs, skills]
-updated: 2026-09-17
+updated: 2026-09-18
 related_decisions: []
 ---
 
@@ -14,7 +14,7 @@ related_decisions: []
 - Opened: 2026-09-14 by `R0bi7`, assigned to `0x0603`
 - No parent issue, no sub-issues (checked via `gh api .../453/sub_issues` and `/timeline`)
 - Started: 2026-09-17
-- Related PR: none yet
+- Related PR: https://github.com/icon-project/sodax-sdks/pull/468 (draft)
 
 ## Problem
 
@@ -67,24 +67,24 @@ the refutation attempts are in `process.md` § Scoping evidence.
 
 Derived from the body — the issue has no checklist of its own.
 
-- [ ] `BridgeService.getDetailedStatus({ srcChainKey, srcTxHash })` returns a tagged
+- [x] `BridgeService.getDetailedStatus({ srcChainKey, srcTxHash })` returns a tagged
       `{ source: 'backend' | 'relay', ... }` union, routing off the backend record exactly as
       swap does (`success: false`, 404, 5xx, transport error, terminal `failed`, `abandonedAt`
       → source 2).
-- [ ] `LOOKUP_FAILED` with `context.reason = 'relay_not_delivered'` set **only** when the
+- [x] `LOOKUP_FAILED` with `context.reason = 'relay_not_delivered'` set **only** when the
       backend also answered (a record, or a definitive 404).
-- [ ] An arm-1 401/403 is **terminal** — the router does not degrade to the relay — and the
+- [x] An arm-1 401/403 is **terminal** — the router does not degrade to the relay — and the
       `LOOKUP_FAILED` carries `context.status`, so `isAuthFailure` returns true on it.
-- [ ] dapp-kit `useBridgeDetailedStatus` polls it with a terminal-state stop, an auth stop read
+- [x] dapp-kit `useBridgeDetailedStatus` polls it with a terminal-state stop, an auth stop read
       from `query.state.data.error` (not `query.state.error`), and a not-delivered budget that
       advances only on `reason === 'relay_not_delivered'`, resets on every other outcome, is keyed
       on `${srcChainKey}:${srcTxHash}` and caps at 40 consecutive.
-- [ ] All 10 `useBridgeApi*` hooks that hard-code `retry: 3` use `retryUnlessAuthFailure`.
-- [ ] `useBridgeApiSubmitTxStatus` stops its 1s poll on `isAuthFailure(query.state.error)`
+- [x] All 10 `useBridgeApi*` hooks that hard-code `retry: 3` use `retryUnlessAuthFailure`.
+- [x] `useBridgeApiSubmitTxStatus` stops its 1s poll on `isAuthFailure(query.state.error)`
       (correct **there** — that hook unwraps and throws).
-- [ ] `BRIDGE.md` gets a `## Get Detailed Status` + `### Why it exists` + `### When it fails`
+- [x] `BRIDGE.md` gets a `## Get Detailed Status` + `### Why it exists` + `### When it fails`
       block; `BRIDGE_API.md` gets the 401/403 paragraph. Bridge skills updated.
-- [ ] Unit tests: the router's four relay outcomes, the arm-1 auth terminal (asserting the relay
+- [x] Unit tests: the router's four relay outcomes, the arm-1 auth terminal (asserting the relay
       was never called), and the four poll-policy cases in `plan.md` § 3d.
 - [ ] e2e bridge pin: left deferred, with the in-source comment updated only if a fixture appears.
 
@@ -93,5 +93,5 @@ Derived from the body — the issue has no checklist of its own.
 - Knowledge: none yet.
 - Decisions: none.
 - Issues: `gh-255` (bridge API v2 build-out), `gh-305` / PR #308 (standalone `@sodax/bridge-api`
-  package, unmerged — will conflict), `gh-451` (bridge manual test), `gh-452` (leverage-yield
+  package — merged 2026-09-17 as `57ceebdb`), `gh-451` (bridge manual test), `gh-452` (leverage-yield
   submit-tx + api key, the same shape one feature over), `gh-429` (unified API host deprecation).
