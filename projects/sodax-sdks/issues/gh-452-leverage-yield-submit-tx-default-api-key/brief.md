@@ -3,8 +3,8 @@ type: brief
 repo: sodax-sdks
 github: 452
 status: In review — PR 475, unverified against a funded run
-next: Watch CI on PR 475, then run gh-450 tier 3 F07/F08 with the demo toggle ON — that is what the flip commit is waiting on
-updated: 2026-09-21
+next: Run gh-450 tier 3 F07/F08 with the demo toggle ON — CI is green and both review rounds are answered, so the funded run is the only thing left holding the flip
+updated: 2026-09-22
 tags: [leverage-yield, leverage-yield-api, submit-tx, detailed-status, api-key, dapp-kit, demo, docs, skills]
 related_issues: [gh-453, gh-450]
 ---
@@ -15,11 +15,13 @@ related_issues: [gh-453, gh-450]
 
 ## State in five lines
 
-All seven steps of `plan.md` are **implemented** and open as **PR #475** — 5 signed commits, 30
-files, on `feat/452-leverage-yield-submit-tx` off `main` @ `ae857f57` (worktree `sodax-sdks-452`).
-#468 merged mid-session, so the branch was rebuilt off the merged `main`; the first attempt
-(`feat/452-leverage-yield-submit-tx-default`, 4 commits) is stale and unused. Every local gate is green: 2894 sdk + 809 dapp-kit tests, three `checkTs`,
-`check:ai`, `docs:sync-pages`, all three docs checks. The default **is flipped** — decided on the
+All seven steps of `plan.md` are **implemented** and open as **PR #475** — 10 signed commits, on
+`feat/452-leverage-yield-submit-tx` off `main` @ `ae857f57` (worktree `sodax-sdks-452`), head
+`d3b106d3`. #468 merged mid-session, so the branch was rebuilt off the merged `main`; the first
+attempt (`feat/452-leverage-yield-submit-tx-default`, 4 commits) is stale and unused. **CI is green,
+20/20**, measured on `844535b8`. Local gates too: 2902 sdk + 814 dapp-kit tests, `checkTs` across the
+workspace and the demo, `check:ai`, `docs:sync-pages`, all three docs checks. Two bot review rounds
+came and were answered (§ Session 4 in `process.md`). The default **is flipped** — decided on the
 precedent that bridge shipped its ON default three days after its backend path existed, with no
 verification run (§ Settled 3). What is still missing is the funded run itself.
 
@@ -36,6 +38,9 @@ verification run (§ Settled 3). What is still missing is the funded run itself.
 | 8 (unplanned): rejected-key stop, to match swap/bridge | done — `5dcd962d` |
 | 9 (unplanned): undo the accidental `getIntentStatus` change | done — `c98af612` |
 | 10 (unplanned): self-review cleanup — drop the shim, key both legs | done — `c1ffca21` |
+| 11 (review 1): key the durable-intent reconcile leg too | done — `844535b8` |
+| 12 (review 2): the unmirrored API reference still said opt-in | done — `a27d9a14` |
+| 13 (unplanned): demo order cards read the status router | done — `d3b106d3` |
 
 ## Blocked on
 
@@ -49,9 +54,9 @@ verification run (§ Settled 3). What is still missing is the funded run itself.
 
 ## Next action
 
-Watch CI on PR #475, then run gh-450 tier 3 (F00 prereqs first — `apps/demo/.env` points swaps at a
-dead `localhost:3108`). If the flip turns out to be wrong, revert `ec2b388d` — it is the only commit
-that carries it, and the other four stand without it.
+Run gh-450 tier 3 (F00 prereqs first — `apps/demo/.env` points swaps at a dead `localhost:3108`). CI
+is green and both reviews are answered; nothing else blocks. If the flip turns out to be wrong,
+revert `ec2b388d` — it is the only commit that carries it, and the others stand without it.
 
 ## Settled — do not re-litigate
 
@@ -98,7 +103,7 @@ that carries it, and the other four stand without it.
 | -------- | ---- | ---: |
 | What do I build, in what order, with which citations and snippets? | `plan.md` | 6.2k |
 | The issue body verbatim + acceptance criteria | `issue.md` | 2.1k |
-| What was verified, what the draft plan got wrong, the implementation session, the backend probe | `process.md` | 3.2k |
+| What was verified, what the draft plan got wrong, the implementation session, the backend probe, the two review rounds | `process.md` | 4.1k |
 | What shipped, file by file, and the suggested commit split | `outcome.md` | 1.0k |
 
 ## Landmines
@@ -144,6 +149,16 @@ that carries it, and the other four stand without it.
   `POST /v1/leverage-yield/submit-tx` on `api.sodax.com` returns **400 validation**, not 401 — and
   `/v1/swaps/submit-tx` behaves identically. A first draft of this PR's docs asserted the 401 as
   current fact and had to be corrected in four places. Re-probe before restating it.
+- **`packages/sdk/docs/LEVERAGE_YIELD_API.md` is unmirrored, so no gate reads it.** It sits in
+  `scripts/docs-pages-map.json` § `unpublished`; `check:docs-pages` / `check:doc-links` only walk
+  published pages. The flip updated `CONFIGURE_SDK.md`, `LEVERAGE_YIELD.md` and the skills pages and
+  left this one saying "opt in … default OFF" for two review rounds. Hand-carry it on any behaviour
+  change; the same applies to the other pages in that list.
+- **The demo's status cards are not uniform.** `/leverage-yield` reads
+  `useLeverageYieldDetailedStatus` (source-tx keyed, covers the relay fallback); `/swaps-sdk` and
+  `/swaps-api` still use the local `hooks/useSolverStatus.ts` fetch and `useSwapsApiSubmitTxStatus`.
+  `OrderStatus`'s `feature` prop picks; an order whose `statusEndpoint` is not the current env falls
+  back to the solver poll on purpose. Don't "unify" without keeping that pin.
 - **`main` has Biome drift** — format only the files you touched, never a blanket `pnpm pretty`.
 - **Fresh worktree needs `pnpm i && pnpm build:packages`** before the first commit, or the pre-commit
   hook fails on unrelated packages. `TURBO_CONCURRENCY=2`.

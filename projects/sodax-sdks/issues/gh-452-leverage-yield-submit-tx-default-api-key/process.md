@@ -2,7 +2,7 @@
 type: process
 repo: sodax-sdks
 github: 452
-updated: 2026-09-21
+updated: 2026-09-22
 ---
 
 # Process
@@ -126,6 +126,52 @@ spends one rejected attempt. Re-ran `docs:sync-pages`, `check:ai`, `check:doc-li
 
 This does not change the flip decision. If anything it removes the one cost the flip was going to impose
 on keyless consumers today.
+
+### Session 4 — 2026-09-22 · two bot review rounds, and the demo finally reads the router
+
+**Round 1** (`#issuecomment-5761030903`, on `c1ffca21`) — one Low finding: `resolveSolverStatus`
+calls `getIntentByTxHash(request.intent_tx_hash, { timeout })` without the per-request `apiKey`,
+"contradicting the new JSDoc". The observation is true; the impact is not.
+
+- `/be/intent/tx/:txHash` is served by `apps/api`, which has **no** API-key machinery at all — every
+  `@ln()` / `RequireApiKey` in `sodax-backend` is under `apps/swaps-api`, and `apps/api/src` has no
+  global guard either. Live probe: `GET https://api.sodax.com/v1/be/intent/tx/0x00…00` returns the
+  app's own `{"message":"Intent not found …","statusCode":404}` with **and** without a key. So the
+  401 branch the finding's impact rests on does not exist on this deployment.
+- The leg was never keyless anyway: `BackendApiService` bakes the instance key into its headers
+  (`:287-288`), so only a *per-request* key that differs from the instance one was dropped.
+- `SwapService.ts:411` carries the identical un-keyed line on `main`, so `Scope: introduced` is
+  arguable. Swap is left alone: its `getDetailedStatus(params)` takes no `RequestOverrideConfig`
+  (`:456-458`), so it has no override to forward — fixing it means adding a public param.
+
+Fixed anyway in `844535b8` (one line + JSDoc + `LEVERAGE_YIELD.md` + a test). The test was checked
+for vacuousness by reverting the source line: it fails without the fix.
+
+**Round 2** (`#issuecomment-5770866129`, on `844535b8`) — Low: `LEVERAGE_YIELD_API.md:204` still said
+"opt in … (default OFF, unlike the swaps and bridge toggles)". True, and it had survived two rounds
+because that page is in `docs-pages-map.json` § `unpublished` — no docs gate reads it. `44e51f47`
+had updated only the mirrored pages and the skills. Fixed in `a27d9a14`, together with the dapp-kit
+recipe's hook table, which still described the vault swap as create → relay → notify solver.
+
+**The round-2 disputed Medium** — "storing completed leverage-yield operations as generic solver
+orders can regress persisted history" — is not a regression. `OrderStatus.tsx:295` `isSettled` plus
+the `final` snapshot means a settled order renders statically with zero requests, so a completed
+vault swap never re-reads the solver. The pre-change *default* path already stored `mode: 'solver'`
+orders; the opt-in ON path it replaced was the broken POST to `/swaps/submit-tx`. Only a
+non-terminal order during a solver restart shows `NOT_FOUND`, exactly as before.
+
+**But it surfaced a real gap.** Neither detailed-status API had a consumer in the demo: no
+`useDetailedStatus` (shipped by #468) and no `useLeverageYieldDetailedStatus` anywhere in
+`apps/demo/src`; solver cards ran the local `hooks/useSolverStatus.ts` `fetch`. `d3b106d3` wires the
+leverage-yield page onto the router via an `OrderStatus` `feature` prop, reusing the submit-tx
+derivation for the backend arm (it now takes the record, not the response envelope). An order whose
+`statusEndpoint` is not the current env keeps the old poll — that field exists precisely because the
+router only knows the env the SDK is currently on.
+
+Left deliberately: `/swaps-sdk` on its own poll (pulling swap into this diff), and no `extras.apiKey`
+field in the demo (`grep 'extras:' apps/demo/src` is empty; the instance key covers it).
+
+CI on `844535b8`: 20/20 green, including Build and Test, Docs site and AI files drift.
 
 ## Findings
 

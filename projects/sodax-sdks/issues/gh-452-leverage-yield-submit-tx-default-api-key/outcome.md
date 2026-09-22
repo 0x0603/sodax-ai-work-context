@@ -2,8 +2,8 @@
 type: outcome
 repo: sodax-sdks
 github: 452
-status: Implemented, uncommitted — funded run outstanding
-updated: 2026-09-21
+status: Pushed as PR 475, CI green — funded run outstanding
+updated: 2026-09-22
 ---
 
 # Outcome
@@ -137,6 +137,22 @@ approach / clean / not over-engineered". Three findings, all mine, all fixed in 
 Net 59 lines lighter. Measured rather than guessed: comments are 29% of the lines this branch adds,
 against 35% in `SwapService.ts`, 30% in `BridgeService.ts`, 47% in `detailedStatusRouting.ts` — below
 the house norm, so the density is not the over-engineering to look for. The shim was.
+
+## Post-review commits, 2026-09-22
+
+Three more on top of the review pass, all pushed, CI green on the middle one:
+
+| Commit | What |
+| ------ | ---- |
+| `844535b8` | the reconcile leg carries the caller's `apiKey` — one line, JSDoc, `LEVERAGE_YIELD.md`, one test |
+| `a27d9a14` | `LEVERAGE_YIELD_API.md` still called the backend path opt-in; dapp-kit recipe's hook table too |
+| `d3b106d3` | demo leverage-yield order cards read `useLeverageYieldDetailedStatus` instead of polling the solver |
+
+`d3b106d3` also threads an `OrderStatus` `feature` prop and makes `deriveSubmitTx` take the record
+rather than the response envelope, so the backend arm of the router reuses it. The PR body was
+corrected in the same pass: it still claimed the per-request key reached "both" legs.
+
+Reasoning and the evidence behind each is in `process.md` § Session 4.
 
 ## Follow-ups
 
