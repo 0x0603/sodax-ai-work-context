@@ -147,6 +147,12 @@ Three more on top of the review pass, all pushed, CI green on the middle one:
 | `844535b8` | the reconcile leg carries the caller's `apiKey` — one line, JSDoc, `LEVERAGE_YIELD.md`, one test |
 | `a27d9a14` | `LEVERAGE_YIELD_API.md` still called the backend path opt-in; dapp-kit recipe's hook table too |
 | `d3b106d3` | demo leverage-yield order cards read `useLeverageYieldDetailedStatus` instead of polling the solver |
+| `c02fe1e4` | re-baseline the SDK tarball gate — `main`'s own growth plus this branch's crossed the old ceiling |
+| `8073ecf7` | demo settings: Leverage Yield API base URL row, and a per-action `extras.apiKey` row the page now passes |
+| `75165b62` | the modal no longer seeds the key row from `VITE_SODAX_API_KEY`; `TextRow` gains a `secret` mode |
+
+CI is green on this set: 18/18, with the tarball step reporting 999087 B under the refreshed
+1050000 B ceiling. An independent review verified the branch line by line and requested no changes.
 
 `d3b106d3` also threads an `OrderStatus` `feature` prop and makes `deriveSubmitTx` take the record
 rather than the response envelope, so the backend arm of the router reuses it. The PR body was

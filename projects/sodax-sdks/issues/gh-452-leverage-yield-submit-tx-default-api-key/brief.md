@@ -15,9 +15,9 @@ related_issues: [gh-453, gh-450]
 
 ## State in five lines
 
-All seven steps of `plan.md` are **implemented** and open as **PR #475** — 10 signed commits, on
+All seven steps of `plan.md` are **implemented** and open as **PR #475** — 13 signed commits, on
 `feat/452-leverage-yield-submit-tx` off `main` @ `ae857f57` (worktree `sodax-sdks-452`), head
-`d3b106d3`. #468 merged mid-session, so the branch was rebuilt off the merged `main`; the first
+`75165b62`. #468 merged mid-session, so the branch was rebuilt off the merged `main`; the first
 attempt (`feat/452-leverage-yield-submit-tx-default`, 4 commits) is stale and unused. **CI is green,
 20/20**, measured on `844535b8`. Local gates too: 2902 sdk + 814 dapp-kit tests, `checkTs` across the
 workspace and the demo, `check:ai`, `docs:sync-pages`, all three docs checks. Two bot review rounds
@@ -41,6 +41,9 @@ verification run (§ Settled 3). What is still missing is the funded run itself.
 | 11 (review 1): key the durable-intent reconcile leg too | done — `844535b8` |
 | 12 (review 2): the unmirrored API reference still said opt-in | done — `a27d9a14` |
 | 13 (unplanned): demo order cards read the status router | done — `d3b106d3` |
+| 14 (unplanned): re-baseline the SDK tarball gate | done — `c02fe1e4` |
+| 15 (unplanned): LY API host + per-action key rows in demo settings | done — `8073ecf7` |
+| 16 (unplanned): stop showing the deployment API key in the modal | done — `75165b62` |
 
 ## Blocked on
 
@@ -103,7 +106,7 @@ revert `ec2b388d` — it is the only commit that carries it, and the others stan
 | -------- | ---- | ---: |
 | What do I build, in what order, with which citations and snippets? | `plan.md` | 6.2k |
 | The issue body verbatim + acceptance criteria | `issue.md` | 2.1k |
-| What was verified, what the draft plan got wrong, the implementation session, the backend probe, the two review rounds | `process.md` | 4.1k |
+| What was verified, what the draft plan got wrong, the implementation session, the backend probe, the two review rounds | `process.md` | 5.0k |
 | What shipped, file by file, and the suggested commit split | `outcome.md` | 1.0k |
 
 ## Landmines
@@ -159,6 +162,15 @@ revert `ec2b388d` — it is the only commit that carries it, and the others stan
   `/swaps-api` still use the local `hooks/useSolverStatus.ts` fetch and `useSwapsApiSubmitTxStatus`.
   `OrderStatus`'s `feature` prop picks; an order whose `statusEndpoint` is not the current env falls
   back to the solver poll on purpose. Don't "unify" without keeping that pin.
+- **The SDK tarball gate trips on accumulated growth, not on one PR.** `ci.yml` pins
+  `SODAX_SDK_TARBALL_BASELINE_BYTES` with a 5% tolerance; `main` had drifted 4.2% into it, so this
+  branch's ~11 KB of feature dist pushed the merge ref 1587 B over while `main` alone still passed.
+  The step's own comment says to refresh the baseline on a deliberate increase — do that (`c02fe1e4`
+  set it to 1000000 against a measured 999087 B), and re-measure rather than raise the tolerance.
+- **A `VITE_` var is in the public bundle, so the demo's API key was never secret** — but it was
+  being *displayed*: the settings modal seeded the key row from `VITE_SODAX_API_KEY` and put it in
+  the reset button's `title`. `75165b62` starts the row empty and adds a `secret` mode to `TextRow`.
+  Anything key-shaped added to that modal needs `secret`, and its default must stay `''`.
 - **`main` has Biome drift** — format only the files you touched, never a blanket `pnpm pretty`.
 - **Fresh worktree needs `pnpm i && pnpm build:packages`** before the first commit, or the pre-commit
   hook fails on unrelated packages. `TURBO_CONCURRENCY=2`.

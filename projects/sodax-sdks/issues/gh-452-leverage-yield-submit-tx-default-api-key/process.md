@@ -173,6 +173,45 @@ field in the demo (`grep 'extras:' apps/demo/src` is empty; the instance key cov
 
 CI on `844535b8`: 20/20 green, including Build and Test, Docs site and AI files drift.
 
+### Session 5 — 2026-09-22 · a red CI that was not ours, and two demo settings
+
+**The tarball gate.** `Build and Test` went red on `d3b106d3` at the SDK tarball size check,
+`999087 B > 997500 B`. Not the docs or demo commits: `packages/sdk/package.json` packs
+`files: ["dist", "!dist/**/*.map"]`, so neither touches the tarball. Three numbers from CI logs:
+`main` @ `c36043a3` packs 988012 B; this branch on `main` @ `ae857f57` packed 994677 B; the same
+branch on `c36043a3` packs 999087 B. #473 (second Robinhood batch) added ~4.4 KB to `main` an hour
+earlier, the branch adds ~11 KB of feature dist, and each cleared the ceiling alone. The baseline
+was `950000` "measured 948338 B", so `main` had grown 4.2% into a 5% tolerance. `c02fe1e4` refreshes
+it to `1000000` — the step's own comment prescribes exactly that on a deliberate increase. CI then
+went 18/18.
+
+**Two settings the feature had but the modal could not reach** (`8073ecf7`). The Leverage Yield API
+showcase resolved its host from `VITE_LEVERAGE_YIELD_API_BASE_URL` alone — a rebuild to retarget,
+while the Bridge API page beside it had a row. Now `effectiveLeverageYieldApiBaseUrl`, same
+precedence as swaps, and `LEVERAGE_YIELD_API_CONFIG` is gone. And `extras.apiKey` had no surface at
+all (`grep 'extras:' apps/demo/src` was empty), so the per-action key shipped in this PR could not
+be exercised; the page now passes it, omitting the field entirely when unset.
+
+**A third setting was asked for and refused: a solver endpoint of its own.** `SodaxConfig.solver` is
+one global slice (`providers.tsx:145-149`) and `LeverageYieldService` reads `this.config.solver`
+directly, so a per-feature endpoint is an SDK change, not a demo one. A second `Sodax` instance
+would split the wallet and query cache for one row. The submit-tx row already warns when the
+configured solver cannot see what the backend route posts.
+
+**Then the key leak** (`75165b62`). Asked whether the modal exposes the API key — it did, two ways:
+the row seeded its draft from `VITE_SODAX_API_KEY`, and the reset button carried the value in a
+`title` attribute, readable even behind a mask. A `VITE_` var is inlined into the public bundle, so
+nothing was secret that was not already; the exposure is screens being shared and recorded. The row
+now starts empty and says the key is inherited; `TextRow` has a `secret` mode (masked input, reveal
+toggle, no value in the tooltip) used by both key rows. Copy stays enabled on purpose.
+
+**An independent human-style review** landed in between and was checked line by line rather than
+taken on trust: `git diff --stat` matches its 1698/−380, `LeverageYieldService.ts:1619` and
+`LEVERAGE_YIELD_API.md:204` are the lines it cites, `solverStatusPolicy.ts:107` really does hold the
+auth short-circuit, `_apiKeyWire.test.ts` really does cover only the wire-client hook families, and
+its test counts reproduce exactly (sdk 194/194, dapp-kit 113/113). Verdict: no code changes
+requested, merge pending the funded run.
+
 ## Findings
 
 ### The backend does not own a leverage-yield pipeline
