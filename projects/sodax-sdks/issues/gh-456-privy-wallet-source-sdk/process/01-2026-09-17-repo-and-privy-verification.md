@@ -144,5 +144,5 @@ usage limit; the run was then paused by the user. Verdicts that arrived:
 | C10 | TEE default has no password recovery factor | no votes | product question Q1; the digest cites Privy's architecture + cloud-recovery pages directly |
 
 The corrections are folded into `plan.md` (lifecycle, `isAuthorized`, `'use client'`, chain
-switch, disconnect) and summarised at the top of `plan-architecture.md` and `research.md`.
+switch, disconnect) and summarised at the top of `archive/plan-architecture.md` and `research.md`.
 

@@ -4,9 +4,12 @@ repo: sodax-sdks
 github: 456
 updated: 2026-09-23
 supersedes: plan.md rev 1
+status: Archived — rev 1 → rev 2 evidence trail
 ---
 
 # plan.md rev 1 → rev 2 — the revision list
+
+> **Archived 2026-09-23 — historical, superseded by `../plan.md` rev 3. Do not build from this file.**
 
 Lead-architect close of round 2. Inputs: five research answers (chain coverage, recovery/MFA/TEE,
 session+mount, Next/Turbopack/SSR, precedent deep-read), an adversarially-reviewed finding set

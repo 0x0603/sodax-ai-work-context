@@ -17,7 +17,7 @@ the evidence behind a specific claim (`rg -n "^## |^### " research.md`, then rea
 **Round 2 (2026-09-18) superseded parts of this digest.** The 38 primary-source facts the plan now
 relies on — including everything about recovery on TEE, Privy's chain registry and RPC resolution,
 session storage keys, the eager auth iframe, and the wagmi reconnect/storage semantics — are listed in
-`plan-revision-2.md` § 4 with file:line citations. Read that section before quoting anything below.
+`archive/plan-revision-2.md` § 4 with file:line citations. Read that section before quoting anything below.
 
 Corrections found by the first adversarial pass AFTER this digest was written (they win over the text
 below): (1) §1.3 `useLogin` — `onComplete` with `wasAlreadyAuthenticated: true` is a one-shot

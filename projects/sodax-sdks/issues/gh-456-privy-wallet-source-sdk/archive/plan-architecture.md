@@ -8,6 +8,8 @@ status: Historical — rev 1 design record
 
 # Plan — architecture detail (rev 1 design record; `plan.md` rev 2 wins on every conflict)
 
+> **Archived 2026-09-23 — historical, superseded by `../plan.md` rev 3. Do not build from this file.**
+
 **Read `plan.md` first.** This file is the rev-1 long-form design, kept for the parts rev 2 does not
 repeat: the full mount trees, the file-by-file table, the 15-row QA matrix (§ 7.4, which rev 2 extends
 with rows 16-22) and the packaging/bundle-isolation proof. **Where it disagrees with `plan.md` rev 2,

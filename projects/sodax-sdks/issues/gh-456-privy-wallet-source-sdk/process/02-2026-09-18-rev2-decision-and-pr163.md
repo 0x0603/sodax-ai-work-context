@@ -104,7 +104,7 @@ specified although `getConnectorClient` throws on disagreement, `isAuthorized` c
 
 `plan.md` is now rev 2 with all 53 edits plus the PR #163 memo folded in. The spike shrank from 8 items
 to 5 and gained a Turbopack prerender go/no-go that needs no Privy app. Estimate moved to 9-10 days.
-Full delta and the 38 primary-source facts: `plan-revision-2.md`.
+Full delta and the 38 primary-source facts: `archive/plan-revision-2.md`.
 
 ## Session close (2026-09-18, first pause)
 
