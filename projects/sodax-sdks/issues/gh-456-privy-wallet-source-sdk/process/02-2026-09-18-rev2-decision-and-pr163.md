@@ -3,7 +3,7 @@ type: process
 repo: sodax-sdks
 github: 456
 session: 2026-09-18
-updated: 2026-09-18
+updated: 2026-09-23
 ---
 
 # Session 02 — decision record, rev 2, and the PR #163 collision
@@ -60,7 +60,13 @@ and the "separate package" option is more live than the plan assumed. Against it
 `pnpm release` preflight**. That is a note for their PR thread (not a new issue), and it is the
 concrete reason a sub-path still beats a new package here.
 
-### Draft comment for PR #163 — NOT POSTED (ask the user first)
+### Reference text about PR #163 — DO NOT POST (settled 2026-09-23)
+
+**User's decision, 2026-09-23: never post this, and do not touch PR #163 at all.** It is
+0xmilktea's PR; the finding lives here so it is on hand when *we* need it — when #456 opens its own
+PR, when someone asks why `EVM.privy` exists, or if #163's CI failure has to be explained. It is not
+ours to raise. Kept verbatim as reference, not as a draft awaiting approval.
+
 
 > Heads-up from #456 (Privy email login as an opt-in EVM wallet source): `EVM.wagmiConnectors` is the
 > right seam and we'll append next to it rather than replace it — Privy additionally needs a React host

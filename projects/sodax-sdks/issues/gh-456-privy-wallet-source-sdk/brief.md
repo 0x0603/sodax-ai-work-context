@@ -105,9 +105,10 @@ Resuming cold: this brief → `process/03` → the one `plan.md` section you nee
 - **Do not build the late-readiness self-`reconnect()`** (`plan.md` § Lifecycle — returning user
   reload): it races wagmi's internal `current` on heuristic guards, and the plan's own one-click
   fallback costs nothing. `process/03` § cut 5.
-- **PR #163 `feat/wallet-hw` touches the same `useMemo` and config block**, is stale and conflicting,
-  and would fail `pnpm test` on merge (`@sodax/wallet-hw` non-private at `0.0.1-test`). That note goes
-  in **their PR thread**, not a new issue. Draft in `process/02` § F9 — not posted; ask first.
+- **Do not touch PR #163** (0xmilktea's `feat/wallet-hw`) — settled 2026-09-23, no comment, no edit.
+  It collides with #456 on the same `useMemo` and config block, and would fail `pnpm test` on merge
+  (`@sodax/wallet-hw` non-private at `0.0.1-test`). That analysis is reference for **us**, kept in
+  `process/02` § F9; raise it only in our own PR if it ever blocks us.
 - **`pnpm build:packages` DOES work — the old note here was wrong** (corrected 2026-09-23).
   `turbo.json:27` gives it `dependsOn: ["^build"]`, so the dry run schedules 26 tasks, 8 of them real
   builds, despite the task's own command being `<NONEXISTENT>`. Lighter than `pnpm build`, which also
