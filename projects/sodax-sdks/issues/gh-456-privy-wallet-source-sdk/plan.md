@@ -15,6 +15,12 @@ an unimplementable import guard, a useless `'use client'` build step). What chan
 `process/04`. The audit that started it: `process/03`. Rev 1 and the rev 1 → 2 evidence trail are in
 `archive/` — **historical, do not build from them**. External facts with sources: `research.md`.
 
+**Implemented and max-reviewed 2026-09-23 (uncommitted).** Settled 11 (no boundary), fail-fast `privy()`
+and the `^3.40.0` peer were reversed in `process/06`. **`process/05` § Deviations lists nine more places the
+code differs from this text** (supersession rule, no `pendingRuntimeChainId`, `WeakMap` instead of a brand, Privy-specific
+seam names, commit order, knip, the optional-peer claim, the workspace dedupe, pinned 3.40.0). Read it
+before trusting § Coexistence, § Lifecycle — chain switch or § Step 7.
+
 Privy versions cited: `@privy-io/react-auth@3.43.0`, `@privy-io/chains@0.6.0`,
 `@privy-io/js-sdk-core@0.76.0`, read 2026-09-18. **Privy ships weekly — re-stamp every Privy citation
 on the spike day.** Repo baseline: `origin/main 1549d309` (worktree `../sodax-sdks-456` sits there).
