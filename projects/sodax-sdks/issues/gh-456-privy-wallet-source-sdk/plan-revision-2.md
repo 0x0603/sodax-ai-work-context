@@ -2,7 +2,7 @@
 type: plan-revision
 repo: sodax-sdks
 github: 456
-updated: 2026-09-18
+updated: 2026-09-23
 supersedes: plan.md rev 1
 ---
 
@@ -46,7 +46,7 @@ violated on the Privy path. Worse, `@privy-io/chains@0.6.0`'s `DEFAULT_SUPPORTED
 **id 999 to Zora Goerli Testnet**, not HyperEVM, and `dedupeSupportedChains` grafts Privy's own proxy
 onto any supplied chain whose id matches a default entry. Fix: decorate a **separate** array with
 `rpcUrls.privyWalletOverride` (rev 2 § 2, edit 12). This also closes CONFIRMED finding
-`privy-rpc-override-missing` and absorbs `process.md` § F8, which never reached rev 1.
+`privy-rpc-override-missing` and absorbs `process/02-2026-09-18-rev2-decision-and-pr163.md` § F8, which never reached rev 1.
 
 **(c) AC5's "MetaMask/WC reconnects are never delayed" is false.** `@wagmi/core@2.20.3`
 `dist/esm/actions/reconnect.js:46-82` is a sequential loop with **no `break`**: it `await`s every
@@ -118,7 +118,7 @@ Each edit is self-contained. Line numbers are rev 1's.
 ### Header / provenance
 
 **Edit 1 — line 12-15 (revision banner).** Replace "Revision 1 (2026-09-18)" with "Revision 2
-(2026-09-18)" and append: *"Rev 2 folds in `process.md` § F7–F9, a five-topic research round
+(2026-09-18)" and append: *"Rev 2 folds in `process/02-2026-09-18-rev2-decision-and-pr163.md` § F7–F9, a five-topic research round
 (chain coverage, recovery/MFA/TEE, session+mount, Next/Turbopack/SSR, precedent deep-read) and an
 adversarial review. Five things rev 1 called settled are corrected — see § Settled choices notes and
 § Risks. Privy versions cited are `@privy-io/react-auth@3.43.0` / `@privy-io/chains@0.6.0` /
@@ -249,7 +249,7 @@ one-liner is the contract the fallback path has to honour, and half of it is uns
 > `getRpcUrl` already exists at `packages/wallet-sdk-react/src/utils/walletRpcConfig.ts:24` and is
 > what `createWagmiConfig` uses, so reads and sends share one source of truth.
 
-*Severity: blocking. Reason: absorbs `process.md` § F8, which rev 1 never picked up; without it the
+*Severity: blocking. Reason: absorbs `process/02-2026-09-18-rev2-decision-and-pr163.md` § F8, which rev 1 never picked up; without it the
 demo's nine configured endpoints are all ignored by Privy and six chains silently use Privy's shared
 rate-limited proxy.*
 

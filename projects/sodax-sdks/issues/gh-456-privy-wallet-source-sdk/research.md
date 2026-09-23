@@ -4,7 +4,7 @@ repo: sodax-sdks
 github: 456
 status: Active
 tags: [privy, wagmi, embedded-wallet, email-login, packaging, security, ssr]
-updated: 2026-09-18
+updated: 2026-09-23
 ---
 
 # Research digest — Privy as an opt-in EVM wallet source
@@ -29,7 +29,7 @@ rollup pass strips module-level `'use client'` from every emitted entry, so the 
 re-added by a post-build step; the main entry already ships without it today. (3) §3.1 — wagmi's
 `reconnect()` does not catch `isAuthorized()`: a throw there rejects the loop and leaves the
 module-level `isReconnecting` flag stuck for the page lifetime, so the connector's `isAuthorized`
-must be total. Details in `process.md` § F6.
+must be total. Details in `process/01-2026-09-17-repo-and-privy-verification.md` § F6.
 
 
 Synthesized 2026-09-18 from six research agents (privy-wagmi, privy-react-auth, custom-connector, packaging-supply-chain, security-custody, ssr-precedents) plus the verified repo facts in `repo-facts.md`. Research was performed 2026-09-17 (some registry reads spilled into 09-18 UTC). Versions read: `@privy-io/react-auth` 3.43.0 (latest, 2026-09-15) with types from 3.43.0 and dist from 3.39.0/3.40.0; `@privy-io/wagmi` 4.0.17 (2026-08-31); `@privy-io/js-sdk-core` 0.76.0; wagmi 2.16.9 / `@wagmi/core` 2.20.3 / `@wagmi/connectors` 5.9.9 as installed in the repo. Privy ships roughly weekly, so re-check anything version-bound at PR time.
