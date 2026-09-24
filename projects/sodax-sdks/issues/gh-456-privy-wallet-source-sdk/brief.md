@@ -2,9 +2,9 @@
 type: brief
 repo: sodax-sdks
 github: 456
-status: Active — 8 commits on feat/456-privy-wallet-source, local only (push 403); needs write access, then a Privy app id
-next: Restore write access to icon-project/sodax-sdks (API shows push:false for 0x0603), then push the branch
-updated: 2026-09-23
+status: Active — PR #486 open as draft, CI green; live QA waits on a dev Privy app id
+next: Paste a dev Privy app id into apps/demo Settings → Privy app id, then spike 2/4 + the QA matrix on :3000
+updated: 2026-09-24
 tags: [wallet, privy, email-login, embedded-wallet, wallet-sdk-react, evm, wagmi, walletconnect]
 related_issues: [gh-1069, gh-1024]
 related_decisions: [0003, 0001, 0002]
@@ -22,7 +22,8 @@ related_decisions: [0003, 0001, 0002]
 and EIP-6963. Same shape ships in production at sushiswap. Partner writes
 `EVM: { privy: privy({ appId }) }` — one import, one field. `plan.md` is at **rev 3** (2026-09-23):
 the audit's cuts applied, three rev-2 errors fixed, public API settled, the old plan files archived.
-**Implemented 2026-09-23 in `../sodax-sdks-456`, uncommitted** — spike 0 GO, 250 tests, every gate green.
+Implemented 2026-09-23 (spike 0 GO, every gate green); **pushed as draft PR #486** on 2026-09-24, where
+`apps/demo` now takes the Privy app id from its Settings modal (`process/07`).
 Nine places the code differs from `plan.md` are listed in `process/05`; the review in `process/06`
 reversed three more (start-up guard, `privy()` never throws, optional peer `*`).
 
@@ -38,6 +39,7 @@ reversed three more (start-up guard, `privy()` never throws, optional peer `*`).
 | Spike 0 (Turbopack + webpack prerender) and 1 (install, gates, Privy 3.40.0 facts) | done — GO; `process/05` |
 | Steps 1–7 (seam, sub-path, tests, demo, docs, skills, CI line) | done, **uncommitted** — `process/05` |
 | Max review: 15 findings verified and fixed, 276 tests | done — `process/06` |
+| Pushed; **PR #486 draft**, 14 commits, CI green; demo Settings field for the app id | done — `process/07` |
 | Spike 2–4 (unregistered-chain signing, funded sends, live MFA/config) | blocked on a dev Privy app id (+ gas owner for 3) |
 
 ## Blocked on
@@ -50,16 +52,14 @@ self-service, so question 7 is pre-merge, not pre-spike.
 
 ## Next action
 
-1. **Push is blocked**: `git push` returns 403 and `gh api repos/icon-project/sodax-sdks` shows
-   `push: false` for `0x0603` (2026-09-23), although PR #478 was pushed from this account on 09-22. Once
-   write access is back: `git push -u origin feat/456-privy-wallet-source` from `../sodax-sdks-456`.
-   The 8 signed commits, `b3c54dc3..af132fab`: refactor RPC map → fix disconnect-all → EVM.privy seam →
-   `./privy` + deps → demo → CI → docs → skills. Base `1549d309`; `origin/main` has moved one commit
-   (`e57a4a4b`, only a different `ci.yml` line) — merge, never rebase.
-2. **A dev Privy app id** (dashboard.privy.io, free): put it in `apps/wallet-modal-example/.env` as
-   `VITE_PRIVY_APP_ID`, run the demo on :3002, then spike items 2 and 4 and the QA matrix in `plan.md`.
-3. Before the PR: `pnpm pack:local` into a scratch **npm + Vite** app without Privy's Solana peers —
-   the one install shape nobody has built yet (`process/05` § Deviations 8).
+1. **A dev Privy app id** (dashboard.privy.io, free; enable Email + Ethereum embedded wallets, allow
+   `http://localhost:3000`): `pnpm dev:demo` → Settings → Wallet → "Privy app id" → Save (reloads). Or
+   `VITE_PRIVY_APP_ID` in `apps/demo/.env` / `apps/wallet-modal-example/.env` (:3002). Then spike items
+   2 and 4 and the QA matrix in `plan.md`; measure the 3 s restore budget (spike 4(d)).
+2. Before un-drafting: `pnpm pack:local` into a scratch **npm + Vite** app without Privy's Solana peers —
+   the one install shape nobody has built yet (`process/05` § Deviations 8); post the AC2 rewrite comment
+   (`plan.md` § Verification).
+3. Merging stays gated on open question 5 (see Landmines).
 
 ## Settled — do not re-litigate
 
@@ -91,6 +91,7 @@ self-service, so question 7 is pre-merge, not pre-spike.
 
 | Question | File | ~tok |
 | -------- | ---- | ---: |
+| PR #486, the commits after session 06, the demo Settings field and its trade-off | `process/07-…-pr486-and-demo-settings.md` | 1.0k |
 | What the max review found, what was reversed and why, the fixes | `process/06-…-review-fixes.md` | 1.5k |
 | What was built, spike results, gates run, where the code differs from the plan | `process/05-…-implementation.md` | 2.3k |
 | What exactly do I build, in what order; API; lifecycle; gates; tests; QA matrix; risks; open questions | `plan.md` (rev 3) | 15.7k |
@@ -102,7 +103,7 @@ self-service, so question 7 is pre-merge, not pre-spike.
 | **Archived** — rev 1 design; rev 1 → 2 evidence with file:line (read one § only if a rev-3 fact needs its source) | `archive/plan-architecture.md`, `archive/plan-revision-2.md` | 13.5k, 23.5k |
 | What shipped | `outcome.md` | 0 |
 
-Resuming cold: this brief → `process/06` → `process/05` → the one `plan.md` section you need
+Resuming cold: this brief → `process/07` → `process/06` → `process/05` → the one `plan.md` section you need
 (`rg -n "^## |^### " plan.md` first — it is past a cheap full read).
 
 ## Landmines
@@ -135,4 +136,8 @@ Resuming cold: this brief → `process/06` → `process/05` → the one `plan.md
   lifetime, and `storage.getItem` is async, so a `=== true` predicate is permanently false.
 - `'use client'` does not survive tsup's rollup pass — and the `/privy` entry does not need it:
   `privy()` can only be called from a client module.
-- Local `sodax-sdks` checkout sits on `feat/quote-too-small-refusal`; work in `../sodax-sdks-456`.
+- Work in the worktree `../sodax-sdks-456`, never the main `sodax-sdks` checkout (other branches live
+  there). A machine without it: `git worktree add ../sodax-sdks-456 -b feat/456-privy-wallet-source
+  origin/feat/456-privy-wallet-source`, then `pnpm install` + `build:packages`.
+- **Commit on Node 24** — the hook's `wallet-sdk-react` tests fail on Node 26. No Node 24 installed?
+  A checksum-verified nodejs.org tarball + a `pnpm` wrapper over corepack's `pnpm.js` works (`process/07`).

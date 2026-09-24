@@ -2,7 +2,7 @@
 type: process
 repo: sodax-sdks
 github: 456
-updated: 2026-09-23
+updated: 2026-09-24
 ---
 
 # Process — index
@@ -24,6 +24,7 @@ session; add a row here. Do not grow this index beyond the table.
 | 04 | 2026-09-23 | [plan-rev3-api-simplification](process/04-2026-09-23-plan-rev3-api-simplification.md) | **`plan.md` rev 3.** Three rev-2 errors fixed (10 s timeout on interactive signing, unimplementable `tempoModerato` guard, useless `'use client'` step); `EVM.privy` + `privy({ appId })` shape settled with the why; no error boundary; runtime per mount; two plan files archived | 1.7k |
 | 05 | 2026-09-23 | [implementation](process/05-2026-09-23-implementation.md) | **Spike 0 GO (Turbopack + webpack); Steps 1–7 built, uncommitted.** Privy pinned 3.40.0; 250 tests + every gate green; supersession rule fixed by a test; nine deviations from rev 3 listed; workspace dual-Privy / `@solana/kit` 2.3.0 hazard found and deduped | 2.3k |
 | 06 | 2026-09-23 | [review-fixes](process/06-2026-09-23-review-fixes.md) | **Max review: 15 findings, all verified, all fixed with mutation-checked tests.** Reversed: start-up guard around `PrivyProvider` (Privy throws on http/bad appId/nested), `privy()` never throws, optional peer `*` (npm ERESOLVE proven). SDK disconnect now ends every EVM connection | 1.5k |
+| 07 | 2026-09-24 | [pr486-and-demo-settings](process/07-2026-09-24-pr486-and-demo-settings.md) | **PR #486 (draft) up**, the five unlogged commits since 06; `apps/demo` Settings modal takes the Privy app id (`4e334fbc`, Privy chunk now always built but lazy); Node 24 from a tarball for the hook | 1.0k |
 
 ## Changes During Work
 
@@ -32,4 +33,5 @@ session; add a row here. Do not grow this index beyond the table.
   `plan-revision-2.md` moved to `archive/` (superseded by `plan.md` rev 3).
 - Context repo: decision 0003 (Privy supersedes 0001) written, 0001 status flipped.
 - Code in `sodax-sdks`: worktree `../sodax-sdks-456` on `feat/456-privy-wallet-source`, base
-  `1549d309`, **implemented but uncommitted** (2026-09-23) — see `process/05`.
+  `1549d309`, **implemented but uncommitted** (2026-09-23) — see `process/05`. 2026-09-24: pushed,
+  PR #486 (draft) — see `process/07`.
