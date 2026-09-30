@@ -2,9 +2,9 @@
 type: brief
 repo: sodax-sdks
 github: 456
-status: Active — PR #486 open as draft, CI green; live QA waits on a dev Privy app id
-next: Paste a dev Privy app id into apps/demo Settings → Privy app id, then spike 2/4 + the QA matrix on :3000
-updated: 2026-09-24
+status: Active — PR #486 draft, head 59be6f2e; R0bi7's 3 low findings fixed and pushed; live QA waits on a dev Privy app id
+next: A dev Privy app id → spike 2/4 + the QA matrix on :3000 (demo keeps the Privy login on disconnect — process/08)
+updated: 2026-09-30
 tags: [wallet, privy, email-login, embedded-wallet, wallet-sdk-react, evm, wagmi, walletconnect]
 related_issues: [gh-1069, gh-1024]
 related_decisions: [0003, 0001, 0002]
@@ -40,6 +40,7 @@ reversed three more (start-up guard, `privy()` never throws, optional peer `*`).
 | Steps 1–7 (seam, sub-path, tests, demo, docs, skills, CI line) | done, **uncommitted** — `process/05` |
 | Max review: 15 findings verified and fixed, 276 tests | done — `process/06` |
 | Pushed; **PR #486 draft**, 14 commits, CI green; demo Settings field for the app id | done — `process/07` |
+| R0bi7 review (3 low): logout mid-connect, guard vs app errors, demo `cross-env` — verified + fixed | done, pushed `59be6f2e` — `process/08` |
 | Spike 2–4 (unregistered-chain signing, funded sends, live MFA/config) | blocked on a dev Privy app id (+ gas owner for 3) |
 
 ## Blocked on
@@ -91,6 +92,7 @@ self-service, so question 7 is pre-merge, not pre-spike.
 
 | Question | File | ~tok |
 | -------- | ---- | ---: |
+| R0bi7's three findings: what is real, what was overclaimed, the fixes and gates | `process/08-…-review-findings-fixes.md` | 1.1k |
 | PR #486, the commits after session 06, the demo Settings field and its trade-off | `process/07-…-pr486-and-demo-settings.md` | 1.0k |
 | What the max review found, what was reversed and why, the fixes | `process/06-…-review-fixes.md` | 1.5k |
 | What was built, spike results, gates run, where the code differs from the plan | `process/05-…-implementation.md` | 2.3k |
@@ -103,7 +105,7 @@ self-service, so question 7 is pre-merge, not pre-spike.
 | **Archived** — rev 1 design; rev 1 → 2 evidence with file:line (read one § only if a rev-3 fact needs its source) | `archive/plan-architecture.md`, `archive/plan-revision-2.md` | 13.5k, 23.5k |
 | What shipped | `outcome.md` | 0 |
 
-Resuming cold: this brief → `process/07` → `process/06` → `process/05` → the one `plan.md` section you need
+Resuming cold: this brief → `process/08` → `process/07` → `process/06` → `process/05` → the one `plan.md` section you need
 (`rg -n "^## |^### " plan.md` first — it is past a cheap full read).
 
 ## Landmines
