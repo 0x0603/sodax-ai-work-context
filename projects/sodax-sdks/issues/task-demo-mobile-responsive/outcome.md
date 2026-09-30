@@ -2,16 +2,16 @@
 type: outcome
 repo: sodax-sdks
 github: 
-status: Committed locally — push/PR awaiting user go-ahead
+status: PR open
 updated: 2026-09-30
 ---
 
 # Outcome
 
-- PR: not opened yet (waiting for the user's go-ahead).
-- Commits: `sodax-sdks` `7711e93b` fix(demo): make every demo page usable on phones
-  (branch `fix/demo-mobile-responsive`, 52 files, +392/−259, signed, pre-commit
-  checkTs/build/test green on Node 24).
+- PR: https://github.com/icon-project/sodax-sdks/pull/494
+- Commits: `sodax-sdks` `f6e516ad` fix(demo): make every demo page usable on phones
+  (branch `fix/demo-mobile-responsive`, 52 files, +392/−259, signed; pre-commit
+  checkTs/build/test green on Node 24 before a clean rebase onto docs-only main commits).
 - Tests: demo has no unit tests; verification is the Playwright harness below.
 
 ## Summary

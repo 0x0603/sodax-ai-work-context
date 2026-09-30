@@ -3,7 +3,7 @@ type: brief
 repo: sodax-sdks
 github: 
 status: Active
-next: push branch + open PR once the user says go
+next: watch CI and review on PR #494
 updated: 2026-09-30
 ---
 
@@ -14,8 +14,8 @@ then opens exactly one row from the map below.**
 
 ## State in five lines
 
-- `sodax-sdks` `fix/demo-mobile-responsive` @ `7711e93b` (one signed commit, 52 files,
-  hook green on Node 24). Not pushed.
+- PR https://github.com/icon-project/sodax-sdks/pull/494 — `fix/demo-mobile-responsive`
+  @ `f6e516ad` (rebased onto `origin/main` 9377dd46; one signed commit, 52 files).
 - Mobile/tablet: 0/104 page loads overflow (with and without a stubbed wallet);
   `main` overflows on every route at 360/390/768.
 - Desktop 1280/1440 pixel diff vs `main` (replayed network): identical except live
@@ -24,14 +24,12 @@ then opens exactly one row from the map below.**
 
 ## Blocked on
 
-1. Push + PR: waiting for the user's go-ahead (outward-facing).
+Nothing.
 
 ## Next action
 
-On the user's go-ahead: `git push -u origin fix/demo-mobile-responsive` in
-`sodax-sdks`, then `gh pr create` with the body built from `outcome.md` (title
-`fix(demo): make every demo page usable on phones`; demo-only, so Docs Drift passes
-without a label).
+Watch PR #494 CI (`gh pr checks 494 --repo icon-project/sodax-sdks`) and answer review.
+Open PRs #483/#478/#372/#486 touch the same demo files; whichever merges second rebases.
 
 ## Settled — do not re-litigate
 

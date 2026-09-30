@@ -13,7 +13,7 @@ related_decisions: []
 - Source: user request (no GitHub issue) — "apps/demo chưa làm responsive cho
   mobile; kiểm tra chi tiết, lên plan; UI only, đừng break logic".
 - Started: 2026-09-30
-- Related PR:
+- Related PR: https://github.com/icon-project/sodax-sdks/pull/494
 
 ## Problem
 
