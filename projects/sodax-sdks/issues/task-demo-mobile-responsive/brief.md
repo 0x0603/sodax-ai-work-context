@@ -15,7 +15,8 @@ then opens exactly one row from the map below.**
 ## State in five lines
 
 - PR https://github.com/icon-project/sodax-sdks/pull/494 — `fix/demo-mobile-responsive`
-  @ `f6e516ad` (rebased onto `origin/main` 9377dd46; one signed commit, 52 files).
+  @ `591077c8`: `f6e516ad` responsive fix (52 files) + `591077c8` Staking/Dex moved
+  under More (user request 2026-09-30). Both signed, rebased on `origin/main` 9377dd46.
 - Mobile/tablet: 0/104 page loads overflow (with and without a stubbed wallet);
   `main` overflows on every route at 360/390/768.
 - Desktop 1280/1440 pixel diff vs `main` (replayed network): identical except live

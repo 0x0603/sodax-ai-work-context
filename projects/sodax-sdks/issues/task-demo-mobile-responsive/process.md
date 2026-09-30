@@ -38,6 +38,11 @@ updated: 2026-09-30
 - Committed `7711e93b` (one commit, per the PR template) with Node 24.21 from a
   verified nodejs.org tarball + a corepack pnpm wrapper in the scratchpad.
 
+- Follow-up request: Staking and Dex moved into the More menu (`591077c8`). Measured
+  the one-line header after the move: ~1064px disconnected / ~1124px connected
+  viewport, still over the 992px available at `lg`, so the sheet breakpoint stays `xl`;
+  the header comment dropped its pixel figure so it cannot go stale.
+
 ## Findings
 
 - **Baseline:** every route overflows at 360/390/768 (page `scrollWidth` ≈ 900)

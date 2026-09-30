@@ -9,7 +9,9 @@ updated: 2026-09-30
 # Outcome
 
 - PR: https://github.com/icon-project/sodax-sdks/pull/494
-- Commits: `sodax-sdks` `f6e516ad` fix(demo): make every demo page usable on phones
+- Commits: `sodax-sdks` `591077c8` feat(demo): move Staking and Dex into the More menu
+  (header nav + mobile sheet; one-line header now needs ~1124px connected, so `xl` stays).
+- `sodax-sdks` `f6e516ad` fix(demo): make every demo page usable on phones
   (branch `fix/demo-mobile-responsive`, 52 files, +392/−259, signed; pre-commit
   checkTs/build/test green on Node 24 before a clean rebase onto docs-only main commits).
 - Tests: demo has no unit tests; verification is the Playwright harness below.
