@@ -94,6 +94,12 @@ sign-out, so a second email cannot be tested from its UI until the session expir
   `eth_sendRawTransaction` would keep Privy's confirm screen without the wait — not done (SDK
   change, and Privy gas sponsorship would not apply).
 
+- Docs pass (user asked "docs skill đã kĩ chưa?"): `WALLET_PRIVY.md` was thorough on setup,
+  options, sessions, custody, availability, cost and bundlers, but missed three things found today:
+  the `showWalletUIs` success-screen wait, host modal dialogs closing on clicks in `#privy-dialog`
+  (verified id in 3.40 `index-rkoxGjIC.mjs`), and cross-app addresses. Added in `10ff3f81` to the
+  doc and the skill recipe; `check:ai`, doc-links, docs-pages, docs-nav, ai-dev-files green.
+
 ## Still open
 
 No reply posted on R0bi7's review. Everything from session 07 is unchanged: live QA needs a dev

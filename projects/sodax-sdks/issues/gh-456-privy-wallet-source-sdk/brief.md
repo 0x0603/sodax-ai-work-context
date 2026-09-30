@@ -2,7 +2,7 @@
 type: brief
 repo: sodax-sdks
 github: 456
-status: Active — PR #486 draft, head b981aed7 (main merged); R0bi7's 3 findings + demo dialog fix pushed; live QA waits on a dev Privy app id
+status: Active — PR #486 draft, head 10ff3f81 (main merged); R0bi7's 3 findings + demo dialog fix pushed; live QA waits on a dev Privy app id
 next: A dev Privy app id → spike 2/4 + the QA matrix on :3000 (demo keeps the Privy login on disconnect — process/08)
 updated: 2026-09-30
 tags: [wallet, privy, email-login, embedded-wallet, wallet-sdk-react, evm, wagmi, walletconnect]
@@ -122,7 +122,9 @@ Resuming cold: this brief → `process/08` → `process/07` → `process/06` →
   (after Privy waits for the receipt) — Privy 3.40 `SendTransactionScreen`; the close handler is a
   no-op while the receipt is pending, so there is no UI option around it. `showWalletUIs: false`
   resolves right after broadcast — **the demo uses it since `b981aed7` (user's call, 2026-09-30)**.
-  The SDK still leaves it to the partner. `process/08`.
+  The SDK still leaves it to the partner. `process/08`. Documented for partners in `10ff3f81`
+  (`WALLET_PRIVY.md` Options + new "Your own dialogs" section + per-appId addresses; the skill
+  recipe's options line and two anti-patterns).
 - **Never time a pass-through provider request.** Signing can open Privy's MFA prompt or confirmation
   modal; only connector-internal calls get `INTERNAL_CALL_MS`. Rev 2 had this wrong.
 - **Nothing under `archive/` is a source of truth.** Where it disagrees with `plan.md`, `plan.md` wins.
