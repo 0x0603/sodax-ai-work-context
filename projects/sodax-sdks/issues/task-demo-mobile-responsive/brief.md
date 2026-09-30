@@ -3,7 +3,7 @@ type: brief
 repo: sodax-sdks
 github: 
 status: Active
-next: watch CI and review on PR #494
+next: real-phone check on the Vercel preview, then review on PR #494
 updated: 2026-09-30
 ---
 
@@ -28,7 +28,9 @@ Nothing.
 
 ## Next action
 
-Watch PR #494 CI (`gh pr checks 494 --repo icon-project/sodax-sdks`) and answer review.
+CI on PR #494 is all green (Build and Test, E2E advisory, AI drift, Docs site,
+security scans). Preview: https://sodax-frontend-demo-v2-git-fix-demo-mobi-18c3c6-icon-foundation.vercel.app
+— next is a real-phone pass with a wallet, then review.
 Open PRs #483/#478/#372/#486 touch the same demo files; whichever merges second rebases.
 
 ## Settled — do not re-litigate
