@@ -15,8 +15,9 @@ then opens exactly one row from the map below.**
 ## State in five lines
 
 - PR https://github.com/icon-project/sodax-sdks/pull/494 — `fix/demo-mobile-responsive`
-  @ `591077c8`: `f6e516ad` responsive fix (52 files) + `591077c8` Staking/Dex moved
-  under More (user request 2026-09-30). Both signed, rebased on `origin/main` 9377dd46.
+  @ `33dbba28`: `f6e516ad` responsive fix (52 files), then `591077c8` Staking/Dex and
+  `33dbba28` Oracle moved under More (user requests 2026-09-30). All signed, on
+  `origin/main` 9377dd46. Top level: Money Market, Swaps, Bridge, Leverage Yield, More.
 - Mobile/tablet: 0/104 page loads overflow (with and without a stubbed wallet);
   `main` overflows on every route at 360/390/768.
 - Desktop 1280/1440 pixel diff vs `main` (replayed network): identical except live

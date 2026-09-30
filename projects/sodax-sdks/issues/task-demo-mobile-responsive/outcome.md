@@ -9,7 +9,9 @@ updated: 2026-09-30
 # Outcome
 
 - PR: https://github.com/icon-project/sodax-sdks/pull/494
-- Commits: `sodax-sdks` `591077c8` feat(demo): move Staking and Dex into the More menu
+- Commits: `sodax-sdks` `33dbba28` feat(demo): move Oracle into the More menu (one-line
+  header now ~991px disconnected / ~1051px connected; `lg` inner is 992px, so `xl` stays).
+- `sodax-sdks` `591077c8` feat(demo): move Staking and Dex into the More menu
   (header nav + mobile sheet; one-line header now needs ~1124px connected, so `xl` stays).
 - `sodax-sdks` `f6e516ad` fix(demo): make every demo page usable on phones
   (branch `fix/demo-mobile-responsive`, 52 files, +392/−259, signed; pre-commit
