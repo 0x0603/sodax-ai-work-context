@@ -86,6 +86,13 @@ sign-out, so a second email cannot be tested from its UI until the session expir
   (Done / closing the modal). So the SDK's next step waits for that click. With
   `showWalletUIs: false` Privy takes the headless branch (`index-rkoxGjIC.mjs`: `Oe(...)` →
   `sendRawTransaction` → resolve at once). Choice for the demo left to the user.
+  **Decided 2026-09-30: `b981aed7` sets `showWalletUIs: false` in `apps/demo/src/privy.ts`** (+ one
+  AGENTS.md sentence). Re-read of 3.40 `index-BnxEesAv.mjs`: `onConfirm` returns the hash, then
+  `waitForTransactionReceipt`, then the success screen; the close handler `Qt` is a no-op while
+  submitting and is the only place `onSuccess({hash})` fires, so no UI option skips it. A
+  `signOnly` branch (used by `eth_signTransaction`) resolves right after approval; sign + own
+  `eth_sendRawTransaction` would keep Privy's confirm screen without the wait — not done (SDK
+  change, and Privy gas sponsorship would not apply).
 
 ## Still open
 
