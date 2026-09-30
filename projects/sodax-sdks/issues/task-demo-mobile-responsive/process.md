@@ -43,6 +43,13 @@ updated: 2026-09-30
   viewport, still over the 992px available at `lg`, so the sheet breakpoint stays `xl`;
   the header comment dropped its pixel figure so it cannot go stale.
 
+- Polish pass (user: least-impact, most-needed): picked only visible glitches — the
+  swap balance line used `font-['InterRegular']` with no `public/fonts` (serif
+  fallback, on desktop too) and hid its label on phones; partner-fee page text was
+  cream-on-white; leverage-yield-api had no page padding; mm tables nested a 500px
+  vertical scroller on phones. Skipped: oracle chart initial scroll position (would
+  need an RTL trick or JS), slippage input width, swap button style (design choices).
+
 ## Findings
 
 - **Baseline:** every route overflows at 360/390/768 (page `scrollWidth` ≈ 900)

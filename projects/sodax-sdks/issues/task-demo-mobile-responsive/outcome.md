@@ -9,7 +9,10 @@ updated: 2026-09-30
 # Outcome
 
 - PR: https://github.com/icon-project/sodax-sdks/pull/494
-- Commits: `sodax-sdks` `33dbba28` feat(demo): move Oracle into the More menu (one-line
+- Commits: `sodax-sdks` `cd4ab4bf` fix(demo): polish swap balance, partner-fee contrast and
+  mobile table scroll (serif fallback from a missing font, dark-theme cream text on white,
+  missing page padding, nested 500px scroll box on phones).
+- `sodax-sdks` `33dbba28` feat(demo): move Oracle into the More menu (one-line
   header now ~991px disconnected / ~1051px connected; `lg` inner is 992px, so `xl` stays).
 - `sodax-sdks` `591077c8` feat(demo): move Staking and Dex into the More menu
   (header nav + mobile sheet; one-line header now needs ~1124px connected, so `xl` stays).

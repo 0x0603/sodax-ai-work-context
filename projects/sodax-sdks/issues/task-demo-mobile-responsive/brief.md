@@ -18,6 +18,8 @@ then opens exactly one row from the map below.**
   @ `33dbba28`: `f6e516ad` responsive fix (52 files), then `591077c8` Staking/Dex and
   `33dbba28` Oracle moved under More (user requests 2026-09-30). All signed, on
   `origin/main` 9377dd46. Top level: Money Market, Swaps, Bridge, Leverage Yield, More.
+  `cd4ab4bf` polish: swap balance font/label, partner-fee contrast, leverage-yield-api
+  spacing, no nested table scroll on phones.
 - Mobile/tablet: 0/104 page loads overflow (with and without a stubbed wallet);
   `main` overflows on every route at 360/390/768.
 - Desktop 1280/1440 pixel diff vs `main` (replayed network): identical except live
