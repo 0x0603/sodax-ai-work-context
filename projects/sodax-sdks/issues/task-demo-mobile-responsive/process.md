@@ -50,6 +50,12 @@ updated: 2026-09-30
   vertical scroller on phones. Skipped: oracle chart initial scroll position (would
   need an RTL trick or JS), slippage input width, swap button style (design choices).
 
+- "Are all features responsive?" pass: added interactive checks (`extra.mjs`). Found and
+  fixed two real issues: `SelectToken` fixed 240px menu vs `ui/select` viewport
+  `min-w = trigger width` → clipped list under full-width triggers (also 18px on
+  desktop, pre-existing); at 320px the header controls covered the logo (overflow
+  metric missed it — overlap, not overflow). Measured with `hdrcheck.mjs`.
+
 ## Findings
 
 - **Baseline:** every route overflows at 360/390/768 (page `scrollWidth` ≈ 900)

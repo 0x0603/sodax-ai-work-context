@@ -19,7 +19,9 @@ then opens exactly one row from the map below.**
   `33dbba28` Oracle moved under More (user requests 2026-09-30). All signed, on
   `origin/main` 9377dd46. Top level: Money Market, Swaps, Bridge, Leverage Yield, More.
   `cd4ab4bf` polish: swap balance font/label, partner-fee contrast, leverage-yield-api
-  spacing, no nested table scroll on phones.
+  spacing, no nested table scroll on phones. `42720626` token picker no longer clipped
+  under wide triggers; header fits 320px. Verified 320px on every route plus the
+  reachable dialogs/menus (`artifacts/harness/extra.mjs`).
 - Mobile/tablet: 0/104 page loads overflow (with and without a stubbed wallet);
   `main` overflows on every route at 360/390/768.
 - Desktop 1280/1440 pixel diff vs `main` (replayed network): identical except live

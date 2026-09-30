@@ -38,6 +38,9 @@ chart's scroll wrapper.
 | ⓘ tooltip on touch | tap does nothing | tap opens, 2nd tap / tap outside closes |
 | ⓘ tooltip with mouse | hover opens, click closes | identical |
 | Desktop pixel diff 1280/1440, no wallet (network replayed from `main`) | — | 25/26 identical; 1 = live value (LTV 81.95% vs 81.94%) |
+| Every route at 320px | — | 0/13 overflow; logo no longer covered (fixed in `42720626`) |
+| MM Supply modal, Swaps API + Limit Order dialogs, leverage token + eMode menus, 320/360/390, wallet | — | all inside viewport, nothing clipped (token picker fixed in `42720626`) |
+| Swap status panel, injected long hashes + long error, 320/360/390 | — | no overflow |
 | Desktop pixel diff 1280/1440, wallet connected | — | 23/26 identical; 3 at 1440 = data (a balance value on both swap pages, bnUSD icon failed to load on the baseline) |
 
 Key screenshots: `artifacts/screens/`.
@@ -49,7 +52,9 @@ See `plan.md` §Changes; deviations from the plan are listed in `process.md`
 
 ## Follow-ups
 
-- Not tested: real wallet on a real phone (signing flows, keyboard over dialogs).
+- Not tested: real wallet on a real phone (signing flows, keyboard over dialogs); states
+  that need real funds or positions (MM borrow/withdraw/repay modals, staking dialogs,
+  leverage close/adjust controls, recovery table with assets, BTC fund/withdraw).
 - CandleChart OHLC values are SVG `<title>` hover text only (no touch access).
 - `autoFocus` on chain/token search inputs opens the phone keyboard (prop change).
 - Pre-existing, untouched: duplicate React key `SUI-Slush` in the wallet list; biome
