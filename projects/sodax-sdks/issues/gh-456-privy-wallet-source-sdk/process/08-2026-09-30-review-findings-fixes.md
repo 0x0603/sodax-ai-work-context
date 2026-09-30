@@ -100,6 +100,15 @@ sign-out, so a second email cannot be tested from its UI until the session expir
   (verified id in 3.40 `index-rkoxGjIC.mjs`), and cross-app addresses. Added in `10ff3f81` to the
   doc and the skill recipe; `check:ai`, doc-links, docs-pages, docs-nav, ai-dev-files green.
 
+- R0bi7 dual-agent review on `10ff3f81` (comment 5912577321, Low, follow_up): explicit disconnect
+  left a pending Privy login running — `EvmActions.disconnect` only walked `config.state.connections`,
+  which wagmi fills after connect resolves. Only reachable from host code (Privy's backdrop covers the
+  page). Fixed in `2c0de2fa`: EvmActions remembers the in-flight connector and disconnects it too
+  (wagmi 2.20.3 `disconnect(config, { connector })` calls `connector.disconnect()` regardless); test
+  added and shown to fail without the fix. Not done (user's call): logging out a code entered in the
+  orphaned Privy dialog — Privy has no public close API (`useModalStatus` is read-only); documented in
+  `WALLET_PRIVY.md` instead. No reply posted on the review yet.
+
 ## Still open
 
 No reply posted on R0bi7's review. Everything from session 07 is unchanged: live QA needs a dev
