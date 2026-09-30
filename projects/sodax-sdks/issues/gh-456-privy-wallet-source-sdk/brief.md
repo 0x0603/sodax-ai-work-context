@@ -2,7 +2,7 @@
 type: brief
 repo: sodax-sdks
 github: 456
-status: Active — PR #486 draft, head 59be6f2e; R0bi7's 3 low findings fixed and pushed; live QA waits on a dev Privy app id
+status: Active — PR #486 draft, head b55afda8 (main merged); R0bi7's 3 findings + demo dialog fix pushed; live QA waits on a dev Privy app id
 next: A dev Privy app id → spike 2/4 + the QA matrix on :3000 (demo keeps the Privy login on disconnect — process/08)
 updated: 2026-09-30
 tags: [wallet, privy, email-login, embedded-wallet, wallet-sdk-react, evm, wagmi, walletconnect]
@@ -118,6 +118,9 @@ Resuming cold: this brief → `process/08` → `process/07` → `process/06` →
   uses `resolve.dedupe`.
 - **Merging publishes the README Privy bullet** to docs.sodax.com (the README is mirrored) — gate the
   merge on open question 5.
+- **With Privy's wallet UI on, a send resolves only when the user closes Privy's success screen**
+  (after Privy waits for the receipt) — Privy 3.40 `SendTransactionScreen`. `showWalletUIs: false`
+  resolves right after broadcast. `process/08`.
 - **Never time a pass-through provider request.** Signing can open Privy's MFA prompt or confirmation
   modal; only connector-internal calls get `INTERNAL_CALL_MS`. Rev 2 had this wrong.
 - **Nothing under `archive/` is a source of truth.** Where it disagrees with `plan.md`, `plan.md` wins.
