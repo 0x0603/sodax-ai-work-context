@@ -2,7 +2,7 @@
 type: brief
 repo: sodax-sdks
 github: 456
-status: Active — PR #486 draft, head 2c0de2fa (main merged); R0bi7's 3 findings + demo dialog fix pushed; live QA waits on a dev Privy app id
+status: Active — PR #486 draft, remote head 2c0de2fa; local 1ab56bb9 + 411af4cd NOT pushed (user: don't push) (main merged); R0bi7's 3 findings + demo dialog fix pushed; live QA waits on a dev Privy app id
 next: A dev Privy app id → spike 2/4 + the QA matrix on :3000 (demo keeps the Privy login on disconnect — process/08)
 updated: 2026-09-30
 tags: [wallet, privy, email-login, embedded-wallet, wallet-sdk-react, evm, wagmi, walletconnect]
@@ -121,7 +121,8 @@ Resuming cold: this brief → `process/08` → `process/07` → `process/06` →
 - **With Privy's wallet UI on, a send resolves only when the user closes Privy's success screen**
   (after Privy waits for the receipt) — Privy 3.40 `SendTransactionScreen`; the close handler is a
   no-op while the receipt is pending, so there is no UI option around it. `showWalletUIs: false`
-  resolves right after broadcast — **the demo uses it since `b981aed7` (user's call, 2026-09-30)**.
+  resolves right after broadcast — the demo used it in `b981aed7`, **then `411af4cd` (local, 2026-10-01) set
+  `showWalletUIs: true` again at the user's request**.
   The SDK still leaves it to the partner. `process/08`. Documented for partners in `10ff3f81`
   (`WALLET_PRIVY.md` Options + new "Your own dialogs" section + per-appId addresses; the skill
   recipe's options line and two anti-patterns).

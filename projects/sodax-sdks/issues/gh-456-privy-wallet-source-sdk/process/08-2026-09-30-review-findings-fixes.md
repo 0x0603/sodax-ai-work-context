@@ -108,6 +108,10 @@ sign-out, so a second email cannot be tested from its UI until the session expir
   added and shown to fail without the fix. Not done (user's call): logging out a code entered in the
   orphaned Privy dialog — Privy has no public close API (`useModalStatus` is read-only); documented in
   `WALLET_PRIVY.md` instead. No reply posted on the review yet.
+- 2026-10-01, user: "đừng push" arrived after `2c0de2fa` was already pushed; then "revert khúc đó
+  đi, và bật show UI = true". Local only, **not pushed**: `1ab56bb9` reverts `2c0de2fa` (finding stays
+  a follow-up) and `411af4cd` sets the demo's `showWalletUIs: true` (+ `apps/demo/AGENTS.md`). Hooks
+  green. Pushing waits for the user.
 
 ## Still open
 
