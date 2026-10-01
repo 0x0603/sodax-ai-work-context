@@ -131,6 +131,11 @@ sign-out, so a second email cannot be tested from its UI until the session expir
   (hash after "All done") and the outside-click guard; Documentation lists the WALLET_PRIVY.md
   additions and the agent-ready recipe + granular skill; Follow-up lists the disconnect-during-login
   finding (Low, fix reverted); commit-count line no longer counts; trailing blank lines gone.
+- 2026-10-01, AI files drift check (comment 5807519833, advisory: 0 contradictions, 3 gaps). `f48a836a`
+  (local, not pushed): `architecture.md` mount tree gains the conditional `PrivyHost` (inside
+  WagmiProvider, wraps Sui/Solana, verified in `EvmProvider.tsx`) and the file tour gains `privy/`;
+  demo `AGENTS.md` pitfall for the `isInPrivyDialog` `onInteractOutside` guard. The bot's "Why" had
+  the guard's direction backwards (it keeps the demo's overlays open, not Privy's). Gates + hook green.
 
 ## Still open
 
