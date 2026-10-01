@@ -92,6 +92,7 @@ self-service, so question 7 is pre-merge, not pre-spike.
 
 | Question | File | ~tok |
 | -------- | ---- | ---: |
+| Audit of #486 at f48a836a: what is wrong (ranked, verified), fix directions, what holds up | `process/09-…-implementation-audit.md` | 1.4k |
 | R0bi7's three findings: what is real, what was overclaimed, the fixes and gates | `process/08-…-review-findings-fixes.md` | 1.1k |
 | PR #486, the commits after session 06, the demo Settings field and its trade-off | `process/07-…-pr486-and-demo-settings.md` | 1.0k |
 | What the max review found, what was reversed and why, the fixes | `process/06-…-review-fixes.md` | 1.5k |
@@ -105,7 +106,7 @@ self-service, so question 7 is pre-merge, not pre-spike.
 | **Archived** — rev 1 design; rev 1 → 2 evidence with file:line (read one § only if a rev-3 fact needs its source) | `archive/plan-architecture.md`, `archive/plan-revision-2.md` | 13.5k, 23.5k |
 | What shipped | `outcome.md` | 0 |
 
-Resuming cold: this brief → `process/08` → `process/07` → `process/06` → `process/05` → the one `plan.md` section you need
+Resuming cold: this brief → `process/09` → `process/08` → `process/07` → `process/06` → `process/05` → the one `plan.md` section you need
 (`rg -n "^## |^### " plan.md` first — it is past a cheap full read).
 
 ## Landmines
