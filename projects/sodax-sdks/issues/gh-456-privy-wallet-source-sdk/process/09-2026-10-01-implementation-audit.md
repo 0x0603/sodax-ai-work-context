@@ -92,3 +92,13 @@ User: "fix dễ không 1 2?" → "ok làm đi" (1, 2 and 3).
   item (a), R0bi7's Low finding) — the same hook covers it.
 - **Still to do:** push on the user's go; one live login with a brand-new email (confirms the modal stays
   open through Privy's wallet creation); add the fixes to the PR body.
+
+## Pushed + merged main again
+
+- `9ad69c30` reached the remote outside this session (the user pushed it); PR head was 9ad69c30, CONFLICTING.
+- Main gained #496 (leverage-yield AI readiness, `c9200e07`). Merge `ff296f36` (local, not pushed): one
+  conflict, the `sodax-wallet-sdk-react` SKILL.md description — main condensed it for #496's new 1536-char
+  description cap; kept main's text + "Privy email login" + the "email login with Privy" trigger (1511).
+  #496's new rule "granular skill linked from its parent" failed for `./privy/SKILL.md` → added the privy
+  row to the parent's routing table. `packages/skills/AGENTS.md` auto-merged; checked against both parents.
+  check:ai (incl. new check-ai-safety), docs gates and the pre-commit hook green.
