@@ -2,7 +2,7 @@
 type: process
 repo: sodax-sdks
 github: 456
-updated: 2026-09-30
+updated: 2026-10-01
 ---
 
 # Process — index
@@ -26,6 +26,7 @@ session; add a row here. Do not grow this index beyond the table.
 | 06 | 2026-09-23 | [review-fixes](process/06-2026-09-23-review-fixes.md) | **Max review: 15 findings, all verified, all fixed with mutation-checked tests.** Reversed: start-up guard around `PrivyProvider` (Privy throws on http/bad appId/nested), `privy()` never throws, optional peer `*` (npm ERESOLVE proven). SDK disconnect now ends every EVM connection | 1.5k |
 | 07 | 2026-09-24 | [pr486-and-demo-settings](process/07-2026-09-24-pr486-and-demo-settings.md) | **PR #486 (draft) up**, the five unlogged commits since 06; `apps/demo` Settings modal takes the Privy app id (`4e334fbc`, Privy chunk now always built but lazy); Node 24 from a tarball for the hook | 1.0k |
 | 08 | 2026-09-30 | [review-findings-fixes](process/08-2026-09-30-review-findings-fixes.md) | **R0bi7's 3 low findings verified, fixed, pushed (`59be6f2e`).** Logout mid-connect reproduced; guard finding narrower than first said (only errors that vanish outside `PrivyProvider`); demo `cross-env`. 289 tests, build + isolation, demo build green | 1.1k |
+| 09 | 2026-10-01 | [implementation-audit](process/09-2026-10-01-implementation-audit.md) | **Audit of #486 at f48a836a.** Design holds, not overkill; High: SDK `createWallet()` races Privy's create-on-login for new users (2nd wallet or logout); Medium: Disconnect during reload restore skips Privy logout (reproduced); logout-in-disconnect, SSR, isolation-gate, test gaps | 1.4k |
 
 ## Changes During Work
 
