@@ -68,3 +68,27 @@ connector-side `wallet_switchEthereumChain` is needed (Privy sets `chainId` befo
 `privyWalletOverride` is Privy's top-priority RPC; restore cannot wedge wagmi; supersession matches
 wagmi's `connecting` state; StrictMode handled; shipped `dist` isolated, attw green; demo visitors
 without an app id load nothing (lazy chunk); 95 tests in `src/privy` + `providers/evm` pass.
+
+## Fixes for 1–3 — `9ad69c30` (local, not pushed)
+
+User: "fix dễ không 1 2?" → "ok làm đi" (1, 2 and 3).
+
+- **1.** `runtime.login()` settles on `authenticated && !modalOpen` (or `onComplete`); a modal that was
+  shown and closes without a sign-in rejects (`userRejected`). The embedded-wallet wait also ends when
+  the session ends (`ready && !authenticated` → "The Privy session has ended."), so a failed Privy
+  create-on-login no longer hangs 30 s.
+- **2.** `privyConnector()` now returns `{ connector, disconnect }`; `PrivySourceSetup.disconnect` →
+  `EvmProvider` → `EvmActions` prop `onDisconnect`, run beside the wagmi disconnects. No-op unless an
+  attempt, a session or the connected flag exists (so a MetaMask-only disconnect never touches Privy).
+- **3.** Connector `disconnect()` returns after `resetSession()`; `signOut()` (deduped) waits for Privy
+  `ready` (15 s), `logout()` (10 s), then `!authenticated` (10 s), and only then clears the localStorage
+  marker `<persistKey>.privy.signout`. `connect()` checks the marker after `ready` (so init errors keep
+  their cause): signs out first, fails with "Could not sign out of the previous Privy session." if it can't.
+- `connectedFlag.ts` → `storedFlag.ts` (`createStoredFlag`), reused for the marker.
+- Tests: 11 new (runtime 2, connector 8, EvmActions 1, EvmProvider wiring assert); 9 mutations, each
+  caught. Package: checkTs, lint, 307 tests, build + isolation green; docs gates green. Docs:
+  `WALLET_PRIVY.md` (Sessions + custom modal), `CONNECT_FLOW.md`, package `AGENTS.md`.
+- Side effect: an SDK disconnect during an *interactive* Privy login now aborts it and signs out (known
+  item (a), R0bi7's Low finding) — the same hook covers it.
+- **Still to do:** push on the user's go; one live login with a brand-new email (confirms the modal stays
+  open through Privy's wallet creation); add the fixes to the PR body.
