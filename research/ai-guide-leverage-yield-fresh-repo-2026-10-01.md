@@ -33,10 +33,10 @@ consumer following the `main` skills must use the `rc` tag.
 
 1. **No bundler guidance.** A plain Vite app white-screens with `Buffer is not defined` once
    `SodaxWalletProvider` mounts the non-EVM slots. Needed `vite-plugin-node-polyfills`
-   (Buffer/process/global). Nothing in the skills mentions it; the workshop starter hides it.
+   (Buffer/process/global). Nothing in the skills mentions it (the starter's own `vite.config.ts` was not checked).
 2. **`@sodax/types` imports in wallet-sdk-react skill.** `integration/knowledge/recipes/setup.md`
    and the examples import `ChainKeys` from `@sodax/types`, while every ai-rules file says not to
-   add that dependency. Under pnpm the import doesn't resolve without it.
+   add that dependency. Under pnpm it doesn't resolve without it (`node_modules/@sodax/` holds only the three direct deps).
 3. **`useChainGroups().iconUrl` is `undefined` for every group** (rc.8), so the modal recipe's
    chain picker renders without icons. Mapped families to `baseChainInfo[...].logo` instead.
 4. **Product anatomy vs. `vaultSwap` reality.** Anatomy says show steps and mark each as it
