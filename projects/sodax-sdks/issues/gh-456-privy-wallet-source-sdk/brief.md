@@ -2,7 +2,7 @@
 type: brief
 repo: sodax-sdks
 github: 456
-status: Active — PR #486 draft, head fa105e36 (main merged, incl. #494); mergeable (main merged); R0bi7's 3 findings + demo dialog fix pushed; live QA waits on a dev Privy app id
+status: Active — PR #486 draft, remote head fa105e36; local 68ebbb94 (skills) NOT pushed (main merged); R0bi7's 3 findings + demo dialog fix pushed; live QA waits on a dev Privy app id
 next: A dev Privy app id → spike 2/4 + the QA matrix on :3000 (demo keeps the Privy login on disconnect — process/08)
 updated: 2026-09-30
 tags: [wallet, privy, email-login, embedded-wallet, wallet-sdk-react, evm, wagmi, walletconnect]

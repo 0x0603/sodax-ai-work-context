@@ -118,6 +118,14 @@ sign-out, so a second email cannot be tested from its UI until the session expir
   \`ui/dialog.tsx\`, \`SodaxSettingsModal.tsx\`, \`wallet-item.tsx\` auto-merged, each checked against both
   parents. Hook green; pushed; GitHub: MERGEABLE (BLOCKED = draft/checks). No browser run of the merge.
 
+- 2026-10-01, skills pass ("skill dành cho agent, ai implement"): the recipe was written for a human
+  reader and lacked what an agent cannot do itself. `68ebbb94` (local, not pushed): recipe step 0 =
+  ask the user (trade-offs, App ID + dashboard checklist, showWalletUIs, disconnectBehavior, existing
+  PrivyProvider); install notes (public App ID, viem >= 2.44 on npm/yarn, monorepo dedupe, CSP);
+  `## Verification` like every sibling recipe, handing the OTP test to the user; new granular skill
+  `sodax-wallet-sdk-react/privy` added to AGENTS.md/README routing (docs page regenerated).
+  `check:ai` + docs gates green.
+
 ## Still open
 
 No reply posted on R0bi7's review. Everything from session 07 is unchanged: live QA needs a dev
