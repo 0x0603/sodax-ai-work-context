@@ -111,7 +111,12 @@ sign-out, so a second email cannot be tested from its UI until the session expir
 - 2026-10-01, user: "đừng push" arrived after `2c0de2fa` was already pushed; then "revert khúc đó
   đi, và bật show UI = true". Local only, **not pushed**: `1ab56bb9` reverts `2c0de2fa` (finding stays
   a follow-up) and `411af4cd` sets the demo's `showWalletUIs: true` (+ `apps/demo/AGENTS.md`). Hooks
-  green. Pushing waits for the user.
+  green. Pushed on the user's go (\`411af4cd\`).
+- 2026-10-01: main gained #494 (demo mobile layout, squash \`2211c6b0\`) → #486 conflicted. Merged main
+  (\`fa105e36\`, same merge style as \`f7f234db\`): wallet sheet keeps #494's classes + the Privy
+  outside-click guard; \`apps/demo/AGENTS.md\` keeps both sides' bullets (no bullet changed on both);
+  \`ui/dialog.tsx\`, \`SodaxSettingsModal.tsx\`, \`wallet-item.tsx\` auto-merged, each checked against both
+  parents. Hook green; pushed; GitHub: MERGEABLE (BLOCKED = draft/checks). No browser run of the merge.
 
 ## Still open
 
