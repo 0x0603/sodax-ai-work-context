@@ -124,7 +124,13 @@ sign-out, so a second email cannot be tested from its UI until the session expir
   PrivyProvider); install notes (public App ID, viem >= 2.44 on npm/yarn, monorepo dedupe, CSP);
   `## Verification` like every sibling recipe, handing the OTP test to the user; new granular skill
   `sodax-wallet-sdk-react/privy` added to AGENTS.md/README routing (docs page regenerated).
-  `check:ai` + docs gates green.
+  `check:ai` + docs gates green. Pushed on the user's go (`fa105e36..68ebbb94`; one push first failed on
+  a DNS outage, retried once GitHub resolved).
+- 2026-10-01, PR body refreshed (`gh pr edit 486 --body-file`, live body diffed against the snapshot
+  first): "Why draft" → "Before merge" (PR is no longer draft); demo bullets for `showWalletUIs: true`
+  (hash after "All done") and the outside-click guard; Documentation lists the WALLET_PRIVY.md
+  additions and the agent-ready recipe + granular skill; Follow-up lists the disconnect-during-login
+  finding (Low, fix reverted); commit-count line no longer counts; trailing blank lines gone.
 
 ## Still open
 
