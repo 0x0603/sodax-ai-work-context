@@ -2,7 +2,7 @@
 type: process
 repo: sodax-sdks
 github: 456
-updated: 2026-10-01
+updated: 2026-10-05
 ---
 
 # Process — index
@@ -27,6 +27,9 @@ session; add a row here. Do not grow this index beyond the table.
 | 07 | 2026-09-24 | [pr486-and-demo-settings](process/07-2026-09-24-pr486-and-demo-settings.md) | **PR #486 (draft) up**, the five unlogged commits since 06; `apps/demo` Settings modal takes the Privy app id (`4e334fbc`, Privy chunk now always built but lazy); Node 24 from a tarball for the hook | 1.0k |
 | 08 | 2026-09-30 | [review-findings-fixes](process/08-2026-09-30-review-findings-fixes.md) | **R0bi7's 3 low findings verified, fixed, pushed (`59be6f2e`).** Logout mid-connect reproduced; guard finding narrower than first said (only errors that vanish outside `PrivyProvider`); demo `cross-env`. 289 tests, build + isolation, demo build green | 1.1k |
 | 09 | 2026-10-01 | [implementation-audit](process/09-2026-10-01-implementation-audit.md) | **Audit of #486 at f48a836a.** Design holds, not overkill; High: SDK `createWallet()` races Privy's create-on-login for new users (2nd wallet or logout); Medium: Disconnect during reload restore skips Privy logout (reproduced); logout-in-disconnect, SSR, isolation-gate, test gaps | 1.4k |
+| 10 | 2026-09-23 | [addon-package-pivot](process/10-2026-09-23-addon-package-pivot.md) | *(Written on a second machine, pushed late; in time order between 06 and 07.)* **Tried and rejected: the add-on package `@sodax/wallet-privy` (EIP-6963).** Built at the user's request, then rejected and the tree reset to `a2d6efb9`. Kept for its findings: wagmi `injected`/mipd facts, one-wagmi install check, the pre-existing StrictMode `EvmHydrator` restore bug | 1.9k |
+| 11 | 2026-09-24 | [approach-review](process/11-2026-09-24-approach-review.md) | *(Late, between 06 and 07.)* **Approach review of the pushed branch: keep it.** Six weak points ranked (no real-Privy run yet; 3 s restore budget unmeasured; SDK-owned `PrivyProvider` limits; connector complexity; two non-Privy changes; issue deviations for the PR body). Verified: `dist` shares the `WeakMap` chunk, the guard does not swallow partner first-render errors. Partners already on Privy: an app-owned-provider mode sketched, not for #456; **how PR #486 was opened** | 2.8k |
+| 12 | 2026-09-24 | [vercel-dts-and-demo](process/12-2026-09-24-vercel-dts-and-demo.md) | *(Late, between 06 and 07.)* **Why #486's Vercel previews hung** (8 GB builders; the main declaration pass already needs 6–8 GB) → `./privy` declarations in a second tsup pass (`bbc80df4`); **Privy in `apps/demo`** (`4a17e728`); a background reconnect killed an open login; first live QA on localhost:1993 | 2.0k |
 
 ## Changes During Work
 

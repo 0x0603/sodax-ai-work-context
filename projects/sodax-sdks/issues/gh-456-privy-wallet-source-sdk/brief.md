@@ -2,9 +2,9 @@
 type: brief
 repo: sodax-sdks
 github: 456
-status: Active — PR #486 ready for review (not draft), head 9ad69c30 (audit fixes 1-3 pushed, process/09), PR body refreshed 2026-10-01; local merge ff296f36 (main #496) NOT pushed; R0bi7's 3 findings + demo dialog fix pushed; live QA waits on a dev Privy app id
-next: Push ff296f36 on the user's go → PR body gains the audit fixes → one live login with a brand-new email (process/09); then spike 2/4 + QA matrix
-updated: 2026-10-01
+status: Active — PR #486 ready for review (not draft), head ff296f36 pushed (audit fixes 1-3 + main #496 merge), CI green, REVIEW_REQUIRED with no reviews (checked 2026-10-05); PR body still lacks the audit fixes; live QA waits on a dev Privy app id
+next: PR body gains the audit fixes → one live login with a brand-new email (process/09); then spike 2/4 + QA matrix
+updated: 2026-10-05
 tags: [wallet, privy, email-login, embedded-wallet, wallet-sdk-react, evm, wagmi, walletconnect]
 related_issues: [gh-1069, gh-1024]
 related_decisions: [0003, 0001, 0002]
@@ -39,8 +39,12 @@ reversed three more (start-up guard, `privy()` never throws, optional peer `*`).
 | Spike 0 (Turbopack + webpack prerender) and 1 (install, gates, Privy 3.40.0 facts) | done — GO; `process/05` |
 | Steps 1–7 (seam, sub-path, tests, demo, docs, skills, CI line) | done, **uncommitted** — `process/05` |
 | Max review: 15 findings verified and fixed, 276 tests | done — `process/06` |
+| Alternative: add-on package `@sodax/wallet-privy` (EIP-6963) | built, **rejected by the user, reset** to `a2d6efb9` — `process/10` |
+| Approach review of the pushed branch: keep it; six weak points (proposals, not accepted) | done — `process/11` |
+| Vercel previews hung (DTS OOM on 8 GB builders) → privy DTS in its own pass; Privy in `apps/demo` | done, pushed `bbc80df4`, `4a17e728` — `process/12` |
 | Pushed; **PR #486 draft**, 14 commits, CI green; demo Settings field for the app id | done — `process/07` |
 | R0bi7 review (3 low): logout mid-connect, guard vs app errors, demo `cross-env` — verified + fixed | done, pushed `59be6f2e` — `process/08` |
+| Implementation audit: 1 High, 1 Medium, 5 Low/nits; fixes 1–3 + main merge | done, pushed `ff296f36`; 4–7 open — `process/09` |
 | Spike 2–4 (unregistered-chain signing, funded sends, live MFA/config) | blocked on a dev Privy app id (+ gas owner for 3) |
 
 ## Blocked on
@@ -57,9 +61,10 @@ self-service, so question 7 is pre-merge, not pre-spike.
    `http://localhost:3000`): `pnpm dev:demo` → Settings → Wallet → "Privy app id" → Save (reloads). Or
    `VITE_PRIVY_APP_ID` in `apps/demo/.env` / `apps/wallet-modal-example/.env` (:3002). Then spike items
    2 and 4 and the QA matrix in `plan.md`; measure the 3 s restore budget (spike 4(d)).
-2. Before un-drafting: `pnpm pack:local` into a scratch **npm + Vite** app without Privy's Solana peers —
-   the one install shape nobody has built yet (`process/05` § Deviations 8); post the AC2 rewrite comment
-   (`plan.md` § Verification).
+2. Before merge (#486 was marked ready without these — nothing records them done): `pnpm pack:local` into a
+   scratch **npm + Vite** app without Privy's Solana peers — the one install shape nobody has built yet
+   (`process/05` § Deviations 8); post the AC2 rewrite comment (`plan.md` § Verification) — #456 still has
+   no comments (2026-10-05).
 3. Merging stays gated on open question 5 (see Landmines).
 
 ## Settled — do not re-litigate
@@ -86,6 +91,8 @@ self-service, so question 7 is pre-merge, not pre-spike.
 7c. **SDK disconnect ends every wagmi EVM connection** (`EvmActions`), not only the current one.
 8. **Two `trustPolicyExclude` entries** (`jose@4.15.9`, `ua-parser-js@1.0.41`) are the whole
    supply-chain cost, matching the repo's existing legacy-backport category.
+9a. **Not an add-on package.** `@sodax/wallet-privy` (`<PrivyEmailWallet>` + an EIP-1193 provider over
+   EIP-6963) was built in session 10 at the user's request, then rejected by the user; do not re-propose it.
 9. **No changeset** (PR #407); the release note is the commit subject; no `#456` in subjects.
 
 ## Which file answers what
@@ -94,6 +101,9 @@ self-service, so question 7 is pre-merge, not pre-spike.
 | -------- | ---- | ---: |
 | Audit of #486 at f48a836a: what is wrong (ranked, verified), fix directions, what holds up | `process/09-…-implementation-audit.md` | 1.4k |
 | R0bi7's three findings: what is real, what was overclaimed, the fixes and gates | `process/08-…-review-findings-fixes.md` | 1.1k |
+| Why #486's Vercel previews hung and the tsup split; Privy in `apps/demo`; first live QA | `process/12-…-vercel-dts-and-demo.md` | 2.0k |
+| Is the approach right; what to measure before review; partners already on Privy; how #486 was opened | `process/11-…-approach-review.md` | 2.8k |
+| The rejected add-on package: why not, and the wagmi/mipd facts it surfaced | `process/10-…-addon-package-pivot.md` | 1.9k |
 | PR #486, the commits after session 06, the demo Settings field and its trade-off | `process/07-…-pr486-and-demo-settings.md` | 1.0k |
 | What the max review found, what was reversed and why, the fixes | `process/06-…-review-fixes.md` | 1.5k |
 | What was built, spike results, gates run, where the code differs from the plan | `process/05-…-implementation.md` | 2.3k |
@@ -106,7 +116,8 @@ self-service, so question 7 is pre-merge, not pre-spike.
 | **Archived** — rev 1 design; rev 1 → 2 evidence with file:line (read one § only if a rev-3 fact needs its source) | `archive/plan-architecture.md`, `archive/plan-revision-2.md` | 13.5k, 23.5k |
 | What shipped | `outcome.md` | 0 |
 
-Resuming cold: this brief → `process/09` → `process/08` → `process/07` → `process/06` → `process/05` → the one `plan.md` section you need
+Resuming cold: this brief → `process/09` → `process/08` → `process/07` → `process/06` → `process/05` → the one `plan.md` section you need.
+Sessions 10–12 were written on the other machine and pushed late; in time order they sit between 06 and 07
 (`rg -n "^## |^### " plan.md` first — it is past a cheap full read).
 
 ## Landmines
@@ -117,6 +128,11 @@ Resuming cold: this brief → `process/09` → `process/08` → `process/07` →
   three Privy instances; the SDK's own resolves `@solana/kit` 2.3.0 (Privy wants ≥ 3.0.3), which breaks a
   Vite build even for a dead `import()`, and two copies split the React context. `apps/wallet-modal-example`
   uses `resolve.dedupe`.
+- **Keep `./privy` declarations in their own tsup pass** (`tsup.privy-dts.config.ts`). The combined declaration
+  pass needs > 6 GB heap and hangs Vercel's 8 GB builders until the 45-minute timeout; the main pass alone is
+  already at 6–8 GB (`process/12`).
+- **StrictMode drops EIP-6963 wallets' restore after a reload** (pre-existing `EvmHydrator` bug, dev only;
+  not re-checked for the static `EVM.privy` connector) — `process/10`. Not ours to fix in this PR.
 - **Merging publishes the README Privy bullet** to docs.sodax.com (the README is mirrored) — gate the
   merge on open question 5.
 - **With Privy's wallet UI on, a send resolves only when the user closes Privy's success screen**

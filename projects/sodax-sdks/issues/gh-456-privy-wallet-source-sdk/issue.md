@@ -4,7 +4,7 @@ repo: sodax-sdks
 github: 456
 status: Active
 tags: [wallet, privy, email-login, embedded-wallet, wallet-sdk-react, evm, wagmi, walletconnect]
-updated: 2026-09-17
+updated: 2026-09-24
 related_issues: [gh-1069, gh-1024]
 related_decisions: [0003, 0001, 0002]
 ---
@@ -14,7 +14,7 @@ related_decisions: [0003, 0001, 0002]
 - Source: https://github.com/icon-project/sodax-sdks/issues/456
 - Author: FezBox (2026-09-15). Assignee: 0x0603. No comments as of 2026-09-17.
 - Started: 2026-09-17
-- Related PR: —
+- Related PR: #486 (opened 2026-09-24 as draft; ready for review as of 2026-10-05)
 
 ## Problem
 
