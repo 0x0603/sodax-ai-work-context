@@ -3,7 +3,7 @@ type: brief
 repo: sodax-frontend
 github: 1623
 status: Closed — PR 1935 merged 2026-10-05
-next: Manual only: sentinel re-test (1 non-protocol URL + 2 protocols) before promotion
+next: None — done; sentinel re-test dropped by the user 2026-10-06
 updated: 2026-10-06
 ---
 
@@ -20,10 +20,9 @@ NOT been run.
 
 ## Next action
 
-Code is done. One manual check is still owed before promotion, and the PR body names it:
-someone with credentials runs one known non-protocol URL and two known protocol URLs, and
-confirms the non-protocol reply still starts with `NOT_A_PROTOCOL:`. A preamble there would send
-non-protocol URLs to Notion as leads.
+None. The PR body listed one manual sentinel re-test; the user dropped it on 2026-10-06, after
+the merge. If the prompt ever breaks the `NOT_A_PROTOCOL:` prefix, the symptom is non-protocol
+URLs showing up in Notion as leads.
 
 ## Settled — do not re-litigate
 

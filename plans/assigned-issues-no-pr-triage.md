@@ -114,9 +114,9 @@ live only here.**
 
 | What | Where | Why it cannot be closed from a terminal |
 | --- | --- | --- |
-| Does the Resend template render `protocol_name` / `protocol_url` escaped or raw? | #1622 | Lives in the Resend dashboard. If raw, finding 1 was worse than Medium. |
+| ~~Does the Resend template render `protocol_name` / `protocol_url` escaped or raw?~~ | #1622 | Dropped by the user 2026-10-06; PR #1936 merged. |
 | ~~Add the trust-boundary clause to the Notion master prompt~~ | #1623 | Moot: PR #1935 appends the clause to the system prompt in code. |
-| Re-test the `NOT_A_PROTOCOL:` sentinel against a real non-protocol URL | #1623 | Needs a running app with provider + Notion credentials. |
+| ~~Re-test the `NOT_A_PROTOCOL:` sentinel against a real non-protocol URL~~ | #1623 | Dropped by the user 2026-10-06; PR #1935 merged. |
 | ~~Priority call on the pre-signature modal~~ | #1632 | Moot: closed 2026-10-06; the premise does not apply. |
 | Product call: accept different addresses / ask Hana for shared Web3Auth config / build the keystore model | #1069 + #1024 | Partnership and risk decision, not engineering. |
 | ~~Dismiss the Dependabot alerts~~ | #1375 | Moot: closed 2026-10-06; the remaining 7 are baselined until 2026-12-22. |

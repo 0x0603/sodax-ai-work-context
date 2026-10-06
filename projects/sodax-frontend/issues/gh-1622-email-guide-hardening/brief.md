@@ -3,7 +3,7 @@ type: brief
 repo: sodax-frontend
 github: 1622
 status: Closed — PR 1936 merged 2026-10-05
-next: Manual only: Resend template escaping check; one real send
+next: None — done; manual checks dropped by the user 2026-10-06
 updated: 2026-10-06
 ---
 
@@ -20,10 +20,9 @@ the fix was rewritten in `0b9439d7`. lint, checkTs, test (54/54) and build are g
 
 ## Next action
 
-Code is done. Two manual checks are still owed, and the PR body names both:
-- Someone with Resend dashboard access checks whether the templates render `protocol_name` /
-  `protocol_url` escaped or raw. If raw, finding 1 was worse than Medium.
-- Send one real guide email and check the name and link.
+None. The PR body listed two manual checks: the Resend template escaping, and one real send. The
+user dropped both on 2026-10-06, after the merge. The server now derives the name from a validated
+URL, so the escaping question only affects how severe the old bug was.
 
 ## Settled — do not re-litigate
 

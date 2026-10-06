@@ -2,7 +2,7 @@
 type: outcome
 repo: sodax-frontend
 github: 1622
-status: Merged — PR 1936 (6623d817), issue closed 2026-10-05; Resend template escaping still unanswered
+status: Merged — PR 1936 (6623d817), issue closed 2026-10-05; manual checks dropped by the user
 updated: 2026-10-06
 ---
 

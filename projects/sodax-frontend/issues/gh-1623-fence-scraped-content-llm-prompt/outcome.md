@@ -2,7 +2,7 @@
 type: outcome
 repo: sodax-frontend
 github: 1623
-status: Merged — PR 1935 (dfab081c), issue closed 2026-10-05; manual sentinel re-test still owed
+status: Merged — PR 1935 (dfab081c), issue closed 2026-10-05; sentinel re-test dropped by the user
 updated: 2026-10-06
 ---
 
