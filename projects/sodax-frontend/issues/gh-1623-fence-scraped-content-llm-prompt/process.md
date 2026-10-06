@@ -2,7 +2,7 @@
 type: process
 repo: sodax-frontend
 github: 1623
-updated: 2026-08-12
+updated: 2026-10-06
 ---
 
 # Process
@@ -11,6 +11,15 @@ updated: 2026-08-12
 
 - **2026-08-12** — Implemented on `fix/1623-fence-scraped-content` (local commit `322b53b6`,
   not pushed). 3 files, +54 / −3.
+- **2026-10-05** — The branch was 123 commits behind; the only conflict was `getSiteOrigin`,
+  which main had moved to `lib/server/site-origin.ts`. Merged `origin/main` (`77dc1683`),
+  then reworked the fix in `0d3d1d62`: the clause is now on the system prompt, the
+  static-prompt edits are dropped, and the marker strip is a loose regex. Pushed and opened
+  PR 1935. Gates: checkTs, test 51/51, build green. A break-out driver run against the
+  shipped helper passed. It covers the exact markers, `<!--SODAX: content ends-->`, a
+  case-folded variant and a zero-width-joined variant: one head and one foot survive, and
+  the injected text stays inside as data.
+- **2026-10-05** — gosiast approved; merged by 0x0603 (`dfab081c`). #1623 auto-closed.
 
 ## Findings
 

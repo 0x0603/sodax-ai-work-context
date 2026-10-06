@@ -2,13 +2,25 @@
 type: outcome
 repo: sodax-frontend
 github: 1622
-status: Implemented locally — not pushed, no PR; one item needs Resend dashboard access
-updated: 2026-08-12
+status: Merged — PR 1936 (6623d817), issue closed 2026-10-05; Resend template escaping still unanswered
+updated: 2026-10-06
 ---
 
 # Outcome
 
-- PR: none. Branch `fix/1622-email-guide-hardening`, local commit `1b0366c6`.
+> **2026-10-05 update.** Shipped as PR icon-project/sodax-frontend#1936 (head `0b9439d7`),
+> rewritten on current main. **Merged 2026-10-05** by 0x0603 after gosiast's approval (merge
+> commit `6623d817`); #1622 auto-closed. The final design differs from the 2026-08-12 description below:
+> - `canonicalizeMailbox` lives in `lib/validate-email.ts` and is called at the two email
+>   call sites. `rate-limit.ts` is unchanged, with no `buildRateLimitId` and no shape-based gate.
+> - URL validation replaces the regex check before Turnstile. The "resolves DNS" rationale
+>   was wrong: the function is synchronous with no lookup.
+> - The name comes from `findLivePartnerByUrl(safeUrl)?.name ?? getProtocolName(safeUrl)` and
+>   also feeds the BD notification, which main added after August.
+> - A committed test, `scripts/validate-email.test.mjs`, since main now has a test runner.
+> The "Draft comment" at the bottom is obsolete.
+
+- PR: #1936, merged (`6623d817`). The original local commit `1b0366c6` was superseded by `0b9439d7`.
 - Commits: 1 — `fix(web): harden email-guide against phishing relay and rate-limit bypass`
 - Tests: no suite exists in this repo. Verified by lint + typecheck + build + a 14-case
   driver run against the real source (see `process.md`).

@@ -2,7 +2,7 @@
 type: process
 repo: sodax-frontend
 github: 1622
-updated: 2026-08-12
+updated: 2026-10-06
 ---
 
 # Process
@@ -11,6 +11,20 @@ updated: 2026-08-12
 
 - **2026-08-12** — Implemented on `fix/1622-email-guide-hardening` (local commit `1b0366c6`,
   not pushed). 2 files, +61 / −12.
+- **2026-10-05** — The branch was 123 commits behind, with heavy conflicts. Main had added
+  `withBackendTimeout` and `cost` to the limiter, dropped `completion` from email-guide, and
+  added `sendBdCaptureNotification`, which also used the client name. The merge (`31051b17`)
+  took main's version of both files; the fix was rewritten in `0b9439d7`, then pushed as
+  PR 1936. Gates: checkTs, test 54/54, build green.
+- **2026-10-05** — gosiast approved; merged by 0x0603 (`6623d817`). #1622 auto-closed.
+
+### Corrections to the 2026-08-12 notes below
+
+- "No client sends `protocolName`" was **wrong**. Both `guide-hero.tsx` files send it, with
+  the value `livePartner ? livePartner.name : getProtocolName(submittedUrl)`. The server now
+  derives the same value itself.
+- "`normalizeAndValidateScrapeTarget` resolves DNS" was **wrong**. It is synchronous; the
+  lookup lives in `assertPublicFetchTarget`. The same was true at base `9db18283`.
 
 ## Findings
 

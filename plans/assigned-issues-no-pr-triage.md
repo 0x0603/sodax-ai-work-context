@@ -26,8 +26,8 @@ State of the other nine: `research/open-prs-state-2026-08-11.md`.
 
 | Tier | Repo | Issue | Folder | Status now |
 | --- | --- | --- | --- | --- |
-| A1 | frontend | #1622 harden `/api/partners/email-guide` | `gh-1622-email-guide-hardening` | implemented, local branch |
-| A2 | frontend | #1623 fence scraped content in the analyze prompt | `gh-1623-fence-scraped-content-llm-prompt` | implemented, local branch |
+| A1 | frontend | #1622 harden `/api/partners/email-guide` | `gh-1622-email-guide-hardening` | **merged 2026-10-05** — PR #1936 |
+| A2 | frontend | #1623 fence scraped content in the analyze prompt | `gh-1623-fence-scraped-content-llm-prompt` | **merged 2026-10-05** — PR #1935 |
 | A3 | frontend | #1627 pin 11 GitHub Action refs to SHAs | `gh-1627-pin-github-action-shas` | **PR #1684 open (2026-08-14)** |
 | B1 | frontend | #1374 `pnpm.overrides` for Dependabot deps | `gh-1374-pnpm-overrides-dependabot` | **closed 2026-10-06 (completed)** — done upstream by gosiast's PRs 1904/1906/1923 |
 | B2 | frontend | #1375 dismiss unreachable alerts | `gh-1375-dismiss-unreachable-dependabot-alerts` | **closed 2026-10-06 (not planned)** — the expiring OSV baseline replaces the dismissal |
@@ -52,8 +52,8 @@ Three branches in `sodax-frontend`, one commit each, `main` untouched. As of **2
 | branch | commit | state |
 | --- | --- | --- |
 | `chore/1627-pin-action-shas` | `43721806` (was `791acc31`, amended) | PR #1684 open |
-| `fix/1622-email-guide-hardening` | `1b0366c6` | local, not pushed |
-| `fix/1623-fence-scraped-content` | `322b53b6` | local, not pushed |
+| `fix/1622-email-guide-hardening` | `1b0366c6` | superseded; shipped as PR #1936 (merged) |
+| `fix/1623-fence-scraped-content` | `322b53b6` | superseded; shipped as PR #1935 (merged) |
 
 Gates: `pnpm lint`, `pnpm checkTs`, `pnpm build` green on each. This repo has **no test suite
 at all** — `pnpm test` is a no-op and CI never runs it — so verification was typecheck + lint +
@@ -115,7 +115,7 @@ live only here.**
 | What | Where | Why it cannot be closed from a terminal |
 | --- | --- | --- |
 | Does the Resend template render `protocol_name` / `protocol_url` escaped or raw? | #1622 | Lives in the Resend dashboard. If raw, finding 1 was worse than Medium. |
-| Add the trust-boundary clause to the Notion master prompt | #1623 | The live system prompt is fetched from Notion, not the repo. |
+| ~~Add the trust-boundary clause to the Notion master prompt~~ | #1623 | Moot: PR #1935 appends the clause to the system prompt in code. |
 | Re-test the `NOT_A_PROTOCOL:` sentinel against a real non-protocol URL | #1623 | Needs a running app with provider + Notion credentials. |
 | ~~Priority call on the pre-signature modal~~ | #1632 | Moot: closed 2026-10-06; the premise does not apply. |
 | Product call: accept different addresses / ask Hana for shared Web3Auth config / build the keystore model | #1069 + #1024 | Partnership and risk decision, not engineering. |

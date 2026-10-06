@@ -2,13 +2,23 @@
 type: outcome
 repo: sodax-frontend
 github: 1623
-status: Implemented locally — not pushed; behavioural re-test and the Notion prompt edit still open
-updated: 2026-08-12
+status: Merged — PR 1935 (dfab081c), issue closed 2026-10-05; manual sentinel re-test still owed
+updated: 2026-10-06
 ---
 
 # Outcome
 
-- PR: none. Branch `fix/1623-fence-scraped-content`, local commit `322b53b6`.
+> **2026-10-05 update.** Shipped as PR icon-project/sodax-frontend#1935 (head `0d3d1d62`).
+> **Merged 2026-10-05** by 0x0603 after gosiast's approval (merge commit `dfab081c`); #1623
+> auto-closed.
+> The final design differs from the 2026-08-12 description below:
+> - The clause is appended to the **system** prompt in code, not sent in the user prompt.
+>   The edits to `system-prompt.ts` / `solana-system-prompt.ts` were dropped, so the
+>   "add the clause to the Notion page by hand" follow-up no longer applies.
+> - Marker stripping uses a loose regex, not exact-string `replaceAll`.
+> - Net diff: `analyze/route.ts` only, +26/−4. The "Draft comment" at the bottom is obsolete.
+
+- PR: #1935, merged (`dfab081c`). The original local commit `322b53b6` was reworked in `0d3d1d62`.
 - Commits: 1 — `fix(web): fence untrusted scraped content in the analyze LLM prompt`
 - Tests: no suite in this repo. Verified by lint + typecheck + build + a break-out driver
   run against the real source.

@@ -2,9 +2,9 @@
 type: issue
 repo: sodax-frontend
 github: 1623
-status: Active
+status: Closed
 tags: [security, prompt-injection, llm, api-route, notion, audit-2026-07-28]
-updated: 2026-08-12
+updated: 2026-10-06
 related_issues: [gh-1622-email-guide-hardening, gh-1627-pin-github-action-shas]
 related_decisions: []
 ---
@@ -13,7 +13,7 @@ related_decisions: []
 
 - Source: https://github.com/icon-project/sodax-frontend/issues/1623
 - Started: 2026-08-12
-- Related PR: none yet — branch `fix/1623-fence-scraped-content`, local only
+- Related PR: #1935 — merged 2026-10-05 (`dfab081c`), issue auto-closed
 - Parent: #1621 (2026-07-28 whole-repo security audit follow-up), ranked 4 of 5
 - Report: https://claude.ai/code/artifact/76aec015-413e-43f1-ad4b-155114a460d2 (finding 3 —
   the only finding raised independently by two auditors)
