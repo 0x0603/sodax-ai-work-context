@@ -2,11 +2,24 @@
 type: outcome
 repo: sodax-frontend
 github: 1632
-status: Blocked — needs a priority call from @FezBox; ticket also needs re-specifying
-updated: 2026-08-12
+status: Closed (not planned) 2026-10-06 — premise does not apply: no typed-data signing anywhere
+updated: 2026-10-06
 ---
 
 # Outcome
+
+> **2026-10-06 — closed as not planned** ([comment](https://github.com/icon-project/sodax-frontend/issues/1632#issuecomment-6009224470)). There was no priority call: the
+> 2026-06-30 question to @FezBox never got an answer. The facts were verified on `origin/main`.
+> `signTypedData` has 0 hits in sodax-frontend `apps/web` and 0 in sodax-sdks `packages/*/src`.
+> The only signature is the plain-text terms `signMessage` (`terms-confirmation-modal.tsx:70`).
+> Swap and approve sign ordinary transactions that the Swaps API builds
+> (`apps/web/lib/swaps-api-sign.ts:58-68`, and dapp-kit `useSwapsApiApproveAndBroadcast` →
+> `utils/approvalPlan.ts`). Wallets already decode those, so there is no opaque Permit. The
+> closing comment keeps the one idea from the ticket that still holds, its **spender allowlist**:
+> nothing checks that an API-built transaction's `to` or spender is a SODAX contract, and
+> `approvalPlan.ts` checks only `expectedChainId`. That guards against a tampered Swaps API, not
+> a compromised frontend. It went into that comment only; per our rule, no new issue was opened.
+> No retitle or body edit, because the body is gosiast's. #1631 still has #1621 and #1861 open.
 
 - PR: none
 - Commits: none
@@ -42,7 +55,7 @@ Nothing.
   criteria or fund the infrastructure they assume, and account for `packages/skills` updates
   gated by `pnpm check:ai`.
 
-## Draft comment for the issue — NOT POSTED
+## Draft comment for the issue — never posted (2026-08-12; superseded by the closing comment above)
 
 > Before anyone books 3–4 weeks against this: the ticket can't be implemented as written, and
 > the priority question is still open.

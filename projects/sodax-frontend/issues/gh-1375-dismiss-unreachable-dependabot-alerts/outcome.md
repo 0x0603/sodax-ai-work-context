@@ -2,11 +2,20 @@
 type: outcome
 repo: sodax-frontend
 github: 1375
-status: Blocked — deliberately not executed; needs a human at the GitHub UI
-updated: 2026-08-12
+status: Closed (not planned) 2026-10-06 — dismissal superseded by the expiring OSV baseline
+updated: 2026-10-06
 ---
 
 # Outcome
+
+> **2026-10-06 — closed as not planned** ([comment](https://github.com/icon-project/sodax-frontend/issues/1375#issuecomment-6009223699)). Nothing was dismissed. All five
+> of the ticket's categories have zero open alerts, cleared by the overrides and bumps in PRs
+> 1904, 1906 and 1923, plus better-auth for kysely. 7 alerts are open and 0 dismissed:
+> bigint-buffer #5, elliptic #34, @metamask/sdk #74/#75, uuid #182, decode-uri-component #276,
+> stream-json #282. All 7 are baselined in `osv-scanner.toml` with `ignoreUntil` 2026-12-22.
+> That baseline forces a re-triage; a UI dismissal never expires. Some of the 7 are reachable
+> (elliptic and @metamask/sdk run in wallet code), so a "not in execution path" dismissal would
+> be false.
 
 - PR: none (no code change by design)
 - Commits: none
@@ -37,7 +46,7 @@ Nothing.
 - **Disposition alert #201 (`vitest`, critical, runtime)** — absent from the ticket entirely.
 - Check whether **#1376** was closed prematurely; its named packages still have open alerts.
 
-## Draft comment for the issue — NOT POSTED
+## Draft comment for the issue — never posted (2026-08-12; superseded by the closing comment above)
 
 > Worked through the category list against the live alert set before dismissing anything, and
 > two of the five don't hold as written:

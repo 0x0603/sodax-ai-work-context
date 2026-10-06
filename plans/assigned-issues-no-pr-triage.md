@@ -1,7 +1,7 @@
 ---
 type: plan
 status: Active
-updated: 2026-08-14
+updated: 2026-10-06
 related_issues: [1622, 1623, 1627, 1374, 1375, 1632, 1069, 330, 251, 21, 1024]
 related_decisions: []
 tags: [triage, cross-repo, assigned-issues, sodax-frontend, sodax-sdks, sodax-backend]
@@ -29,9 +29,9 @@ State of the other nine: `research/open-prs-state-2026-08-11.md`.
 | A1 | frontend | #1622 harden `/api/partners/email-guide` | `gh-1622-email-guide-hardening` | implemented, local branch |
 | A2 | frontend | #1623 fence scraped content in the analyze prompt | `gh-1623-fence-scraped-content-llm-prompt` | implemented, local branch |
 | A3 | frontend | #1627 pin 11 GitHub Action refs to SHAs | `gh-1627-pin-github-action-shas` | **PR #1684 open (2026-08-14)** |
-| B1 | frontend | #1374 `pnpm.overrides` for Dependabot deps | `gh-1374-pnpm-overrides-dependabot` | unblocked, re-scoped, not started |
-| B2 | frontend | #1375 dismiss unreachable alerts | `gh-1375-dismiss-unreachable-dependabot-alerts` | worksheet only, nothing dismissed |
-| B3 | frontend | #1632 pre-signature preview modal | `gh-1632-pre-signature-preview-modal` | blocked on a priority call |
+| B1 | frontend | #1374 `pnpm.overrides` for Dependabot deps | `gh-1374-pnpm-overrides-dependabot` | **closed 2026-10-06 (completed)** — done upstream by gosiast's PRs 1904/1906/1923 |
+| B2 | frontend | #1375 dismiss unreachable alerts | `gh-1375-dismiss-unreachable-dependabot-alerts` | **closed 2026-10-06 (not planned)** — the expiring OSV baseline replaces the dismissal |
+| B3 | frontend | #1632 pre-signature preview modal | `gh-1632-pre-signature-preview-modal` | **closed 2026-10-06 (not planned)** — no typed-data signing anywhere |
 | B4 | frontend | #1069 email-provider wallet connectivity | `gh-1069-email-provider-wallet-connectivity` | blocked on a product call |
 | B5 | sdks | #330 Bound endpoint inventory | `gh-330-bound-exchange-endpoint-inventory` | blocked — its premise is false |
 | B6 | sdks | #21 controller hooks | `gh-21-controller-hooks` | design drafted |
@@ -117,9 +117,9 @@ live only here.**
 | Does the Resend template render `protocol_name` / `protocol_url` escaped or raw? | #1622 | Lives in the Resend dashboard. If raw, finding 1 was worse than Medium. |
 | Add the trust-boundary clause to the Notion master prompt | #1623 | The live system prompt is fetched from Notion, not the repo. |
 | Re-test the `NOT_A_PROTOCOL:` sentinel against a real non-protocol URL | #1623 | Needs a running app with provider + Notion credentials. |
-| Priority call on the pre-signature modal | #1632 | Asked of @FezBox on 2026-06-30, never answered. |
+| ~~Priority call on the pre-signature modal~~ | #1632 | Moot: closed 2026-10-06; the premise does not apply. |
 | Product call: accept different addresses / ask Hana for shared Web3Auth config / build the keystore model | #1069 + #1024 | Partnership and risk decision, not engineering. |
-| Dismiss the Dependabot alerts | #1375 | Outward-facing write to a shared repo's security record. |
+| ~~Dismiss the Dependabot alerts~~ | #1375 | Moot: closed 2026-10-06; the remaining 7 are baselined until 2026-12-22. |
 
 ## Quick wins spotted in passing (not this session's scope)
 

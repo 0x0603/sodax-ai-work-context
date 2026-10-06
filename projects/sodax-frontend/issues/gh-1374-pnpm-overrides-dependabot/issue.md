@@ -2,9 +2,9 @@
 type: issue
 repo: sodax-frontend
 github: 1374
-status: Active
+status: Closed
 tags: [dependabot, supply-chain, pnpm-overrides, security, phase-3]
-updated: 2026-08-12
+updated: 2026-10-06
 related_issues: [gh-1375-dismiss-unreachable-dependabot-alerts]
 related_decisions: []
 ---

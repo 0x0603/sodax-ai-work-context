@@ -2,9 +2,9 @@
 type: issue
 repo: sodax-frontend
 github: 1375
-status: Blocked
+status: Closed
 tags: [dependabot, security, triage, phase-4, needs-human]
-updated: 2026-08-12
+updated: 2026-10-06
 related_issues: [gh-1374-pnpm-overrides-dependabot]
 related_decisions: []
 ---

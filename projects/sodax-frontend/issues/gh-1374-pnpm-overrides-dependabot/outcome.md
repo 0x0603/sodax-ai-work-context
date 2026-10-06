@@ -2,11 +2,23 @@
 type: outcome
 repo: sodax-frontend
 github: 1374
-status: Not started — unblocked and re-scoped; needs someone who can drive the wallet flows
-updated: 2026-08-12
+status: Closed (completed) 2026-10-06 — done upstream by gosiast's PRs; closed with a comment
+updated: 2026-10-06
 ---
 
 # Outcome
+
+> **2026-10-06 — closed as completed** ([comment](https://github.com/icon-project/sodax-frontend/issues/1374#issuecomment-6009223074)). Re-verified first against live
+> GitHub and `origin/main` `6623d817`. gosiast landed the substance in PRs 1904 (axios pin off
+> 1.13.2, now 1.20.0), 1906 and 1923. The root `pnpm.overrides` has 23 entries, including h3,
+> lodash 4.18.1, protobufjs 7.6.6, ws@7/@8 and yaml@2, and the lockfile resolves undici 6.28.1.
+> The ticket's drift guard is covered more strongly by PR 1893: blocking OSV-Scanner and
+> `pnpm audit` gates, with baselines in `osv-scanner.toml` and
+> `.github/dependency-allowlist.json` (reviewBy 2026-12-22). Dependabot went from 116 open to 7
+> open, all baselined. The comment also flags a leftover for gosiast, not ours to fix: the
+> lockfile now has only `toml@4.3.0`, but the two toml GHSAs are still in both baselines, and the
+> allowlist `_comment` still says "tracked by #1373", which is closed. Epic #1365 now has no open
+> children; it is gosiast's to close.
 
 - PR: none
 - Commits: none
@@ -37,7 +49,7 @@ Nothing in the repo. The re-derived override set and the guard design are in `pr
 - Treat the 8 `next` alerts as a version bump, not an override — Dependabot PR #1642 is open.
 - Write `scripts/check-dependency-floors.mjs` and wire it into CI **in the same PR as the bumps**.
 
-## Draft comment for the issue — NOT POSTED
+## Draft comment for the issue — never posted (2026-08-12; superseded by the closing comment above)
 
 > Two things worth recording before anyone starts this.
 >

@@ -2,9 +2,9 @@
 type: issue
 repo: sodax-frontend
 github: 1632
-status: Blocked
+status: Closed
 tags: [security, signing, drainers, wallet-sdk-core, dapp-kit, xl, needs-decision]
-updated: 2026-08-12
+updated: 2026-10-06
 related_issues: []
 related_decisions: []
 ---
