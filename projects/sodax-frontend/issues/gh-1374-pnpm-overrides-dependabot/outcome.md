@@ -15,10 +15,11 @@ updated: 2026-10-06
 > The ticket's drift guard is covered more strongly by PR 1893: blocking OSV-Scanner and
 > `pnpm audit` gates, with baselines in `osv-scanner.toml` and
 > `.github/dependency-allowlist.json` (reviewBy 2026-12-22). Dependabot went from 116 open to 7
-> open, all baselined. The comment also flags a leftover for gosiast, not ours to fix: the
-> lockfile now has only `toml@4.3.0`, but the two toml GHSAs are still in both baselines, and the
-> allowlist `_comment` still says "tracked by #1373", which is closed. Epic #1365 now has no open
-> children; it is gosiast's to close.
+> open, all baselined. The comment was cut to two lines at the user's request, to read less like
+> AI text. It flags only the toml leftover for gosiast: the lockfile now has only `toml@4.3.0`, but
+> the two toml GHSAs are still in both baselines. Not flagged: the allowlist `_comment` still says
+> "tracked by #1373", which is closed. Epic #1365 now has no open children; it is gosiast's to
+> close.
 
 - PR: none
 - Commits: none

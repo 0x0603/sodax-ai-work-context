@@ -14,11 +14,12 @@ updated: 2026-10-06
 > The only signature is the plain-text terms `signMessage` (`terms-confirmation-modal.tsx:70`).
 > Swap and approve sign ordinary transactions that the Swaps API builds
 > (`apps/web/lib/swaps-api-sign.ts:58-68`, and dapp-kit `useSwapsApiApproveAndBroadcast` →
-> `utils/approvalPlan.ts`). Wallets already decode those, so there is no opaque Permit. The
-> closing comment keeps the one idea from the ticket that still holds, its **spender allowlist**:
-> nothing checks that an API-built transaction's `to` or spender is a SODAX contract, and
-> `approvalPlan.ts` checks only `expectedChainId`. That guards against a tampered Swaps API, not
-> a compromised frontend. It went into that comment only; per our rule, no new issue was opened.
+> `utils/approvalPlan.ts`). Wallets already decode those, so there is no opaque Permit.
+> One idea from the ticket still holds: its **spender allowlist**. Nothing checks that an API-built
+> transaction's `to` or spender is a SODAX contract; `approvalPlan.ts` checks only
+> `expectedChainId`. Such a check would guard against a tampered Swaps API. **The user decided not to
+> do it in the SDK** (2026-10-06). It was removed from the closing comment, and no issue was opened.
+> The comment was then cut to two lines, at the user's request, to read less like AI text.
 > No retitle or body edit, because the body is gosiast's. #1631 still has #1621 and #1861 open.
 
 - PR: none

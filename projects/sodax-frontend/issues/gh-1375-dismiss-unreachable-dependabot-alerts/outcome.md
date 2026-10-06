@@ -15,7 +15,7 @@ updated: 2026-10-06
 > stream-json #282. All 7 are baselined in `osv-scanner.toml` with `ignoreUntil` 2026-12-22.
 > That baseline forces a re-triage; a UI dismissal never expires. Some of the 7 are reachable
 > (elliptic and @metamask/sdk run in wallet code), so a "not in execution path" dismissal would
-> be false.
+> be false. The comment was cut to a few lines at the user's request, to read less like AI text.
 
 - PR: none (no code change by design)
 - Commits: none
