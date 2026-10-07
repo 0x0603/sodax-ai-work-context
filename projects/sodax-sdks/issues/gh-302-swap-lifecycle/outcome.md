@@ -2,24 +2,24 @@
 type: outcome
 repo: sodax-sdks
 github: 302
-status: Implemented locally, split into 3 branches (one PR per issue), not pushed; #302 merge gated on the mainnet matrix
+status: Implemented locally as 2 branches (#329 alone; #328 + #302 together), not pushed; the combined PR's merge is gated on the mainnet matrix
 updated: 2026-10-07
 related_issues: [gh-328, gh-329, gh-21, gh-208]
 ---
 
 # Outcome
 
-- PRs: not opened yet (needs the user's go-ahead). Split per issue on 2026-10-07 at the user's request:
+- PRs: not opened yet (needs the user's go-ahead). Split per issue, then #328 folded back into #302 so
+  the user can test it in one pass (both 2026-10-07):
 
   | Branch (worktree `sodax-sdks-302`) | Base | Commits | Closes |
   | --- | --- | --- | --- |
   | `feat/329-swaps-client-options` | `origin/main` @ `93f86c5d` | `78ea01b3` | #329 |
-  | `feat/328-swap-status-summary` | `origin/main` @ `93f86c5d` | `7f9e4b95`, `1ac39772`, `1dcce421` | #328 |
-  | `feat/302-swap-lifecycle` | **`feat/328-swap-status-summary`** (stacked) | `5a52ecc3` … `b84e5675` (7) | #302 |
+  | `feat/302-swap-lifecycle` | `origin/main` @ `93f86c5d` | `7f9e4b95` … `b84e5675` (10: #328's 3, then #302's 7) | #302, #328 |
 
 - Each branch passed every gate on its own (build, checkTs, test, lint, circular-deps, knip,
   check-exports, check:ai, docs pages/links/nav, docs drift; SDK size gate on #302).
-- #329 ⟷ #328: merge clean. #329 ⟷ #302: one conflict, both append a `describe` at the end of
+- #329 ⟷ the combined branch: one conflict, both append a `describe` at the end of
   `SwapService.test.ts` — keep both; whichever merges second rebases.
 - `backup/302-all-11` (local) = the original single branch, `7c7b9533`. Its tree equals #302 + #329
   (diff checked: exactly #329's 6 files). Delete once the PRs are up.
@@ -65,9 +65,8 @@ related_issues: [gh-328, gh-329, gh-21, gh-208]
 
 ## Draft PR bodies — NOT POSTED
 
-Split per issue: **#329** gets the "#329 — options" paragraph alone; **#328** gets the "#328 — status"
-paragraph; **#302** (base `feat/328-swap-status-summary` until #328 merges) gets the #302 +
-`useSwapLifecycle` paragraphs, the deliberate choices, and the mainnet matrix. The combined draft:
+Two PRs: **#329** gets the "#329 — options" paragraph alone (Closes #329); the **combined** PR gets
+everything else (Closes #302, closes #328). The full draft:
 
 > **feat: swap lifecycle — EIP-5792 one-signature approve + swap, universal status, `useSwapLifecycle`**
 >
