@@ -92,3 +92,28 @@ new error code; bridge ctor gap out of scope. Full plan in `plan.md`.
   there, so the suppression is itself a warning; typed captures instead.
 - A first skills edit added a `swapsOptions` row to the **v1 → v2** table — wrong, it is a 2.0.x key;
   moved to a "Within v2" note.
+
+## Session 1 (cont.) — review of #503 / #504 and fixes
+
+Review (two independent agents + own verification) — #503 approve-with-comments (2 nits: unresolved
+`{@link SwapsOptions}` in `SwapService.ts`, ctor-override test only covers `false`). #504 request-changes.
+Dropped as wrong: "missing changeset" (changesets retired after #407; #475 had none) and Biome reformat noise.
+
+Fixed on `feat/302-swap-lifecycle` (local, not pushed yet):
+
+- `ebb1b300` wallet-sdk-core — viem `sendCalls` tags the batch with `client.chain` and, unlike
+  `sendTransaction`, never asserts it; `sendAtomicBatch` now also refuses when `walletClient.chain.id` ≠
+  target. `waitForBatch` takes `{ timeout }`; viem's `status` predicate dropped from the policy.
+- `e065295d` sdk — batch wait gets the caller's `timeout`; sent-but-unconfirmed (or success with no
+  receipt) → `TX_VERIFICATION_FAILED` + `reason: ATOMIC_BATCH_UNCONFIRMED` (exported) + `batchId`, never
+  "nothing sent". Wallet refusing before signing (4200, -32601, 5700, 5710, 5740, 5760; walks viem causes)
+  → falls back to sequential. Approval-step errors get `action`/`approvalStrategy` via new
+  `withErrorContext`. JSDoc/table fixes.
+- `b002056f` dapp-kit + demo — lifecycle `unconfirmed` state (next() never retries; only reset());
+  `pending.error`; status auth failure surfaced; `reset()` no-op while submitting; `isSameIntent` compares
+  all but deadline. Demo/recipe: honest "in progress" labels, Start over / Stop tracking, passive setup.
+  The demo's exhaustive `switch` on `state.kind` caught the new state at checkTs — keep it exhaustive.
+- `a99b99c7` demo — order summary snapshotted at click (RQ runs onSuccess with the latest render's options).
+
+Left as is: unchecked casts on the batch path (runtime-guarded), post-broadcast failures not added to the
+demo order history, an unconfirmed batch that lands later is not relayed by the client (needs the tx hash).
