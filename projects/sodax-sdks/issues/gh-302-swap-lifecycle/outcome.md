@@ -2,15 +2,17 @@
 type: outcome
 repo: sodax-sdks
 github: 302
-status: Implemented locally as 2 branches (#329 alone; #328 + #302 together), not pushed; the combined PR's merge is gated on the mainnet matrix
+status: PRs open — #503 (#329, ready) and #504 (#328 + #302, draft); #504's merge is gated on the mainnet matrix + the batch-timeout fix
 updated: 2026-10-07
 related_issues: [gh-328, gh-329, gh-21, gh-208]
 ---
 
 # Outcome
 
-- PRs: not opened yet (needs the user's go-ahead). Split per issue, then #328 folded back into #302 so
-  the user can test it in one pass (both 2026-10-07):
+- PRs (opened 2026-10-07): **#503** `feat(sdk): honor deprecated SwapService useBackendSubmitTx override`
+  (ready) and **#504** `feat(sdk,dapp-kit,demo): one-signature approve + swap via EIP-5792, unified swap
+  status, useSwapLifecycle` (**draft** until the mainnet test passes). Split per issue, then #328 folded
+  back into #302 so the user can test it in one pass:
 
   | Branch (worktree `sodax-sdks-302`) | Base | Commits | Closes |
   | --- | --- | --- | --- |

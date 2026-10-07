@@ -2,8 +2,8 @@
 type: brief
 repo: sodax-sdks
 github: 302
-status: Implemented locally — 2 branches (#329; #328+#302), not pushed
-next: Get the user's go-ahead to push both branches + open 2 PRs; the user tests the combined one in one pass (mainnet matrix)
+status: In review — PR #503 (#329) open; PR #504 (#328 + #302) open as draft
+next: User runs the mainnet matrix on #504 (checklist in its body); fix the waitForBatch timeout gap before marking it ready
 updated: 2026-10-07
 tags: [swap, dapp-kit, eip-5792, atomic-batch, detailed-status, submit-tx, lifecycle-hook]
 related_issues: [gh-328, gh-329, gh-21, gh-208]
@@ -17,7 +17,8 @@ related_issues: [gh-328, gh-329, gh-21, gh-208]
 
 All 11 commits of `plan.md` are done, on **2 branches** (user, 2026-10-07): `feat/329-swaps-client-options`
 (#329) and `feat/302-swap-lifecycle` (#328 + #302 + `useSwapLifecycle`, 10 commits) — branch map in
-outcome.md; **not pushed**. They close #302 (EIP-5792 batch approve +
+outcome.md; pushed as **PR #503** (ready) and **PR #504** (draft). Issue comments on #328/#329 not
+posted (drafts in outcome.md). Local `backup/302-all-11` can go once both merge. They close #302 (EIP-5792 batch approve +
 create-intent), #328 / #329 tails (cores shipped in #371 / #362), plus `useSwapLifecycle` and the demo
 SwapCard on it. Every local gate is green (outcome.md). Missing: the PR, the issue comments (both drafted
 in outcome.md), and the funded mainnet matrix that gates the merge.
