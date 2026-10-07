@@ -59,6 +59,9 @@ Node 24 for the hook: `. <scratchpad>/env.sh` (downloaded v24.21.0 + corepack pn
 5. Batch on EVM spokes only; Sonic hub stays sequential in v1.
 6. Public SDK surface: `getApprovalStrategy` + `swapWithApproval` only.
 7. Bridge's identical ctor-param gap (#329) is out of scope — mention in the PR.
+8. The deprecated `swapsOptions` / `bridgeOptions` / `SwapsClientOptions` / `BridgeClientOptions` (and the
+   `SwapServiceConstructorParams.useBackendSubmitTx` field) are **removed in v3** — confirmed by the user
+   2026-10-07 after claude[bot] on #503 asked for a source for "removed in v3". Keep that wording.
 
 ## Which file answers what
 
