@@ -59,6 +59,21 @@ related_issues: [gh-328, gh-329, gh-21, gh-208]
 
 ## Follow-ups
 
+Opened 2026-10-07 after a code read of bridge, leverage yield and every consumer (production
+`sodax-frontend` swap and the playground run on the **API lane**, so #504 alone helps none of them):
+
+- **#505** `feat(dapp-kit): one-signature approve + intent for the API lanes (EIP-5792)` — highest
+  value; **no backend change** (`/approve` returns `{tx, resetTx?}`, `/intents` = `createIntent({raw:true})`
+  whose simulation is hub-side, `/submit-tx` doesn't verify the tx). Blocked on #504's mainnet check.
+- **#506** `feat(sdk): keep the source tx on post-broadcast bridge and vault-swap failures` — small,
+  unblocked once #504 merges.
+- **#507** `feat(sdk,dapp-kit,demo): one-signature approve + deposit for bridge and leverage-yield
+  vault deposits` — SDK lane; extract the batch helper; LY needs its own `vaultSwapWithApproval`
+  (`swapWithApproval` would apply `swaps.partnerFee` and post to `/swaps/submit-tx` without `operation`).
+- None added to the "New World" project — the gh token has only `read:project`.
+
+Earlier notes:
+
 - **Mainnet matrix** (plan.md § Verification) — the merge gate. Rows 1, 2, 9 decide whether backend
   submit-tx and the relayer accept a 7702 batch tx hash.
 - #390 (`resolveSolverStatus` −999 collision) — untouched.

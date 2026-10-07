@@ -67,7 +67,7 @@ Node 24 for the hook: `. <scratchpad>/env.sh` (downloaded v24.21.0 + corepack pn
 | What do I build, in what order, with which signatures, tests, verification? | `plan.md` (use `rg -n "^#" plan.md`) | 5.3k |
 | The three issue bodies + added scope | `issue.md` | 0.9k |
 | What already shipped, the gaps found, raw facts behind the decisions | `process.md` | 1.6k |
-| What shipped, commit by commit; deviations; draft PR body + issue comments | `outcome.md` | 2.3k |
+| What shipped, commit by commit; deviations; draft PR body + issue comments; follow-up issues #505-#507 | `outcome.md` | 2.8k |
 
 ## Landmines
 
