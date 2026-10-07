@@ -2,23 +2,34 @@
 type: outcome
 repo: sodax-sdks
 github: 302
-status: Implemented locally — 11 commits on feat/302-swap-lifecycle, not pushed; merge gated on the mainnet matrix
+status: Implemented locally, split into 3 branches (one PR per issue), not pushed; #302 merge gated on the mainnet matrix
 updated: 2026-10-07
 related_issues: [gh-328, gh-329, gh-21, gh-208]
 ---
 
 # Outcome
 
-- PR: not opened yet (needs the user's go-ahead)
-- Branch: `feat/302-swap-lifecycle` off `origin/main` @ `93f86c5d`, worktree `sodax-sdks-302`
-- Commits: `2c67bc83` … `7c7b9533` (11), 56 files, +2900 / −278
+- PRs: not opened yet (needs the user's go-ahead). Split per issue on 2026-10-07 at the user's request:
+
+  | Branch (worktree `sodax-sdks-302`) | Base | Commits | Closes |
+  | --- | --- | --- | --- |
+  | `feat/329-swaps-client-options` | `origin/main` @ `93f86c5d` | `78ea01b3` | #329 |
+  | `feat/328-swap-status-summary` | `origin/main` @ `93f86c5d` | `7f9e4b95`, `1ac39772`, `1dcce421` | #328 |
+  | `feat/302-swap-lifecycle` | **`feat/328-swap-status-summary`** (stacked) | `5a52ecc3` … `b84e5675` (7) | #302 |
+
+- Each branch passed every gate on its own (build, checkTs, test, lint, circular-deps, knip,
+  check-exports, check:ai, docs pages/links/nav, docs drift; SDK size gate on #302).
+- #329 ⟷ #328: merge clean. #329 ⟷ #302: one conflict, both append a `describe` at the end of
+  `SwapService.test.ts` — keep both; whichever merges second rebases.
+- `backup/302-all-11` (local) = the original single branch, `7c7b9533`. Its tree equals #302 + #329
+  (diff checked: exactly #329's 6 files). Delete once the PRs are up.
 - Gates (local, Node 24.21.0): every commit passed the pre-commit hook (checkTs + build + test,
   21/21 turbo tasks). Branch head: `lint`, `check:circular-deps`, `check:knip`, `check-exports`,
   `check:docs-pages`, `check:docs-nav`, `check:doc-links`, `check:ai`, `check:ai-dev-files`, docs
   drift (`origin/main..HEAD`) all exit 0. SDK tarball 1,010,706 B vs the 1,050,000 B gate.
 - Not run: `pnpm test:e2e` (live mainnet, advisory in CI); the mainnet matrix (plan.md § Verification).
 
-## What shipped, by commit
+## What shipped, by commit (hashes are the original single-branch ones; the split re-hashed them)
 
 | # | Commit | What |
 | - | ------ | ---- |
@@ -52,7 +63,11 @@ related_issues: [gh-328, gh-329, gh-21, gh-208]
 - #208 (paymaster) can extend `EvmSendBatchOptions` with capabilities.
 - Batching for bridge / money market once the swap pilot is proven.
 
-## Draft PR body — NOT POSTED
+## Draft PR bodies — NOT POSTED
+
+Split per issue: **#329** gets the "#329 — options" paragraph alone; **#328** gets the "#328 — status"
+paragraph; **#302** (base `feat/328-swap-status-summary` until #328 merges) gets the #302 +
+`useSwapLifecycle` paragraphs, the deliberate choices, and the mainnet matrix. The combined draft:
 
 > **feat: swap lifecycle — EIP-5792 one-signature approve + swap, universal status, `useSwapLifecycle`**
 >

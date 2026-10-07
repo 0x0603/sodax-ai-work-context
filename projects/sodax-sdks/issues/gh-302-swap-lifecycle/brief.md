@@ -2,8 +2,8 @@
 type: brief
 repo: sodax-sdks
 github: 302
-status: Implemented locally — 11 commits, not pushed
-next: Get the user's go-ahead to push + open the PR (body drafted in outcome.md), then run the mainnet matrix
+status: Implemented locally — split into 3 branches (PR per issue), not pushed
+next: Get the user's go-ahead to push the 3 branches + open the 3 PRs (#302 stacked on #328), then the mainnet matrix
 updated: 2026-10-07
 tags: [swap, dapp-kit, eip-5792, atomic-batch, detailed-status, submit-tx, lifecycle-hook]
 related_issues: [gh-328, gh-329, gh-21, gh-208]
@@ -15,8 +15,9 @@ related_issues: [gh-328, gh-329, gh-21, gh-208]
 
 ## State in five lines
 
-All 11 commits of `plan.md` are on `feat/302-swap-lifecycle` (worktree `sodax-sdks-302`, off
-`origin/main` @ `93f86c5d`), head `7c7b9533`, **not pushed**. They close #302 (EIP-5792 batch approve +
+All 11 commits of `plan.md` are done and **split per issue** (user, 2026-10-07): `feat/329-swaps-client-options`,
+`feat/328-swap-status-summary`, and `feat/302-swap-lifecycle` stacked on #328 — branch map in outcome.md;
+**not pushed**. They close #302 (EIP-5792 batch approve +
 create-intent), #328 / #329 tails (cores shipped in #371 / #362), plus `useSwapLifecycle` and the demo
 SwapCard on it. Every local gate is green (outcome.md). Missing: the PR, the issue comments (both drafted
 in outcome.md), and the funded mainnet matrix that gates the merge.
@@ -50,7 +51,8 @@ Node 24 for the hook: `. <scratchpad>/env.sh` (downloaded v24.21.0 + corepack pn
 
 1. `supported` **and** `ready` are batch-capable; `forceAtomic: true`; 4001/5750 → `USER_REJECTED`,
    no fallback after a batch send attempt (user, 2026-10-07).
-2. One PR for all three issues + the lifecycle hook (user).
+2. ~~One PR for all three issues~~ — reversed by the user 2026-10-07: one PR per issue; the lifecycle
+   hook rides with #302, stacked on #328 (it uses `summarizeSwapStatus`).
 3. No viem bump — 2.29.2 already ships stable 5792 actions.
 4. No new error code (repo rule) — detail in `error.context`.
 5. Batch on EVM spokes only; Sonic hub stays sequential in v1.
