@@ -2,8 +2,8 @@
 type: brief
 repo: sodax-sdks
 github: 302
-status: Active — implementing (plan approved 2026-10-07)
-next: Step 8 of plan.md — useSwapApprovalStrategy + useSwapWithApproval in dapp-kit
+status: Implemented locally — 11 commits, not pushed
+next: Get the user's go-ahead to push + open the PR (body drafted in outcome.md), then run the mainnet matrix
 updated: 2026-10-07
 tags: [swap, dapp-kit, eip-5792, atomic-batch, detailed-status, submit-tx, lifecycle-hook]
 related_issues: [gh-328, gh-329, gh-21, gh-208]
@@ -15,10 +15,11 @@ related_issues: [gh-328, gh-329, gh-21, gh-208]
 
 ## State in five lines
 
-One PR in `sodax-sdks` closing #302 (EIP-5792 batch approve + create-intent), #328 (status tail) and
-#329 (options tail), plus a new dapp-kit `useSwapLifecycle` and the demo `SwapCard` rebuilt on it.
-#328/#329 cores already shipped in #371/#362 (R0bi7) — only their tails are in scope. Plan approved;
-worktree `sodax-sdks-302`, branch `feat/302-swap-lifecycle` off `origin/main` @ `93f86c5d`.
+All 11 commits of `plan.md` are on `feat/302-swap-lifecycle` (worktree `sodax-sdks-302`, off
+`origin/main` @ `93f86c5d`), head `7c7b9533`, **not pushed**. They close #302 (EIP-5792 batch approve +
+create-intent), #328 / #329 tails (cores shipped in #371 / #362), plus `useSwapLifecycle` and the demo
+SwapCard on it. Every local gate is green (outcome.md). Missing: the PR, the issue comments (both drafted
+in outcome.md), and the funded mainnet matrix that gates the merge.
 
 ## Blocked on
 
@@ -38,10 +39,10 @@ Work `plan.md` § Implementation in commit order (11 commits). Tick them off her
 | 5 | sdk: deprecated SwapService useBackendSubmitTx override | `9c2bcb33` |
 | 6 | sdk: extract completeSwap (now awaits the fallback inside swap()'s guard) | `e9f8744b` |
 | 7 | sdk: getApprovalStrategy + swapWithApproval | `ac929426` |
-| 8 | dapp-kit: useSwapApprovalStrategy + useSwapWithApproval | — |
-| 9 | dapp-kit: useSwapLifecycle | — |
-| 10 | demo: swaps-sdk status from useDetailedStatus | — |
-| 11 | demo: SwapCard on useSwapLifecycle | — |
+| 8 | dapp-kit: useSwapApprovalStrategy + useSwapWithApproval | `96137e3c` |
+| 9 | dapp-kit: useSwapLifecycle | `5730b9db` |
+| 10 | demo: swaps-sdk status from useDetailedStatus | `ac35612c` |
+| 11 | demo: SwapCard on useSwapLifecycle | `7c7b9533` |
 
 Node 24 for the hook: `. <scratchpad>/env.sh` (downloaded v24.21.0 + corepack pnpm wrapper); recreate if the scratchpad is gone.
 
@@ -63,7 +64,7 @@ Node 24 for the hook: `. <scratchpad>/env.sh` (downloaded v24.21.0 + corepack pn
 | What do I build, in what order, with which signatures, tests, verification? | `plan.md` (use `rg -n "^#" plan.md`) | 5.3k |
 | The three issue bodies + added scope | `issue.md` | 0.9k |
 | What already shipped, the gaps found, raw facts behind the decisions | `process.md` | 1.6k |
-| What shipped in this PR | `outcome.md` | — |
+| What shipped, commit by commit; deviations; draft PR body + issue comments | `outcome.md` | 2.3k |
 
 ## Landmines
 
@@ -72,3 +73,7 @@ Node 24 for the hook: `. <scratchpad>/env.sh` (downloaded v24.21.0 + corepack pn
 - `SwapService.test.ts` module-level `sodax` is pinned `useBackendSubmitTx: false` — keep it.
 - Demo env-pinned orders keep `SolverLiveCard` on purpose (gh-452) — don't "unify" them away.
 - `main` has Biome drift — format only touched files, never a blanket `pnpm pretty`.
+- dapp-kit invalidations live in `onSuccess` only (`shared/types.ts` convention) — not `onSettled`.
+- dapp-kit composite-hook tests call the hook as a plain function with sub-hooks mocked — so
+  `useSwapLifecycle` holds **no React state**; keep it that way or those tests need a renderer.
+- `summarizeSwapStatus` drops non-hex hashes — test fixtures need real hex (`'0xfill'` is not).

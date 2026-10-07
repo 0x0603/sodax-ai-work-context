@@ -72,3 +72,23 @@ User: scope + `useSwapLifecycle`; `supported`+`ready` batchable, `forceAtomic`, 
 no fallback; one PR; full #328 tail. Mine: EVM spokes only (Sonic sequential); no fallback after a batch
 send attempt; optional provider methods; public SDK = `getApprovalStrategy` + `swapWithApproval`; no
 new error code; bridge ctor gap out of scope. Full plan in `plan.md`.
+
+## Session 1 (cont.) — implementation
+
+- Node 24.21.0 downloaded into the session scratchpad (official tarball, sha256-checked) with a corepack
+  `pnpm` wrapper; every commit ran the full pre-commit hook with it.
+- **`swap()` refactor is not byte-identical.** The old body returned `this.fallbackSwapSteps(...)`
+  un-awaited inside `try`, so a fallback rejection escaped the guard. `completeSwap` is awaited, so it is
+  now an UNKNOWN `Result`. Called out in commit 6.
+- 5750 was already matched by text (`/user rejected/i` hits viem's "…the user rejected the upgrade");
+  added explicit `code === 5750` / name arms anyway. `TransactionExecutionError` copies the cause's
+  `shortMessage`, which is what makes wrapped rejections classify.
+- viem's `getCapabilities({ chainId })` types the per-chain entry as present but returns `undefined` for
+  an omitted chain — annotated `| undefined` instead of casting.
+- First attempt put dapp-kit invalidations in `onSettled` (an approval can land when the swap after it
+  fails); moved back to `onSuccess` per `shared/types.ts`. `useSwapAllowance` polls anyway, and
+  `useSwapLifecycle.reset()` refetches the strategy.
+- dapp-kit tests in this package must not use `any` with a `biome-ignore` — `noExplicitAny` is off
+  there, so the suppression is itself a warning; typed captures instead.
+- A first skills edit added a `swapsOptions` row to the **v1 → v2** table — wrong, it is a 2.0.x key;
+  moved to a "Within v2" note.
