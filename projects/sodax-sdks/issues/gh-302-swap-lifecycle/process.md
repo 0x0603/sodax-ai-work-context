@@ -151,4 +151,9 @@ demo order history, an unconfirmed batch that lands later is not relayed by the 
 - Backend notes for the USDT question: swaps-api `POST /swaps/approve` already returns `tx` + optional
   `resetTx` via `buildApproveTxs`; its DTO doc still says the two "cannot be batched", and
   `leverage-yield.service.ts` uses single-tx `swaps.approve` (stale USDT allowance would revert). Not filed.
+- Follow-up fixes (`ab1ec388`): setup step in flight or its check refreshing → `checking` (via the gate
+  mutation flags + `useIsFetching` on the three check key prefixes, since the mutations don't await their
+  invalidations); demo "Swap without upgrading" rebuilds the order first; "Stop tracking" always offered in
+  `pending`. A real "status read stopped" signal would need a change to `useDetailedStatus` (existing hook),
+  skipped per the no-breaking rule.
 
