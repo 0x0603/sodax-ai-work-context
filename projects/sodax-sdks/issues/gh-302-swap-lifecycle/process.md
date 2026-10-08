@@ -130,3 +130,25 @@ demo order history, an unconfirmed batch that lands later is not relayed by the 
   `isAccountUpgradeDeclined` (internal, shares the cause walk), dapp-kit key gains `allowAccountUpgrade`
   (resolved to `true` when omitted), demo shows "Swap without upgrading (2 signatures)" after a decline.
   PR body + checklist updated.
+
+## Session 2 (cont.) — 2026-10-08 — detailed review of #504 and fixes
+
+- Four parallel review agents (wallet provider, SwapService, dapp-kit, demo); each finding re-checked in code.
+  No fund-loss defect in the SDK; chain binding, spender/amount, pre-send-only fallback and the hub-side
+  simulation of the raw `createIntent` all hold.
+- Fixed (`ff7473c9`, `e618d2ea`, pushed; PR body updated):
+  - lifecycle dropped an `unconfirmed` / post-broadcast attempt when `intentParams` changed (the demo
+    trigger rebuilds params from a quote that refreshes every 3 s) → state `ready` → second swap.
+    Those attempts now hold until `reset()`; the demo trigger keeps the tracked order.
+  - `batch.status === 'success'` with a non-success / unidentifiable deposit receipt was reported as
+    `atomic-batch-failed` ("nothing deposited"). Now only EIP-5792 400/500 are failed; the rest unconfirmed.
+  - `timeout: 0` → viem waits forever; clamped to 1 ms in the SDK and the provider.
+  - `next()` had no in-flight guard (two calls in one tick both saw `ready`); `useRef` guard.
+  - fallback gated on `INTENT_CREATION_FAILED` so a rejection carrying a refusal code never re-prompts.
+- Left as follow-ups (told the user): "Swap without upgrading" reuses the old payload if the form changed;
+  setup actions in flight still read `needsSetup`; late-landing batch not relayed; hook state is
+  mount-local; `"0x0"` capability key ignored by viem; strategy key lacks wallet identity.
+- Backend notes for the USDT question: swaps-api `POST /swaps/approve` already returns `tx` + optional
+  `resetTx` via `buildApproveTxs`; its DTO doc still says the two "cannot be batched", and
+  `leverage-yield.service.ts` uses single-tx `swaps.approve` (stale USDT allowance would revert). Not filed.
+

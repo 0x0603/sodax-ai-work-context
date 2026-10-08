@@ -66,6 +66,9 @@ Node 24 for the hook: `. <scratchpad>/env.sh` (downloaded v24.21.0 + corepack pn
    `true`; `false` keeps a `ready` wallet sequential, `supported` still batches) and tags 5750 with
    `context.reason: ACCOUNT_UPGRADE_DECLINED`. Forcing the upgrade or remembering the choice is the
    **frontend's** job — dapp-kit stores nothing. Commit `5f4d1574`.
+10. No breaking of existing logic (user, 2026-10-08): fixes stay inside the new API (`swapWithApproval`,
+   `waitForBatch`, `useSwapLifecycle`). The one existing-behaviour delta is `swap()` returning `UNKNOWN`
+   instead of rejecting when the fallback path throws — kept, called out in the PR body.
 
 ## Which file answers what
 
@@ -85,5 +88,6 @@ Node 24 for the hook: `. <scratchpad>/env.sh` (downloaded v24.21.0 + corepack pn
 - `main` has Biome drift — format only touched files, never a blanket `pnpm pretty`.
 - dapp-kit invalidations live in `onSuccess` only (`shared/types.ts` convention) — not `onSettled`.
 - dapp-kit composite-hook tests call the hook as a plain function with sub-hooks mocked — so
-  `useSwapLifecycle` holds **no React state**; keep it that way or those tests need a renderer.
+  `useSwapLifecycle` holds no React state beyond one `useRef` (the `next()` in-flight guard), which the
+  test mocks via `vi.mock('react')`. Adding real state means those tests need a renderer.
 - `summarizeSwapStatus` drops non-hex hashes — test fixtures need real hex (`'0xfill'` is not).
