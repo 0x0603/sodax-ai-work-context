@@ -2,7 +2,7 @@
 type: process
 repo: sodax-sdks
 github: 302
-updated: 2026-10-07
+updated: 2026-10-08
 ---
 
 # Process
@@ -117,3 +117,16 @@ Fixed on `feat/302-swap-lifecycle` (local, not pushed yet):
 
 Left as is: unchecked casts on the batch path (runtime-guarded), post-broadcast failures not added to the
 demo order history, an unconfirmed batch that lands later is not relayed by the client (needs the tx hash).
+
+## Session 2 — 2026-10-08 — declined upgrade, #503 follow-ups
+
+- #503: `eb506c60` spells out the only v3 form (`swaps: { partnerFee, useBackendSubmitTx }`, bridge likewise);
+  `2853c0ae` covers the drift bot's gap (ctor field in the v1→v2 skill) + the pre-existing over-long test line.
+  The demo never used `swapsOptions` (`git log -S` over `apps/` is empty); it adopted `swaps:` in #402.
+- Gap found while explaining the test plan: a user who declines MetaMask's upgrade was stuck — `ready`
+  stays `ready`, every retry re-prompts, and MetaMask docs don't say it remembers the decline.
+  User's call: SDK exposes a true/false option only; policy belongs to the app. `5f4d1574`:
+  `SwapWithApprovalParams.allowAccountUpgrade`, `ACCOUNT_UPGRADE_DECLINED` (exported),
+  `isAccountUpgradeDeclined` (internal, shares the cause walk), dapp-kit key gains `allowAccountUpgrade`
+  (resolved to `true` when omitted), demo shows "Swap without upgrading (2 signatures)" after a decline.
+  PR body + checklist updated.

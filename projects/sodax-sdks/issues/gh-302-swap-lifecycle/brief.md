@@ -4,7 +4,7 @@ repo: sodax-sdks
 github: 302
 status: In review — PR #503 (#329) open; PR #504 (#328 + #302) open as draft
 next: User runs the mainnet matrix on #504 (checklist in its body); fix the waitForBatch timeout gap before marking it ready
-updated: 2026-10-07
+updated: 2026-10-08
 tags: [swap, dapp-kit, eip-5792, atomic-batch, detailed-status, submit-tx, lifecycle-hook]
 related_issues: [gh-328, gh-329, gh-21, gh-208]
 ---
@@ -62,6 +62,10 @@ Node 24 for the hook: `. <scratchpad>/env.sh` (downloaded v24.21.0 + corepack pn
 8. The deprecated `swapsOptions` / `bridgeOptions` / `SwapsClientOptions` / `BridgeClientOptions` (and the
    `SwapServiceConstructorParams.useBackendSubmitTx` field) are **removed in v3** — confirmed by the user
    2026-10-07 after claude[bot] on #503 asked for a source for "removed in v3". Keep that wording.
+9. Declined smart-account upgrade (user, 2026-10-08): the SDK only offers `allowAccountUpgrade` (default
+   `true`; `false` keeps a `ready` wallet sequential, `supported` still batches) and tags 5750 with
+   `context.reason: ACCOUNT_UPGRADE_DECLINED`. Forcing the upgrade or remembering the choice is the
+   **frontend's** job — dapp-kit stores nothing. Commit `5f4d1574`.
 
 ## Which file answers what
 
