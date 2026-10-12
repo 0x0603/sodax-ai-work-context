@@ -40,6 +40,10 @@ updated: 2026-10-12
   skills: sdk bridge/LY SKILL + features, dapp-kit bridge/LY SKILL + features + recipes + hooks-index +
   querykey-conventions, wallet-sdk-core evm. check:ai, doc-links, docs-pages, docs-nav green.
 
+### Session 3 — 2026-10-12 — review fixes
+
+- Shared log: `../gh-505-api-lane-batch-approval/process.md` § Session 3 (review of the whole stack).
+
 ## Findings
 
 ## Changes During Work

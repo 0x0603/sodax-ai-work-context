@@ -58,6 +58,39 @@ updated: 2026-10-12
   hooks-index / querykey-conventions / architecture. `docs:sync-pages` regenerated 3 pages; check:ai,
   doc-links, docs-pages, docs-nav green. `docs:validate` not run — no `mint` CLI locally.
 
+### Session 3 — 2026-10-12 — code review of the #511 + #512 stack, fixes
+
+`/code-review high` on the stack (10 findings) + own pass. Verified each in code before acting.
+
+- **Fixed — validate before approving** (finding 1/2, also in #504's swap): the sequential path signed the
+  approval before the intent's invariants ran. All three `approveThen*` builders now build the intent/deposit
+  `raw: true` first (`preflight`), then approve → `confirmApproval` → signed create. Swap sequential tests
+  changed for it (the A1 "tests unchanged" gate was for the refactor only); new tests "asks for no approval
+  when the intent/deposit cannot be built".
+- **Fixed — error codes**: bridge `getApprovalStrategy` now returns `isAllowanceValid`'s own error
+  (`withErrorContext`), so `amount: 0n` stays `VALIDATION_FAILED`; LY sequential keeps an
+  `isLeverageYieldApproveError` code (wrong wallet family → `VALIDATION_FAILED`, not `APPROVE_FAILED`).
+- **Fixed — unconfirmed hold (safety)**: demo bridge/LY and the playground re-armed after close/reopen/new
+  review → possible double deposit. Now held until an explicit "I checked — start over"; the playground
+  reopens the held snapshot (`openReview` → `heldReview`). AGENTS.md (demo, playground) updated.
+- **Fixed — altitude**: `runWithApproval` (dispatch + refusal-only fallback) and `ApprovalOptions` in
+  `approvalBatch.ts`; Swap/Bridge/LY use them. `intentDepositSpender` (swap/) is the one source of the
+  deposit spender for SwapService and LY.
+- **Fixed — efficiency**: atomic builders run approval-legs build and raw deposit build in `Promise.all`.
+- **Fixed — LY JSDoc** that ended up on `VaultSwapWithApprovalParams` instead of `VaultSwapResponse`.
+- **Declined — invalidate in onSettled** (finding 6): dapp-kit convention (`hooks/shared/types.ts`) keeps
+  invalidations in `onSuccess` only. The SDK re-reads the strategy at execution, so a stale label never
+  picks the wrong path.
+- **Accepted trade-off** — playground resolves the strategy twice (its dep + inside the hook): two cheap
+  `wallet_getCapabilities` reads; a disagreement only means the hook takes the sequential path.
+- **Missed earlier, fixed**: `apps/playground/AGENTS.md` invariants (re-quote around approval) now describe
+  the batch path.
+- AI-drift CI audit cannot run in this repo (`CLAUDE_CODE_OAUTH_TOKEN` not configured) — AI files in its
+  scope were checked by hand.
+- Landmine hit: the pre-commit hook's dapp-kit `checkTs` reads a stale sdk `dist/` after a branch switch —
+  `npx turbo build --filter=@sodax/sdk --filter=@sodax/dapp-kit` before committing.
+- Commits: PR A `f5c1fb85` (fix); PR B merge `75745302` (#511 into #512, no rebase) + fix commit.
+
 ## Findings
 
 ## Changes During Work
