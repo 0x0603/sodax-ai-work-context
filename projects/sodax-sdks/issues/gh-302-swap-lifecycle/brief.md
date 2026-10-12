@@ -4,9 +4,9 @@ repo: sodax-sdks
 github: 302
 status: In review — PR #503 (#329) open; PR #504 (#328 + #302) open as draft
 next: User runs the mainnet matrix on #504 (checklist in its body); fix the waitForBatch timeout gap before marking it ready
-updated: 2026-10-08
+updated: 2026-10-12
 tags: [swap, dapp-kit, eip-5792, atomic-batch, detailed-status, submit-tx, lifecycle-hook]
-related_issues: [gh-328, gh-329, gh-21, gh-208]
+related_issues: [gh-328, gh-329, gh-21, gh-208, gh-505, gh-506, gh-507]
 ---
 
 # GH-302 Swap Lifecycle · brief
@@ -25,8 +25,14 @@ in outcome.md), and the funded mainnet matrix that gates the merge.
 
 ## Blocked on
 
-1. **Merge** is gated on the mainnet matrix (plan.md § Verification): backend/relayer acceptance of a
-   7702 batch tx hash is unverified. Code work is not blocked.
+Stacked on #504: PR #509 (gh-506), PR #511 (gh-505, reuses the batch logic via `approvalBatch.ts`) and
+PR #512 (gh-507, stacked on #511). Any later change to the batch code here must be merged into them.
+
+
+1. **Merge** is gated on the mainnet matrix (plan.md § Verification). Relayer acceptance of a 7702 batch
+   hash is now **proven** on Base, both through the client relay (`0xa289…1775`, relayed upgrade tx) and
+   through backend `POST /swaps/submit-tx` (self-call `0x3c06…cde9` and relayed `0xee1b…7e8c`, both
+   `solved`, 0 retries); native `not-required` path `0x2f8b…363d` also `solved`. process.md Session 3. The rest of the matrix (other wallets/chains, fallback, rejections) is still open.
 
 ## Next action
 

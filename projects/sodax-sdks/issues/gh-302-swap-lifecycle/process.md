@@ -157,3 +157,55 @@ demo order history, an unconfirmed batch that lands later is not relayed by the 
   `pending`. A real "status read stopped" signal would need a change to `useDetailedStatus` (existing hook),
   skipped per the no-breaking rule.
 
+
+## Session 3 — 2026-10-09 — first mainnet 7702 batch checked (read-only)
+
+User's Base tx from 2026-10-08: `0xa2894131596b1a46c8a4a02374a00819ca3f5c1e7d43ba4e6e0f76655d451775`
+(block 52332197). Checked over public RPC + `api.sodax.com/v1/relay`:
+
+- Type `0x4` with an authorization list (nonce 0) → the EOA `0xb924…bb61` was upgraded in this tx; its
+  code is now `0xef0100` + `0x63c0c19a…` (MetaMask delegator). One tx, one receipt.
+- Outer tx is **not** a self-call: `from` = `0xc066…8b8c` (code-less relayer EOA), `to` = `0xdb9b…7db3`
+  (a contract, likely MetaMask's DelegationManager). The user paid 9788 units of USDC (0.009788 USDC) to `0xe347…1964`, which
+  looks like MetaMask's pay-gas-in-token relay. So the source tx's `from` is not `srcAddress`.
+- Logs in order: USDC Approval to the asset manager (1.01 USDC) → Transfer to the asset manager →
+  connection `0x4555…88eD` Message → USDC fee transfer.
+- Relay: `get_transaction_packets` (chain 30) → `executed`, `src_address` = asset manager, hub tx
+  `0x6f80…943e`. The relayer keys off the connection log, not tx `to`/`from`.
+- Hub intent `0x1905…c255` closed with `intent-filled` (`0x2756…1db2`); both delivery packets back to Base
+  are `executed`. End to end works.
+- `GET /v1/swaps/submit-tx/status` → 404 on prod and canary: this swap did not go through backend
+  submit-tx, so that leg is still unproven by a real tx. The backend forwards the same
+  `{ chain_id, tx_hash }` relay submit for EVM (`relay-swap-tx.ts`), so it should behave the same.
+- SDK `verifyTxHash` does nothing for EVM (`SpokeService.ts:1232`), so a relayed `from` breaks nothing there.
+
+Second tx, through backend submit-tx: `0x3c06ab8c6d2843de5819d734ffb0235687bf0fa36b0b3c58d4ff805f34c3cde9`
+(Base block 52362094):
+
+- Type `0x2`, `from` = `to` = the user EOA (already upgraded, no authorization list), selector
+  `0xe9ae5c53` (ERC-7579 `execute`). Plain 7702 self-call, gas paid in ETH by the user. One receipt.
+- Logs: USDC Approval to the asset manager (1.1 USDC) → Transfer → connection Message.
+- `GET /v1/swaps/submit-tx/status` (prod) → `status: solved`, `processingAttempts: 0`, `dstIntentTxHash`
+  `0x4aa9…9e5e`, `intent_hash` `0xb9c6…e55c`, `fillTxHash` `0xcc2a…b458`. Hub intent closed with `intent-filled`.
+- So both shapes the wallet produces, the relayed upgrade tx and the self-call, are accepted, and backend
+  submit-tx carries a batch hash to `solved` with no retries.
+
+Why the two differ: the user held **0 ETH** on Base before tx 1, so MetaMask relayed it and took gas in
+USDC. Its selector `0xcef6d209` is `redeemDelegations(bytes[],bytes32[],bytes[])` (MetaMask Delegation
+Framework) and the wallet added its own fee call to the batch. Swap 1 delivered ~0.000389 ETH, so tx 2 paid
+its own gas (`0xe9ae5c53` = ERC-7579 `execute(bytes32,bytes)`). Gas used: 379,669 vs 156,554. Watch item:
+a wallet that returns per-call receipts *and* appends a fee call gives `receipts.length = txs.length + 1`,
+which `sendAtomicBatch` reads as unconfirmed. Here it was one receipt, so it did not bite.
+
+Third tx, native ETH source: `0x2f8b27d6128e48b3bb7a750e6efa9695b2525f9a87fb6dc51a5fd84bb291363d`
+(Base block 52362217, 2026-10-09 02:43 UTC). Type `0x2`, `from` = user (still 7702-delegated) → `to` = the
+asset manager directly, `value` 0.00082 ETH, selector `0xc6b4180b` = `transfer(address,bytes,uint256,bytes)`.
+One log (connection Message), no approval, no batch: the `not-required` path. Backend submit-tx → `solved`,
+0 retries, fill `0x8f27…53b5`. A delegated EOA still sends a plain tx fine.
+
+Fourth tx, relayed shape through backend: `0xee1b20f7183892a10cfb4e9e7e1b91df7decb10057240996f6f1a2836d817e8c`
+(Base block 52362271, 2026-10-09 02:44 UTC). The user had ~0.0000055 ETH left after tx 3, so MetaMask relayed
+again: `from` = `0xb42f…ead6` (a different code-less relayer EOA), `to` = DelegationManager, `redeemDelegations`,
+no authorization list (already upgraded). Calls: approve 1.1 USDC → deposit → 0.011173 USDC fee to `0xe347…1964`.
+Gas 357,181 (tx 1 was 379,669; the ~22.5k gap is the authorization). Backend submit-tx → `solved`, 0 retries,
+fill `0xaec3…5884`. This closes the last shape gap: a relayed batch hash also goes through backend submit-tx.
