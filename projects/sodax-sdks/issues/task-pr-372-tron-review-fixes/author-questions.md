@@ -7,7 +7,8 @@ updated: 2026-10-13
 
 # Draft questions for gcranju (NOT posted)
 
-Post only if the user says so. Source: `/code-review` triage in `process.md`.
+Superseded on 2026-10-13: the open items went to the PR as #issuecomment-6144735748 (user's request).
+Q1 is answered by the code fix in `7b1e9469` except the solver/backend check; Q2–Q3 are in that comment.
 
 ---
 

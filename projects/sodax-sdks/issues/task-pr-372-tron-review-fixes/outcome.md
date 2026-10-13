@@ -9,7 +9,7 @@ updated: 2026-10-13
 # Outcome
 
 - PR: icon-project/sodax-sdks#372 (fork branch `gcranju:feat/tron-spoke`)
-- Commits: `6484af32` merge of main, `94bcc241` and `2f40c0b2` fixes — pushed 2026-10-13
+- Commits: `6484af32` merge of main, `94bcc241`, `2f40c0b2` and `7b1e9469` fixes — pushed 2026-10-13
 - Tests: workspace `pnpm test` 21/21 tasks; sdk 2967+, wallet-sdk-core +22 new; checkTs, knip,
   check-exports, circular-deps, check:ai, doc-links, docs-nav, docs-pages, ai-dev-files green.
 
@@ -41,9 +41,22 @@ From the `/code-review` follow-up (also unstaged):
 12. Six 3+-line inline comments cut to 1–2 lines; `SpokeService(.test).ts` format-only hunks back to main.
 13. Tron test fixtures typed (`satisfies ITronWalletProvider`, `deposit<true>`); every dead cast dropped.
 
-Tried and reverted before commit: 4.5 `onStatus` re-notify stop (unverified relay behaviour).
+`7b1e9469` (14 files, +318/−48; sdk 3004 tests; workspace build, checkTs, lint, knip, circular-deps,
+check:ai, ai-dev-files, doc-links, docs-pages, docs-nav green; pre-commit 21/21):
+14. 1.1 + 1.2: swap intent and partner auto-swap `dstAddress` via `encodeRecipient`.
+15. C1: `SetSwapPreferenceParams.outputToken` takes the destination's own format (base58 on Tron).
+16. C2: DEX `executeWithdraw` unwrap recipient via `encodeRecipient`.
+17. C3: leverage yield settles via `spoke.settle`; Tron sources skip the backend; Tron vault withdraw and
+    `operatePosition` refused before signing; Bitcoin identity unchanged (pinned by a test).
+18. C4: `wallet-sdk-core/AGENTS.md` lists `tron/`. Docs: `LEVERAGE_YIELD.md` (+ generated page), skills
+    `chain-specifics.md` Tron row.
+
+Tried and reverted before commit: 4.5 `onStatus` re-notify stop (unverified relay behaviour); Bitcoin
+`hubWalletSwap` on the on-demand identity (wrong — see findings § C3).
+
+Open items posted to the PR by severity: #issuecomment-6144735748.
 
 ## Follow-ups
 
-- Open `/code-review` findings: `code-review-findings.md`.
-- `wallet-sdk-core/AGENTS.md` provider tree does not list `tron/` (advisory AI-drift; not touched).
+- Open findings (1.4, 1.4b, 1.1 solver check, 2.1–2.4, DEX relay bypass, 4.5, JSDoc):
+  `code-review-findings.md`.

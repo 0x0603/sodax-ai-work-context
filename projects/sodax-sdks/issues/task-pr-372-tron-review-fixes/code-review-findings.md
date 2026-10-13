@@ -44,7 +44,7 @@ Root cause in common: a hub-side payout to a Tron recipient built with `encodeAd
 **does the path below end in `AssetManager.transfer` with this exact byte string as `to`, or does
 something on the hub/solver re-encode it?**
 
-### 1.1 Swap intents to Tron — OPEN (SDK + Intents contract verified; AssetManager/relay side rests on the author's test claim)
+### 1.1 Swap intents to Tron — FIXED in `7b1e9469` (solver/backend parsing of a 32-byte `dstAddress` still unconfirmed)
 
 - **Verified 2026-10-13 against the deployed Intents contract** (proxy `0x6382D6cc…96ef` → EIP-1967
   impl `0x6695855f185e917b593d29b49fffeca02df6b512`, verified source on sonicscan.org; Sourcify and
@@ -80,7 +80,17 @@ something on the hub/solver re-encode it?**
 - Tests to add: swap intent for a Tron destination encodes the 32-byte word (mirror the MM test at
   `MoneyMarketService.test.ts:1541`).
 
-### 1.2 Partner fee auto-swap to Tron — OPEN (code-verified; behaviour unverified)
+### 1.2 Partner fee auto-swap to Tron — FIXED in `7b1e9469`
+
+- Verified 2026-10-13: ProtocolIntents (proxy `0xaFf2EDb3…73A5` → impl
+  `0x046f17c39d9d96d9732dd98f5c0d37f610eaef37`, verified on sonicscan.org) builds each auto-swap intent
+  with `dstAddress: prefs.dstAddress` unchanged, so it reaches the same `sendToken` pass-through as 1.1.
+- Fix (both items): `encodeRecipient` at `EvmSolverService.ts:134`, `SonicSpokeService.ts:326`,
+  `PartnerFeeClaimService.ts:379`; one test per path, each fails on the old code; sdk 2998, checkTs
+  15/15. `encodeRecipient` returns `encodeAddress` unchanged for every chain outside `MpcRelayChainMap`.
+- Side note, FIXED as C1 in `7b1e9469`: `SetSwapPreferenceParams.outputToken` was typed `Address`,
+  so a Tron token's base58 address could not be passed without a cast.
+
 
 - `packages/sdk/src/partner/PartnerFeeClaimService.ts:379`: `setAutoSwapPreferences` stores
   `encodeAddress(params.dstChainKey, params.dstAddress)`.
@@ -103,6 +113,28 @@ something on the hub/solver re-encode it?**
   `sodax.moneyMarket.withdraw/borrow` instead of hand-building. Low effort, but `apps/node` is dead
   code that does not typecheck (see memory `sdks-apps-node-is-dead-code`) — fix or delete the
   `withdraw`/`borrow` subcommands; don't leave a funds-moving script known to be wrong.
+
+### 1.4 Cancel refund to a Tron source — OPEN (asked on the PR, #issuecomment-6144735748)
+
+- `Intents.cancelIntent` without a hook refunds via `sendToken(intent.inputToken, intent.srcChain,
+  intent.srcAddress, …)` → the same `AssetManager.transfer` pass-through as 1.1. A Tron-sourced intent
+  stores `srcAddress = encodeAddress(tron, …)`, 20 bytes (`EvmSolverService.ts:133`,
+  `SonicSpokeService.ts:325`).
+- Not fixed on purpose: unlike `dstAddress`, `srcAddress` may also be read as the user's identity
+  (solver/backend; `reverseEncodeAddress` at `SwapService.ts:1581` decodes it). Asked gcranju what a
+  Tron-sourced intent's `srcAddress` should hold.
+
+### 1.4b Leverage position `originAddress` from Tron — OPEN (same question as 1.4)
+
+- `resolveOrigin` (`LeverageYieldService.ts:2498`) writes `encodeAddress(origin.chainKey, …)` → 20
+  bytes for Tron.
+- `LeveragePosition.sol` (verified bundle, see C3) builds its intents with `srcChain: originChainId`,
+  `srcAddress: originAddress` (~line 637). Cancel → `IIntentHooks(hook).onCancelIntent` (its comments
+  say it pays the intent's `srcAddress`; LeverageHook source is NOT in the bundle) or
+  `sendToken(srcAddress)`; a deleverage/close surplus goes to the same address.
+- `encodeRecipient` there would change bytes for Tron only (Bitcoin positions are refused; every other
+  chain is identical). Fix together with 1.4 once answered — fixing one alone leaves two kinds of
+  Tron-sourced intent with different `srcAddress` encodings.
 
 ---
 
@@ -213,9 +245,58 @@ assumptions outside `settle()`. Mostly **behaviour unverified** — need the MPC
 
 ---
 
+## Group C — follow-up items, FIXED in `7b1e9469`
+
+| # | Finding | Fix |
+|---|---|---|
+| C1 | `SetSwapPreferenceParams.outputToken` typed `Address` — a Tron token's base58 address needed a cast | Typed `OriginalAssetAddress` (the destination chain's own format), resolved to the hub asset off-hub; a hub destination still requires `isAddress` (the check viem applies when encoding, so only the error differs) |
+| C2 | DEX `executeWithdraw` unwrap recipient (`AssetService.ts:405`) used `encodeAddress` → 20-byte Tron `to` into `AssetManager.transfer` | `encodeRecipient`; test pins the 32-byte word |
+| C3 | Leverage yield called `relayTxAndWaitPacket` directly, bypassing `settle` | Below |
+| C4 | `wallet-sdk-core/AGENTS.md` provider tree missed `tron/` | Added |
+
+### C3 — what was verified
+
+- Contract source: the sonicscan page of the position factory `0xF8fB7F200B6545295e1729Cf254482d7c116031C`
+  (not EIP-1967; `implementation()` = `0xB1D0bCC809Fb80D894CD98E9F62cdEa4A52AE59c`) carries a verified
+  bundle with `AssetManager.sol`, `Intents.sol`, `LeveragePosition.sol`, `TransferLib.sol`.
+- MPC inbound: `AssetManager.recvMessage` (onlyMpcCaller, replay-protected) → `_processMessage` mints
+  to `to` and runs `wallet.assetManagerHook(…, data)` in the SAME tx (try/catch, `HookFailed`) → the
+  relay's `hubMint` tx is the hub tx that ran the payload. Live: hub AssetManager
+  `0x60c5681bD1DB4e50735c4cA3386005A4BA4937C0` `relayMode(728126428 /*Tron*/) = 1` (MPC), Arbitrum `0`;
+  enum `Connection, MPC`.
+- `AssetManager.transfer` to an MPC chain emits `BridgeRequest(chainID, manager, transfer.encode())`
+  with `to` unchanged (otherwise `connection.sendMessage`).
+- Backend `leverage-yield/dto/submit-tx.dto.ts` extends swaps `SubmitTxDto` (`@IsIn(CHAIN_KEYS)` from
+  the released SDK) → Tron gets a 400. Skipping the backend for MPC sources only saves that call.
+- `TronSpokeService.sendMessage` is not a chain tx: it signs the withdraw-auth, POSTs it to the relay's
+  withdraw endpoint and returns a `trackingId`; the relay then runs the calls on the hub wallet.
+  `settle` outbound waits for `released` and reports `txs.release.hash` (a Tron tx). A message that
+  releases nothing (vault withdraw `createIntent`, position calls) cannot settle that way → refused
+  before signing: `MPC_RELAY_MESSAGE_UNSUPPORTED_MESSAGE`, `VALIDATION_FAILED`, `field: 'srcChainKey'`.
+- **Bitcoin — my first pass was wrong.** It routed Bitcoin `hubWalletSwap` through `settle` outbound
+  (on-demand identity `withdraw` + `od:<hash>`), claiming the old JSON-as-`tx_hash` path was broken.
+  The backend (`apps/swaps-api/src/api/swaps/relay-swap-tx.ts`) relays Bitcoin vault withdraws exactly
+  the old way (JSON `tx_hash` + `{ address, payload }`) and it works in production (user). Reverted:
+  every vault swap settles `inbound`; a test pins the Bitcoin identity.
+- Net: non-MPC chains are unchanged (same verify + relay args, same error mapping;
+  `relayTxAndWaitPacket` never throws). Tron deposits (vault deposit, `openPosition`) settle on the MPC
+  relay and still inherit 2.3.
+
+### Found during C, OPEN
+
+- DEX deposit/withdraw from Tron call `relayTxAndWaitPacket` directly (`AssetService.ts:502`, `:543`):
+  SDK reports failure while funds move. Moving them onto `settle` adds a verify on every chain and
+  touches Bitcoin's identity — left alone.
+- JSDoc at `LeverageYieldService.ts:989` tells raw callers to relay with `relayTxAndWaitPacket` —
+  wrong for Tron.
+
+---
+
 ## Suggested order for a fix plan
 
-1. **Ask first** (blocks 1.1, 1.2, 2.1, 2.2, 2.3): contracts/solver team on intent `dstAddress`
+0. Open items were posted to the PR by severity on 2026-10-13 (#issuecomment-6144735748), at the
+   user's request. Wait for answers there.
+1. **Ask first** (blocks 1.4/1.4b, the 1.1 solver check, 2.1, 2.2, 2.3): contracts/solver team on intent `dstAddress`
    handling for MPC chains; MPC relay owner on hub→Tron pickup, "no release" terminal status, and
    whether `minted` always has `hubMint`. Draft questions: `author-questions.md`.
 2. ~~Safe now, no external input: 2.5, 1.3, 4.3, 4.4.~~ Done in `2f40c0b2`.

@@ -70,6 +70,18 @@ updated: 2026-10-13
     JSDoc stacked on `getMpcRelayService`; `dstAddress as Hex` cast; 3-line comments; unrelated
     reformat hunks.
 
+- **C round (2026-10-13), committed as `7b1e9469`.** C1–C4 + 1.1/1.2 pushed at the user's request.
+  - C3 investigation read the verified contract bundle from the position factory's sonicscan page and
+    live-checked `relayMode` on the hub AssetManager (Tron = MPC). Details: findings § C3.
+  - Mistake, corrected: I called the old Bitcoin `hubWalletSwap` relay (JSON as `tx_hash`) "almost
+    certainly broken" from the swap-cancel commit `196da0dfc` alone. The user said Bitcoin has always
+    worked; the backend relays it the same way. Lesson: before calling an existing flow broken, check
+    what production actually runs.
+  - Also wrong in the first pass: `settle` outbound for Tron `hubWalletSwap` / `operatePosition` — it
+    waits for a release those calls never make. Replaced with a refusal before signing.
+  - New finding 1.4b (leverage `originAddress` 20 bytes for Tron) left open: same field as 1.4.
+  - Mutation-checked: 3 new leverage tests + 1 DEX + 2 partner tests fail without their fix.
+
 ## Changes During Work
 
 - Mutation-checked every new test against the unfixed source: 9 MM tests and 11 Tron tests fail
