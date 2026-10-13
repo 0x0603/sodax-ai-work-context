@@ -209,3 +209,27 @@ again: `from` = `0xb42f…ead6` (a different code-less relayer EOA), `to` = Dele
 no authorization list (already upgraded). Calls: approve 1.1 USDC → deposit → 0.011173 USDC fee to `0xe347…1964`.
 Gas 357,181 (tx 1 was 379,669; the ~22.5k gap is the authorization). Backend submit-tx → `solved`, 0 retries,
 fill `0xaec3…5884`. This closes the last shape gap: a relayed batch hash also goes through backend submit-tx.
+
+
+## Session 4 — 2026-10-13 — main merged; late-landing batch made resumable
+
+- Merged `origin/main` into #504 (`b10deabf`, pushed): conflicts in `SwapService.test.ts` (both sides appended a
+  describe) and `apps/demo/AGENTS.md` (Privy lines vs the lifecycle lines) — kept both.
+- R0bi7 dual-agent review (issuecomment-6057498745, on `ab1ec388`): a batch that confirms after `waitForBatch` gives
+  up is never relayed — the intent and relayData die with the call. Confirmed in code; it was the "late-landing
+  batch not relayed" follow-up from Session 2.
+- Fix (uncommitted, worktree `../sodax-sdks-504`): `SwapWithApprovalParams.resumeBatchId`. Resume skips strategy and
+  creation, re-waits the batch (`waitForBatchDeposit`, split out of `sendAtomicBatch`), then relays the deposit by
+  hash with `submitTransaction` + `waitUntilIntentExecuted` (EVM relay needs no `data`; `relayTxAndWaitPacket`'s
+  type demands it, so it was not used), reads the intent back via `getIntent(dst_tx_hash)`, `postExecution`. No
+  backend submit-tx on resume — it needs intent + relayData. A batchId-only handle keeps the API to one optional string, and
+  survives a reload if the app stores it.
+- Kept the caller's `timeout` on the batch wait (the Session 2 decision): with resume, a short wait is no longer
+  permanent.
+- Receipt mapping: all receipts sharing one tx hash → that tx is the deposit (covers MetaMask's appended fee call,
+  the Session 3 watch item). Per-call distinct receipts still need the call count, so only the first wait accepts them.
+- dapp-kit: `next()` in `unconfirmed` → `mutateAsyncSafe({ ...swap.variables, resumeBatchId })` (the params that sent
+  it, not the edited ones). Demo button "Check the batch again"; docs, skills, generated pages updated.
+- Gates: sdk 2995 tests, dapp-kit 874, checkTs sdk/dapp-kit/demo, check:ai, doc-links, docs-pages, docs-nav,
+  ai-dev-files, Biome on touched files — all green.
+

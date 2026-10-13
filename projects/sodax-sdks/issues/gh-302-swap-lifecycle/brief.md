@@ -3,8 +3,8 @@ type: brief
 repo: sodax-sdks
 github: 302
 status: In review — PR #503 (#329) open; PR #504 (#328 + #302) open as draft
-next: User runs the mainnet matrix on #504 (checklist in its body); fix the waitForBatch timeout gap before marking it ready
-updated: 2026-10-12
+next: User reviews + commits the uncommitted resumeBatchId fix in ../sodax-sdks-504 (review comment 6057498745); then the mainnet matrix on #504
+updated: 2026-10-13
 tags: [swap, dapp-kit, eip-5792, atomic-batch, detailed-status, submit-tx, lifecycle-hook]
 related_issues: [gh-328, gh-329, gh-21, gh-208, gh-505, gh-506, gh-507]
 ---
@@ -27,6 +27,14 @@ in outcome.md), and the funded mainnet matrix that gates the merge.
 
 Stacked on #504: PR #509 (gh-506), PR #511 (gh-505, reuses the batch logic via `approvalBatch.ts`) and
 PR #512 (gh-507, stacked on #511). Any later change to the batch code here must be merged into them.
+2026-10-13: `origin/main` (incl. squashed #503 + #486 Privy) merged into #504 as `b10deabf`; conflicts were
+`SwapService.test.ts` (both sides appended a describe — kept both) and `apps/demo/AGENTS.md` (kept both).
+#509 / #511 / #512 have not taken that merge yet.
+2026-10-13: fix for the R0bi7 dual-agent review (issuecomment-6057498745, late-landing batch never relayed) is
+written but **uncommitted** in worktree `../sodax-sdks-504`: `swapWithApproval({ ..., resumeBatchId })` re-waits the
+batch, relays the deposit by hash, reads the intent back from the hub tx, post-executes; `useSwapLifecycle.next()` in
+`unconfirmed` resumes instead of doing nothing; receipts that all share one tx hash now map to the deposit. process.md
+Session 4. Once pushed it must be merged into #509 / #511 / #512 (#511 moved the batch code to `approvalBatch.ts`).
 
 
 1. **Merge** is gated on the mainnet matrix (plan.md § Verification). Relayer acceptance of a 7702 batch
