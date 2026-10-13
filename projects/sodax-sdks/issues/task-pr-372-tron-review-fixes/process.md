@@ -82,6 +82,20 @@ updated: 2026-10-13
   - New finding 1.4b (leverage `originAddress` 20 bytes for Tron) left open: same field as 1.4.
   - Mutation-checked: 3 new leverage tests + 1 DEX + 2 partner tests fail without their fix.
 
+- **claude[bot] check of our issue table (#issuecomment-6144955938), reviewed 2026-10-13, no reply
+  posted.** Its line citations hold at `7b1e9469`. Wrong or overstated:
+  - attributes our "I left `srcAddress` alone…" line to gcranju — it is ours (6144735748);
+  - "no release mechanism for Sonic → Tron, may need the user's Tron key": wrong. `AssetManager.sol`
+    emits `BridgeRequest` for MPC chains ("the backend watches BridgeRequest", lines 265-268); the
+    release is hub-triggered, no Tron signature. 2.1 stays a status/polling gap;
+  - 1.4b "higher confidence than 1.4": same intent `srcAddress` field (`LeveragePosition`
+    `srcAddress: originAddress`), same open question;
+  - 2.2 "confirmed by docstrings": inference only; the relay's terminal state for a no-release
+    withdrawal is unknown;
+  - 4.5 "one extra condition": needs a new `waitForDeposit` API (tried, reverted);
+  - DEX fix "route through `settle` like MM": an `'outbound'` settle moves the Bitcoin DEX withdraw to
+    the `od:` identity — the trap reverted in C3. Any DEX migration must keep Bitcoin's relay shape.
+
 ## Changes During Work
 
 - Mutation-checked every new test against the unfixed source: 9 MM tests and 11 Tron tests fail

@@ -23,7 +23,8 @@ then opens exactly one row from the map below.**
   #issuecomment-6144735748 — open items by severity, posted at the user's request.
 - Open: 1.4 + 1.4b (Tron `srcAddress` / `originAddress` 20 bytes — one question for gcranju), solver
   check for 1.1, 2.1–2.4, DEX relay bypass, 4.5, one JSDoc. All listed in the PR comment.
-- Context-repo edits for this dossier are not committed yet (commit only when the user asks).
+- claude[bot] re-checked the table (#issuecomment-6144955938): citations hold, six claims wrong or
+  overstated (process.md, last Log bullet). No reply posted.
 
 ## Next action
 
@@ -39,6 +40,8 @@ Wait for replies on the PR comment. Then: if gcranju says `srcAddress` should be
 - Bitcoin vault withdraw (`hubWalletSwap`) relays with the JSON payload as `tx_hash` + `{ address,
   payload }`, like the backend — it works. Never switch it to the on-demand (`od:`) identity.
 - `settle` outbound on an MPC chain waits for a release; only use it for messages that pay out on Tron.
+- Sonic → Tron releases are hub-triggered (`AssetManager` emits `BridgeRequest`, the backend watches it);
+  no Tron signature is needed. 2.1 is a status/polling gap, not a delivery gap.
 
 ## Which file answers what
 
