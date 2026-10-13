@@ -2,9 +2,9 @@
 type: brief
 repo: sodax-sdks
 github: 456
-status: Active — PR #486 ready for review (not draft), head ff296f36 pushed (audit fixes 1-3 + main #496 merge), CI green, REVIEW_REQUIRED with no reviews (checked 2026-10-05); PR body still lacks the audit fixes; live QA waits on a dev Privy app id
-next: PR body gains the audit fixes → one live login with a brand-new email (process/09); then spike 2/4 + QA matrix
-updated: 2026-10-05
+status: Active — PR #486 head 6f126096; dual-agent review (2026-10-12) Low finding confirmed, fixed + pushed (process/13), review not answered on the PR by choice; live QA waits on a dev Privy app id
+next: one live login with a brand-new email (process/09); then spike 2/4 + QA matrix
+updated: 2026-10-13
 tags: [wallet, privy, email-login, embedded-wallet, wallet-sdk-react, evm, wagmi, walletconnect]
 related_issues: [gh-1069, gh-1024]
 related_decisions: [0003, 0001, 0002]
@@ -45,6 +45,7 @@ reversed three more (start-up guard, `privy()` never throws, optional peer `*`).
 | Pushed; **PR #486 draft**, 14 commits, CI green; demo Settings field for the app id | done — `process/07` |
 | R0bi7 review (3 low): logout mid-connect, guard vs app errors, demo `cross-env` — verified + fixed | done, pushed `59be6f2e` — `process/08` |
 | Implementation audit: 1 High, 1 Medium, 5 Low/nits; fixes 1–3 + main merge | done, pushed `ff296f36`; 4–7 open — `process/09` |
+| Dual-agent review (Low): failed connect after login leaves Privy signed in; reproduced, fixed + 3 tests | done, pushed `6f126096` — `process/13` |
 | Spike 2–4 (unregistered-chain signing, funded sends, live MFA/config) | blocked on a dev Privy app id (+ gas owner for 3) |
 
 ## Blocked on

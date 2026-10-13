@@ -2,7 +2,7 @@
 type: process
 repo: sodax-sdks
 github: 456
-updated: 2026-10-05
+updated: 2026-10-13
 ---
 
 # Process — index
@@ -30,6 +30,7 @@ session; add a row here. Do not grow this index beyond the table.
 | 10 | 2026-09-23 | [addon-package-pivot](process/10-2026-09-23-addon-package-pivot.md) | *(Written on a second machine, pushed late; in time order between 06 and 07.)* **Tried and rejected: the add-on package `@sodax/wallet-privy` (EIP-6963).** Built at the user's request, then rejected and the tree reset to `a2d6efb9`. Kept for its findings: wagmi `injected`/mipd facts, one-wagmi install check, the pre-existing StrictMode `EvmHydrator` restore bug | 1.9k |
 | 11 | 2026-09-24 | [approach-review](process/11-2026-09-24-approach-review.md) | *(Late, between 06 and 07.)* **Approach review of the pushed branch: keep it.** Six weak points ranked (no real-Privy run yet; 3 s restore budget unmeasured; SDK-owned `PrivyProvider` limits; connector complexity; two non-Privy changes; issue deviations for the PR body). Verified: `dist` shares the `WeakMap` chunk, the guard does not swallow partner first-render errors. Partners already on Privy: an app-owned-provider mode sketched, not for #456; **how PR #486 was opened** | 2.8k |
 | 12 | 2026-09-24 | [vercel-dts-and-demo](process/12-2026-09-24-vercel-dts-and-demo.md) | *(Late, between 06 and 07.)* **Why #486's Vercel previews hung** (8 GB builders; the main declaration pass already needs 6–8 GB) → `./privy` declarations in a second tsup pass (`bbc80df4`); **Privy in `apps/demo`** (`4a17e728`); a background reconnect killed an open login; first live QA on localhost:1993 | 2.0k |
+| 13 | 2026-10-13 | [orphaned-login-after-failed-connect](process/13-2026-10-13-orphaned-login-after-failed-connect.md) | **Dual-agent review Low finding confirmed by a failing test:** a connect that fails after the code leaves Privy signed in and SDK disconnect skips logout. Fix (sign out in `connect()`'s catch, logout mode, interactive, still current) + 3 tests, pushed `6f126096` | 0.9k |
 
 ## Changes During Work
 
