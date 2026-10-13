@@ -3,7 +3,7 @@ type: brief
 repo: sodax-sdks
 github: 
 status: Active
-next: groups 1-2 and 4.5 need answers from contracts/solver team and MPC relay owner
+next: fix 1.1 dstAddress (encodeRecipient) on the user's go-ahead; rest needs outside answers
 updated: 2026-10-13
 ---
 
@@ -18,13 +18,18 @@ then opens exactly one row from the map below.**
   and `2f40c0b2` (all signed). PR head `2f40c0b2`, `MERGEABLE`; waiting on review/CI.
 - Courtesy comments: #issuecomment-6137137117 and #issuecomment-6138549112.
 - Fixed: review-comment 1–4; `/code-review` 1.3, 2.5, group 3 (incl. leftover), 4.1–4.4, 4.6, 4.7.
-- Open: 1.1, 1.2, 2.1–2.4, 4.5 — all need answers from outside (see `code-review-findings.md`).
+- 1.1 now verified against the deployed Intents contract: `sendToken` passes `intent.dstAddress`
+  through to `AssetManager.transfer` unpadded, so Arbitrum → Tron pays the 20-byte form. Same pass-through
+  hits a cancel refund to a Tron source (`intent.srcAddress`).
+- Open: 1.1 (fix ready to make), 1.2, 2.1–2.4, 4.5 (see `code-review-findings.md`).
 - Questions for gcranju drafted in `author-questions.md`, NOT posted.
 
 ## Next action
 
-Nothing left that can be fixed without outside input. Open items wait on the contracts/solver team
-(1.1, 1.2) and the MPC relay owner (2.1–2.4, 4.5); see "Suggested order" in `code-review-findings.md`.
+On the user's go-ahead: switch intent `dstAddress` to `encodeRecipient` (`EvmSolverService.ts:129`,
+`SonicSpokeService.ts:326`) and teach `reverseEncodeAddress` the 32-byte word; leave the `srcAddress`
+refund case to the author. Other open items wait on the solver team (1.2, solver-side parsing of
+`dstAddress`) and the MPC relay owner (2.1–2.4, 4.5).
 
 ## Settled — do not re-litigate
 

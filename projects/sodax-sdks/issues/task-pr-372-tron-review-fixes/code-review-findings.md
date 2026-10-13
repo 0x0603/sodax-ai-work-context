@@ -44,7 +44,25 @@ Root cause in common: a hub-side payout to a Tron recipient built with `encodeAd
 **does the path below end in `AssetManager.transfer` with this exact byte string as `to`, or does
 something on the hub/solver re-encode it?**
 
-### 1.1 Swap intents to Tron — OPEN (code-verified; behaviour unverified)
+### 1.1 Swap intents to Tron — OPEN (SDK + Intents contract verified; AssetManager/relay side rests on the author's test claim)
+
+- **Verified 2026-10-13 against the deployed Intents contract** (proxy `0x6382D6cc…96ef` → EIP-1967
+  impl `0x6695855f185e917b593d29b49fffeca02df6b512`, verified source on sonicscan.org; Sourcify and
+  Routescan have none): `fillIntent` calls
+  `sendToken(intent.outputToken, intent.dstChain, intent.dstAddress, _outputAmount, data.deliveryData)`,
+  and `sendToken` for a non-hub destination does `assetManager.transfer(token, to, amount, deliveryData)`
+  with `to` passed through unchanged — no padding for MPC chains. The 32-byte requirement on
+  `AssetManager.transfer` is the PR author's own claim (MM test comment), which is why MM/recovery
+  were switched to `encodeRecipient` in `2dd2d4ba`. Together: an Arbitrum → Tron swap pays to the bare
+  20-byte form, i.e. the dead address the author describes.
+- Ran the PR's SDK build: `createIntent({ raw: true })` Arbitrum → Tron yields
+  `intent.dstAddress = 0x45df…245d` (20 bytes); MM withdraw payload's `AssetManager.transfer` `to` is
+  `0x000…000 45df…245d` (32 bytes).
+- Related, new: `cancelIntent` refunds via `sendToken(intent.inputToken, intent.srcChain,
+  intent.srcAddress, …)`; a Tron-source intent stores `srcAddress = encodeAddress(tron, …)` (20 bytes,
+  `EvmSolverService.ts:128`), so a cancel refund to Tron hits the same pass-through.
+- Still unknown before changing the SDK: whether the solver/backend parse `intent.dstAddress` for Tron
+  (validation, display — `reverseEncodeAddress` TRON accepts 20/21 bytes, not a 32-byte word).
 
 - `packages/sdk/src/shared/services/spoke/SonicSpokeService.ts:326` and
   `packages/sdk/src/swap/EvmSolverService.ts:129`:
