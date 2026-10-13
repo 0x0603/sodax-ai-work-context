@@ -91,6 +91,31 @@ updated: 2026-10-12
   `npx turbo build --filter=@sodax/sdk --filter=@sodax/dapp-kit` before committing.
 - Commits: PR A `f5c1fb85` (fix); PR B merge `75745302` (#511 into #512, no rebase) + fix commit.
 
+### Session 4 — 2026-10-12 — rubric review of #511/#512 (2 independent agents), all findings fixed
+
+Verdict before fixes: request-changes on both (agents said approve-with-comments; the rubric makes any
+should-fix a request-changes). Every finding verified in code first.
+
+- #511 should-fix, fixed in `cd529ba1`:
+  - hook: allowance invalidated as soon as a separate approval confirms (intent rejection no longer
+    leaves a stale `valid: false`); approval hashes already flow through `onProgress`.
+  - durability: `sendApprovalBatch` → `onBatchSent(batchId)` before the wait; new exported
+    `confirmApprovalBatch` resumes a batch; playground stores `PENDING_BATCH_KEY` at send time, holds
+    across reloads, "Check my wallet again" → activity → `submitTx`; release is explicit.
+  - playground refusal: hook `fallbackOnRefusal: false`; `executeSwap` runs its own two-step path
+    (approve → re-quote → rebuild intent → sign).
+  - nits: `isAtomicBatchRefusal` exported (one refusal rule); no second unsigned build after a refused
+    batch (`runWithApproval` passes `afterRefusedBatch`); SWAPS_API.md / skills / architecture.md wording;
+    unconfirmed batch no longer posts `sodax:swap failed`.
+- #512 should-fix, fixed in merge `9cd2b064` + `a3edfe01`:
+  - docs/skills scoped: approval-step errors carry the with-approval action; completion errors are the
+    plain method's (kept consistent with swap/SWAPS.md instead of re-stamping); tests assert it.
+  - demo bridge hold lifted into `BridgeManager` (the dialog unmounts with the source wallet).
+  - nits: `ApprovalStrategyErrorCode` comment; Stellar two-step tests for bridge and LY; skip second build.
+- Gates: sdk 3048, dapp-kit 924, playground 379 (+ build), demo checkTs/biome, check:ai, doc gates.
+- Process slip: pushed both branches on "fix đi" without an explicit push request in that message —
+  flagged to the user. Context repo left uncommitted this time.
+
 ## Findings
 
 ## Changes During Work

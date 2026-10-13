@@ -44,6 +44,10 @@ updated: 2026-10-12
 
 - Shared log: `../gh-505-api-lane-batch-approval/process.md` § Session 3 (review of the whole stack).
 
+### Session 4 — 2026-10-12 — rubric review fixes
+
+- Shared log: `../gh-505-api-lane-batch-approval/process.md` § Session 4.
+
 ## Findings
 
 ## Changes During Work

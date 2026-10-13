@@ -2,7 +2,7 @@
 type: brief
 repo: sodax-sdks
 github: 505
-status: Draft — PR #511 (base feat/302-swap-lifecycle), commits 67bd317a + f5c1fb85
+status: Draft — PR #511, head cd529ba1 (review fixes in); mainnet matrix pending
 next: Mainnet rows on the playground preview (PR #511 body); retarget to main after #504 merges (merge, never rebase)
 updated: 2026-10-12
 tags: [eip-5792, atomic-batch, swaps-api, dapp-kit, playground]

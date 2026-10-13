@@ -2,7 +2,7 @@
 type: brief
 repo: sodax-sdks
 github: 507
-status: Draft — PR #512 (base feat/505-api-lane-batch-approval), commits 6ed8448e + merge 75745302 + 70acf35f
+status: Draft — PR #512, head a3edfe01 (review fixes in); mainnet matrix pending
 next: Mainnet rows on the demo preview (PR #512 body); retarget after #511 merges (merge, never rebase)
 updated: 2026-10-12
 tags: [eip-5792, atomic-batch, bridge, leverage-yield, dapp-kit, demo]
