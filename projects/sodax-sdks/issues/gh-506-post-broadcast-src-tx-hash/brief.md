@@ -4,7 +4,7 @@ repo: sodax-sdks
 github: 506
 status: In review — PR #509 (stacked on #504)
 next: Retarget PR #509 to main once #504 merges (merge main in, never rebase)
-updated: 2026-10-12
+updated: 2026-10-15
 tags: [bridge, leverage-yield, errors, detailed-status]
 related_issues: [gh-302, gh-505, gh-507]
 ---
@@ -22,8 +22,25 @@ PR #509, commits `2ec0db1d` + `b33f91f9` (review doc fixes) on `feat/506-post-br
 
 ## Blocked on
 
+0. 2026-10-14: merge of `origin/feat/302-swap-lifecycle` (`d2cc44f7`, the batch resume fix) is pushed as merge
+   `f9074802` (worktree `../sodax-sdks-509`) — no conflicts, gates green. Origin had been rebased onto `b0cd50c0` elsewhere;
+   the local branch was reset to it (the two local commits were identical patches).
+
 1. **Merge** waits on #504 (draft, mainnet matrix pending). PR base should be
    `feat/302-swap-lifecycle` until #504 lands, then retarget to `main` (merge, never rebase).
+
+## Review 6169002449 (R0bi7 dual-agent, on `62735054`) — fixed in `d9cc138d`, pushed 2026-10-15
+
+Both findings valid (docs gaps, not fund loss). Bridge `TX_SUBMIT_FAILED`: docs now say resubmit the same tx with
+`submitTransaction` when no packet ever shows (EVM needs only the hash; Solana/Bitcoin need `relayData`, not
+exposed — deliberately, no API for that rare case). Post-execution failures now carry `dstTxHash` (hub tx) in
+`vaultSwap` and in `swap()` (fallback + resume) so `notifySolver` / `postExecution` can be retried; docs + skills
+say so. Swap was included on purpose (same gap, user OK'd 2026-10-15). sdk 3003 tests, checkTs, check:ai,
+doc gates, Biome green.
+
+2026-10-15: #504 squash-merged to main as `5ee56ff8`; the branch was force-pushed elsewhere as main + `af88125b` +
+`f30cbb9d` (PR base now `main`). `d9cc138d` sits on that. Local worktree was reset (`--keep`) onto it — the
+touched files were identical between the old and new bases.
 
 ## Next action
 

@@ -2,9 +2,9 @@
 type: brief
 repo: sodax-sdks
 github: 302
-status: In review — PR #503 (#329) open; PR #504 (#328 + #302) open as draft
-next: User reviews + commits the uncommitted resumeBatchId fix in ../sodax-sdks-504 (review comment 6057498745); then the mainnet matrix on #504
-updated: 2026-10-13
+status: In review — PR #503 (#329) merged; PR #504 (#328 + #302) open, ready for review
+next: #504 is APPROVED + CLEAN (R0bi7, 2026-10-14 21:00, on `5e5bed60`) — his 0n finding is fixed in `6aebb9c7` (demo guard + JSDoc) and `1e284102` (hook feeds the Stellar gate 1n on a 0n minimum, so the trustline check runs), both pushed 2026-10-15, approval kept. NOT yet merged into #509/#511/#512 (clean: they don't touch those files); #511/#512 need it before #504 squashes or the `-s ours` trick no longer applies (process.md 2026-10-15). Then mainnet matrices (#504 body rows, #511 playground, #512 demo; #509 needs none). Merge order #504 → #509 → #511 → #512; after each squash, `merge -s ours <squash>` into the child if its tree == old head, then main (process.md 2026-10-14)
+updated: 2026-10-15
 tags: [swap, dapp-kit, eip-5792, atomic-batch, detailed-status, submit-tx, lifecycle-hook]
 related_issues: [gh-328, gh-329, gh-21, gh-208, gh-505, gh-506, gh-507]
 ---
@@ -29,12 +29,18 @@ Stacked on #504: PR #509 (gh-506), PR #511 (gh-505, reuses the batch logic via `
 PR #512 (gh-507, stacked on #511). Any later change to the batch code here must be merged into them.
 2026-10-13: `origin/main` (incl. squashed #503 + #486 Privy) merged into #504 as `b10deabf`; conflicts were
 `SwapService.test.ts` (both sides appended a describe — kept both) and `apps/demo/AGENTS.md` (kept both).
-#509 / #511 / #512 have not taken that merge yet.
-2026-10-13: fix for the R0bi7 dual-agent review (issuecomment-6057498745, late-landing batch never relayed) is
-written but **uncommitted** in worktree `../sodax-sdks-504`: `swapWithApproval({ ..., resumeBatchId })` re-waits the
-batch, relays the deposit by hash, reads the intent back from the hub tx, post-executes; `useSwapLifecycle.next()` in
-`unconfirmed` resumes instead of doing nothing; receipts that all share one tx hash now map to the deposit. process.md
-Session 4. Once pushed it must be merged into #509 / #511 / #512 (#511 moved the batch code to `approvalBatch.ts`).
+2026-10-14: `d2cc44f7` merged into #509 (`f9074802`), #511 (`8a5f2042`, resume rebuilt on `confirmApprovalBatch`) and #512 (`7c54c819`).
+2026-10-14: R0bi7 Low fix `5e5bed60` (`resumeBatchCallCount`) merged into #509 (`62735054`), #511 (`21421a2b`, ported to
+`confirmApprovalBatch`) and #512 (`ece8d13b`). All pushed.
+2026-10-15: R0bi7 review 5522430503 (CHANGES_REQUESTED 18:07) was superseded by his APPROVED 21:00 on the same
+`5e5bed60`; #504 is APPROVED + CLEAN. The 0n finding: mechanism right, not a regression, documented gate behavior.
+Ruleset: `dismiss_stale_reviews_on_push: false`, so a later push would keep the approval. process.md 2026-10-15.
+2026-10-14: the fix for the R0bi7 dual-agent review (issuecomment-6057498745, late-landing batch never relayed)
+is pushed as `d2cc44f7` on #504: `swapWithApproval({ ..., resumeBatchId })` re-waits the batch, relays the deposit by
+hash, reads the intent back from the hub tx, post-executes; `useSwapLifecycle.next()` in `unconfirmed` resumes;
+receipts that all share one tx hash map to the deposit. The resume wait shares the swap path's
+`DEFAULT_RELAY_TX_TIMEOUT` floor (`batchWaitMs`) — a clean textual merge onto `b0cd50c0` had left it unfloored.
+process.md Session 4. Merged into #509 / #511 / #512.
 
 
 1. **Merge** is gated on the mainnet matrix (plan.md § Verification). Relayer acceptance of a 7702 batch
@@ -65,7 +71,8 @@ Node 24 for the hook: `. <scratchpad>/env.sh` (downloaded v24.21.0 + corepack pn
 ## Settled — do not re-litigate
 
 1. `supported` **and** `ready` are batch-capable; `forceAtomic: true`; 4001/5750 → `USER_REJECTED`,
-   no fallback after a batch send attempt (user, 2026-10-07).
+   no fallback after a batch send attempt (user, 2026-10-07). A wallet that reports atomic support and then
+   fails `sendCalls` is a wallet bug, not a risk to carry (user, 2026-10-14).
 2. PR shape (user, 2026-10-07, after two reversals): **#329 alone; #328 + #302 + lifecycle together**,
    so the user tests status and batching in one pass.
 3. No viem bump — 2.29.2 already ships stable 5792 actions.
@@ -105,3 +112,4 @@ Node 24 for the hook: `. <scratchpad>/env.sh` (downloaded v24.21.0 + corepack pn
   `useSwapLifecycle` holds no React state beyond one `useRef` (the `next()` in-flight guard), which the
   test mocks via `vi.mock('react')`. Adding real state means those tests need a renderer.
 - `summarizeSwapStatus` drops non-hex hashes — test fixtures need real hex (`'0xfill'` is not).
+- A cancelled intent polls forever in `useDetailedStatus` (solver stays at 2); tracked as #520, not #504 — process.md 2026-10-14.

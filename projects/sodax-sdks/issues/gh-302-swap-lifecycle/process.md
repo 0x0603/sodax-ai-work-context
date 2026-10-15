@@ -2,7 +2,7 @@
 type: process
 repo: sodax-sdks
 github: 302
-updated: 2026-10-08
+updated: 2026-10-15
 ---
 
 # Process
@@ -233,3 +233,127 @@ fill `0xaec3…5884`. This closes the last shape gap: a relayed batch hash also 
 - Gates: sdk 2995 tests, dapp-kit 874, checkTs sdk/dapp-kit/demo, check:ai, doc-links, docs-pages, docs-nav,
   ai-dev-files, Biome on touched files — all green.
 
+
+### 2026-10-14 — fix pushed as `d2cc44f7`
+
+The Session 4 fix sat uncommitted in `../sodax-sdks-504` on `b10deabf` while `7bd27c2c..b0cd50c0` landed on
+origin from elsewhere. Carried onto `b0cd50c0` via a trial `git merge-tree` (no conflict in the 10 shared
+files), then applied to the worktree (WIP snapshot `6d716244`). The clean merge was semantically wrong:
+`b0cd50c0` floored the batch wait at `DEFAULT_RELAY_TX_TIMEOUT` on the send path only, and the new
+`resumeAtomicBatch` kept the unfloored `resolveTimeoutMs`. Both now use `batchWaitMs`; test added. Gates:
+build:packages, sdk SwapService (282) + dapp-kit swap/utils (134) tests, sdk + dapp-kit checkTs, check:ai,
+doc gates, then the full pre-commit hook. Commit signed; shared `.git/config` intact.
+
+### 2026-10-14 — mainnet test: cancelled intent polled forever (out of scope for #504)
+
+Sequential USDC→ETH on Base (plain EOA, approve `0xd92b…9752`, deposit `0x6c89…a5d`, 1.121 USDC) relayed
+fine but the solver never filled within the demo's 5-min deadline (`SwapCard.tsx:328`, same on main). Backend
+record: `failed`, `failureReason: "Intent deadline expired"`, `intentCancelled: true`; refund `0x39f1…fb50`.
+
+Bug (from #371, on main): `getDetailedStatus` treats every `failed` record as abandoned
+(`detailedStatusRouting.ts` `isBackendSubmitTxAbandoned`) and asks relay + solver. The solver kept answering
+`status: 2` (STARTED_NOT_FINISHED) for the cancelled intent for 15+ min, `summarizeSwapStatus` maps that to
+`pending`, and `useDetailedStatus` has no cap for in-flight states, so the demo card polls backend + relay +
+solver every 3 s until dismissed. `intentCancelled` is typed (`backendApiV2.ts:729`) but never read in sdk/src.
+
+Tracked as **#520** (user asked for a new issue). User's call: keep asking both sources, but add a stop condition; **not in #504**. Draft fix (kept out of the
+branch): when the record has `intentCancelled: true`, return it as `source: 'backend'` unless the solver reports
+SOLVED/FAILED (also when relay/solver reads fail); hook already stops on backend `failed`. Needs `SWAPS.md`
+§ Get Detailed Status + the `solverStatusPolicy.ts` comment updated. Solver staleness is a backend/solver item.
+Update (07:48 UTC+): the backend record gained `abandonedAt` and **dropped `intentCancelled`**, so the draft fix
+keyed on that flag would not stop this tx. Hub `intentStates(0x82cd…3240)` on `0x6382…96ef` reads
+`exists: false, receivedOutput: 0` — a stable on-chain stop signal. #520 now proposes that, and notes the relay
+spam and that the repro order works while the solver still answers 2. Unverified: what a fully filled intent reads.
+
+### 2026-10-14 — regression read of #504 vs main (head `d2cc44f7`, 20 source files)
+
+Read every non-test, non-doc diff `origin/main...d2cc44f7`. Existing behavior unchanged except, all intended:
+`swap()` returns a Result instead of rejecting when the fallback throws (`return await this.completeSwap`);
+post-broadcast swap errors carry `srcTxHash`; wallet code 5750 classifies as a rejection (only batch flows emit
+it); demo NEAR storage check failure now blocks with a retry (old `resolveNearStorageGate` let the swap through:
+`blocksAction` was false on error); `/swaps-sdk` solver orders read `useDetailedStatus` (#520 surfaces there).
+Unchanged files confirmed: `useStellarGate`, `stellarGate`, `useNearStorageCheck`, `BitcoinSetupPanel`, `useSwap`,
+`useSwapApprove`, `isAllowanceValid`. `SpokeService` diff is formatting only. Non-EVM sources other than Stellar
+→ `not-required` (= old `swap()`); Stellar source / Sonic → sequential with a receipt wait (Stellar trustline is
+sent via RPC `sendTransaction`, so RPC `getTransaction` finds it). A wallet that reports atomic support but fails
+`sendCalls` with a code outside `BATCH_REFUSED_CODES` gets no two-step fallback: by design (no fallback once sent,
+double-execution risk), and the user ruled it a wallet bug, not a risk to carry.
+Cosmetic: `BATCH_STATUS_ATTEMPTS` was inserted between the HyperEVM JSDoc and `export const hyper`.
+
+R0bi7 Low finding on `d2cc44f7` (resume with distinct per-call receipt hashes): correct — resume calls
+`waitForBatchDeposit` without `callCount` (L1063), and EIP-5792 allows an atomic batch to return an array of
+receipts. Not fixing in #504: needs a wallet returning that shape AND confirmation after the >=120 s wait; no
+known wallet does (MetaMask 7702 returned one tx on Ethereum today); fail-closed; carrying `callCount` later is
+additive. R0bi7 marked it `follow_up` too. Unlike the wallet case above this shape is spec-permitted, so it is ours.
+Fix shape if taken (R0bi7's suggestion): `callCount` in the unconfirmed error context, a resume param for it,
+`useSwapLifecycle` passes it back. ~10 lines of logic + a late-confirmation test + SWAPS.md and two
+`packages/skills` pages, then a re-merge into #509/#511/#512; #511 needs the same change in `approvalBatch.ts`
+`confirmApprovalBatch` and its resume call (`SwapService.ts:965`). Cheapest before #504 merges: the API shape is
+still free.
+
+### 2026-10-14 — R0bi7 Low fixed in the #504 worktree (uncommitted)
+
+User: "nên làm nếu an toàn". The unconfirmed error carries `context.callCount` (only when known); new
+`resumeBatchCallCount` param; `useSwapLifecycle` keeps it on the `unconfirmed` state and passes it back from `next()`.
+Kept `resumeBatchId` and added a flat field rather than `resumeBatch: { id, callCount }`: #511's `confirmApprovalBatch`
+and the playground's stored batch already use flat `batchId` + `callCount`. Without the count nothing changes (fail
+closed). Tests: late per-call receipts relay the deposit given the count, stay unconfirmed without it, and resume's
+own unconfirmed error keeps the count; dropping the count fails both new tests. Green: sdk 2998 / dapp-kit 877 tests,
+checkTs (sdk, dapp-kit, wallet-sdk-core), check:ai, docs:sync-pages, check:docs-pages, check:doc-links. Also moved
+`BATCH_STATUS_ATTEMPTS` above the HyperEVM JSDoc. Correction: the demo AGENTS.md note "the gate's address must stay
+the connected destination wallet" is not stale — SwapCard builds `dstAddress` from `destAccount.address`.
+Next: user commits + pushes; merge into #509 (no batch code), #511 (port the context line into `approvalBatch.ts`
+`confirmApprovalBatch`, resume call passes `callCount`; playground already stores `callCount`), then #512.
+Self-review (user asked): no logic issue found. Tidied to the file's idiom (`swapLifecycle.ts` omits an absent
+`callCount` instead of setting it `undefined`, like `pending` does with `error`); `errors.ts` JSDoc and the sdk skill
+bullet now list `context.callCount`. Re-ran: dapp-kit 877, sdk swap 424, checkTs (sdk, dapp-kit, demo after a
+dapp-kit build), check:ai, docs gates — green. CI on `d2cc44f7` was all green, Docs Drift included.
+
+### 2026-10-14 — R0bi7 Low fix pushed and merged down the stack
+
+#504 `5e5bed60` (full hook green, signed). #509 `62735054` (clean merge, swap/bridge/LY tests run).
+#511 `21421a2b`: conflicts in SwapService.ts (params type kept #511's `ApprovalOptions` shape plus the new field;
+`waitForBatchDeposit` stays removed; resume calls `confirmApprovalBatch` with `callCount`), errors.ts (constants
+live in approvalBatch.ts), SWAPS.md (both bullets), docs copy regenerated. Ported `callCount` into
+`confirmApprovalBatch`'s unconfirmed context and docs; the API-lane SWAPS.md sentence now says keep `txs.length`
+with the batch id. Dropping the port fails both resume tests. #512 `ece8d13b`: clean merge, so no hook — ran sdk
+3066 / dapp-kit 928 / playground 386, checkTs sdk + dapp-kit + demo, builds, check:ai, docs gates by hand.
+Merge order: #504 → #509 → #511 → #512. `git merge-tree`: #509 conflicts with neither #511 nor #512. Simulated
+squash of #504 onto main (`commit-tree` of `5e5bed60^{tree}`): merging that main into #509 conflicts in
+`detailedStatus.test.ts`, into #511 in 7 files — the children edit lines #504 also touched. Way through: when the
+real squash commit's tree equals the old PR head (main did not move), `git merge -s ours <squash>` in the child,
+then merge main normally. Still a merge, no rebase.
+
+### 2026-10-15 — R0bi7 review 5522430503 (CHANGES_REQUESTED on `5e5bed60`)
+
+Claim: a Stellar destination with `minOutputAmount === 0n` stays `checking` forever; the old SwapCard guarded it
+and the rebuild dropped the guard. Checked against code:
+- Mechanism right. `useSwapLifecycle.ts:102` passes the minimum straight in; `useStellarTrustlineCheck.ts:42`
+  `enabled: … && !!amount` turns the query off at 0n; `stellarGate.ts:36`/`:77` reads no data as unresolved and
+  blocks; `swapLifecycle.ts:166` maps that to `checking`. Demo slippage is an unbounded number input, so 100% → 0n.
+- Narrower than "a Stellar destination": only an existing account and a token that needs a trustline. Native XLM
+  and legacy bnUSD skip the check (`stellarGate.ts:74`); a missing account shows `needsActivation` first.
+- Not a regression. The old comment (his #335, `15d76124`) replaced `BigInt(payload?.minOutputAmount ?? 0n)`: it
+  covered "no payload yet". With a payload whose minimum is 0n, main passed 0n too (main `SwapCard.tsx:110`) and
+  disabled Swap through `stellar.blocksAction` (`:687`) with nothing on screen. `intentParams?.minOutputAmount` is
+  the same expression.
+- Documented as intended, by him: `apps/demo/AGENTS.md:109` (0n parks the gate; reject such an amount upstream with
+  a message), `apps/stellar-sponsor-example/AGENTS.md:81`, and skills `ai-rules.md` (#496: never send a 0n minimum).
+- `hasSufficientTrustline(token, 0n, addr)` would be an existence check, and `requestTrustline` ignores the amount
+  (`changeTrust` with no limit), so enabling the query at 0n is mechanically safe — but it would wave a 0n
+  minimum through to Stellar, which the docs forbid. Proposed instead: the demo refuses a minimum ≤ 0 before
+  building the payload, plus one JSDoc line on `intentParams`. Not done.
+- He approved #504 at 21:00 on the same `5e5bed60` with no body, so it no longer blocks; #504 is APPROVED +
+  CLEAN. Main ruleset: `dismiss_stale_reviews_on_push: false`, `require_last_push_approval: false`. Advised
+  merging as is — the guard would cost re-merges into #509/#511/#512 for a pre-existing demo edge.
+- Reversed that when the user asked "vậy có fix không?": `apps/demo/AGENTS.md` (Stellar bullet) requires the card to
+  reject a 0n amount before the hooks, and #504 rewrote the card. Uncommitted fix: `SwapCard.tsx` adds
+  `isZeroMinOutput` (`integerValue().lte(0)`, same rounding as `toFixed(0)` in bignumber.js 9.3.1) — no payload,
+  message under the quote error, Swap trigger disabled unless `holdsSentSwap` (else a tracked batch could not be
+  reopened); `useSwapLifecycle` `intentParams` JSDoc: never pass a 0n minimum. biome + demo/dapp-kit checkTs green.
+- Spin-off: opened #522 (`minOutputAmount` helper, `enhancement`, self-assigned) at the user's ask, deliberately
+  not linked to #504. Project add failed: token lacks the `project` scope. Dossier `gh-522-*`.
+- Committed and pushed at the user's ask: `6aebb9c7` `fix(dapp-kit,demo): refuse a zero minimum on the swap card`
+  (signed G; hook 21/21 tasks, sdk 2998 / dapp-kit 877 / playground 368 tests). PR head picked it up, still
+  APPROVED. Not merged into the children yet — asked the user. The empty-slippage `BigInt('NaN')` render crash on
+  that card is still there: the user chose to leave it to gh-522.
