@@ -23,6 +23,9 @@ On 2026-10-14:
 - Measured what v3 would gain, using source builds and dependency-group installs. EVM-only swap dapp:
   2,994 → 186 KB gzip. `npm i`: 778 MB / 35 advisories → ~85 MB / 0.
 - Distilled peer SDK research into `competitors.md`.
+- Scoped v3 (`plan-v3-scope.md`). Every item has an approach checked in code and probed where cheap
+  (ESM-only vs the CJS backend, PancakeSwap tree-shaking, stellar `/minimal`, wagmi v3 + Privy).
+  The total is 260 points (P0 lightweight core 116), and about 18 points ship non-breaking in 2.x.
 
 Nothing is posted and no icon-project code changed.
 
@@ -40,6 +43,9 @@ If v3 work starts:
 - The numbers in `measurements.md` are for **published 2.2.0**, not `main`. `main` package.json still
   says `2.0.0-rc.17`; the release script bumps at publish.
 - What-ifs are upper bounds: stubbed code disappears and no replacement code is counted.
+- `plan-v3-scope.md` is the verified version. The first version (LOC-based, 348 pts) was rejected by
+  the user: no scope without a worked-out approach and a feasibility check. There is no team velocity;
+  New World `Estimate` is set on 4 of 372 items.
 
 ## Which file answers what
 
@@ -50,6 +56,7 @@ If v3 work starts:
 | How heavy is the SDK today, and why does tree-shaking fail? | `measurements.md` | 4.7k |
 | What would v3 gain (bundle, install, audit, Node, tsc)? | `measurements.md` § Projected v3 gains | (same) |
 | What do LI.FI / Relay / CoW / Wormhole / Solana Kit / thirdweb / viem do? | `competitors.md` | 2.3k |
+| v3 scope: verified approach per item, points, tiers, dropped items, order, 2.x quick wins | `plan-v3-scope.md` | 5.0k |
 | How to re-measure (scripts + entries, incl. source what-ifs) | `artifacts/bundle-baseline/`, `measurements.md` § Reproduce | small |
 | Source issue summary | `issue.md` | 0.5k |
 | What was done in each session | `process.md` | 1.2k |

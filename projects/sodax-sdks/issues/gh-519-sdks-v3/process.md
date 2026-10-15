@@ -55,6 +55,50 @@ updated: 2026-10-14
   The React install reports 81 advisories (1 critical: protobufjs via the Stellar wallets kit → Trezor).
 - Cleanup: scratch worktree removed, group installs deleted.
 
+### 2026-10-14 — v3 scope session (work, packages, difficulty, points)
+
+- User asked for a scope: difficulty, work, packages, points. Result → `plan-v3-scope.md`.
+- Sized the code on `origin/main` `77281f0c` (extracted with `git archive`, no worktree): LOC per
+  package and sdk area, the 208 chain-type branches in 14 feature files, chain-lib imports per package,
+  dapp-kit hooks (214 files, 126 queries, 210 keys), wallet-react structure, error styles, `Buffer`
+  uses, existing raw-tx support, docs / skills / apps size.
+- Downstream usage, counted on each repo's default branch: sodax-frontend 132 files, sodax-backend 99
+  (CommonJS, Node 22.18, `moduleResolution: node`), intents-whitelabel 42.
+- Public-API checks that decide "breaking":
+  - ABIs, `BigNumber` math utils and PancakeSwap `Price<Token, Token>` / `Token` are all exported from
+    the sdk root.
+  - `useSwapLifecycle` and EIP-5792 batching are not on main yet (PR 504).
+- wagmi v3 breaking changes (context7, wagmi docs): `useAccount` → `useConnection`, `mutate` API,
+  connector SDKs as optional peers.
+- The New World project's `Estimate` field is unused (4 of 372 items), so the points use a proposed
+  Fibonacci scale.
+
+### 2026-10-14 — scope revision (approach + feasibility per item)
+
+- The user rejected the size-based scope: "bạn phải suy nghĩ được cách làm và khả thi thì mới show lên
+  cho tôi chứ?". Every item was reworked with an approach checked in code (`77281f0c`, via `git archive`).
+- Probes:
+  - CommonJS `require()` of the sdk ESM build + `new Sodax()` (Node 22.15) ✓;
+  - an ESM-only `package.json` ✓;
+  - TS 5.8 `commonjs` + `node` typechecks the root import ✓; subpaths need `typesVersions` ✓ or
+    `nodenext` ✓;
+  - PancakeSwap ABIs-only import pulls 447 KB (incl. `@solana/web3.js`);
+  - stellar `/minimal` covers all 11 imported names;
+  - Privy has no wagmi peer; `@privy-io/wagmi` 4 peers `wagmi >=2`.
+- Things the code reading changed:
+  - features reach chains through the `SpokeService` dispatcher (direct access is only bitcoin ×20 and
+    stellar ×1);
+  - chain libs sit in 20 sdk files;
+  - wallet-sdk-react already has a per-chain `chainRegistry.ts`;
+  - raw (unsigned) tx already exists everywhere;
+  - `SodaxError` already has 26 codes;
+  - Anchor builds only 3 instructions and fetches the IDL on-chain twice per call;
+  - `@sodax/types` is inlined only for the CJS build;
+  - the backend v2 config endpoint exists (sdk fetch disabled in `ffb3e7e3f`);
+  - the backend has tested Swagger specs.
+- Result: 260 points (P0 116, P1 92, P2 52), down from 348. Dropped: unsigned-tx-first (exists),
+  viem-style actions, bigint, Injective trim, ABI fragments. ~18 points ship non-breaking in 2.x.
+
 ## Findings
 
 - Tree-shaking is effectively broken: one helper import = 832 KB gzip. Causes, all verified:
