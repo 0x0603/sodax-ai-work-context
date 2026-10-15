@@ -2,14 +2,16 @@
 type: brief
 repo: sodax-sdks
 github: 471
-status: Active
-next: PR 478 review — CI, then merge
-updated: 2026-09-22
+status: Closed — PR 478 closed unmerged, issue #471 closed 2026-10-14
+next: None
+updated: 2026-10-14
 ---
 
 # Friendly Quote Too Small Error · brief
 
 ## State in five lines
+
+**2026-10-14: the user closed PR #478 without merging and closed issue #471 as completed (reason not recorded).**
 
 Committed as `43481bf6` on `feat/quote-too-small-refusal` and opened as
 **PR icon-project/sodax-sdks#478** (2026-09-22), closing #471. `origin/main`
@@ -21,8 +23,9 @@ check:doc-links, check:docs-nav, check:ai). Production web not touched.
 
 ## Next action
 
-Watch PR 478's CI and review. Then a follow-up in `sodax-frontend` to use the
-predicate on the swap page (`outcome.md` § Follow-ups).
+None — PR 478 was closed unmerged and #471 closed on 2026-10-14. The SDK
+predicate never shipped, so the `sodax-frontend` follow-up in `outcome.md`
+§ Follow-ups no longer applies; the frontend keeps its local matcher.
 
 ## Settled — do not re-litigate
 

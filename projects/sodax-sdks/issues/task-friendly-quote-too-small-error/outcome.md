@@ -2,8 +2,8 @@
 type: outcome
 repo: sodax-sdks
 github: 471
-status: In review
-updated: 2026-09-22
+status: Closed — PR 478 closed unmerged, issue #471 closed 2026-10-14
+updated: 2026-10-14
 ---
 
 # Outcome
