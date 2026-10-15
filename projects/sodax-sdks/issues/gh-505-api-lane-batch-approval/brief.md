@@ -2,9 +2,9 @@
 type: brief
 repo: sodax-sdks
 github: 505
-status: Draft — PR #511, head cd529ba1 (review fixes in); mainnet matrix pending
-next: Mainnet rows on the playground preview (PR #511 body); retarget to main after #504 merges (merge, never rebase)
-updated: 2026-10-12
+status: Open — PR #511, base main since #504 squash-merged (2026-10-15); head 63c4e818, MERGEABLE
+next: Fix the PR body's "stacked on #504" paragraph if the user agrees; mainnet rows on the playground preview
+updated: 2026-10-15
 tags: [eip-5792, atomic-batch, swaps-api, dapp-kit, playground]
 related_issues: [gh-507, gh-302, gh-506]
 ---
@@ -21,6 +21,16 @@ unconfirmed-batch hold, docs + skills. Every local gate green except `docs:valid
 Detail: process.md § Session 2.
 
 ## Blocked on
+
+00. 2026-10-15: #504 squash-merged as `5ee56ff8`; GitHub moved #511's base to main → 14 conflicts on a
+    straight merge. Pushed as merge `63c4e818` (worktree `../sodax-sdks-511`) of a signed intermediate
+    `f64ad7a2` = main `0cd710e2`'s tree with parents main + #504 tip `1e284102` → 0 conflicts. Gates green, PR MERGEABLE.
+    Detail: process.md § 2026-10-15.
+
+0. 2026-10-14: merge of #504 `d2cc44f7` pushed as merge `8a5f2042` (worktree `../sodax-sdks-511`). Conflicts in
+   `SwapService.ts` + SWAPS.md: kept this branch's helper layout; `resumeAtomicBatch` now calls
+   `confirmApprovalBatch` + `approvalBatchWaitMs`. `confirmApprovalBatch` (public) changed: `callCount` optional,
+   and receipts that all share one tx hash identify the deposit (2 new tests). Gates green.
 
 1. **Merge** waits on #504 (mainnet matrix) like everything stacked on it.
 

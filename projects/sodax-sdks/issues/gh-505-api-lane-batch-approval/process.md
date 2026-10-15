@@ -2,7 +2,7 @@
 type: process
 repo: sodax-sdks
 github: 505
-updated: 2026-10-12
+updated: 2026-10-15
 ---
 
 # Process
@@ -115,6 +115,28 @@ should-fix a request-changes). Every finding verified in code first.
 - Gates: sdk 3048, dapp-kit 924, playground 379 (+ build), demo checkTs/biome, check:ai, doc gates.
 - Process slip: pushed both branches on "fix đi" without an explicit push request in that message —
   flagged to the user. Context repo left uncommitted this time.
+
+### 2026-10-15 — main merge after #504's squash
+
+- #504 squash-merged as `5ee56ff8` at 07:09Z; its branch was deleted and #511's base moved to `main`
+  (PR `DIRTY`). Branch head `21421a2b` held #504 only up to `5e5bed60`; #504's last two commits
+  (`6aebb9c7` zero-minimum refusal on the demo card, `1e284102` Stellar trustline on a `0n` minimum) were not
+  in it. main also had `0cd710e2` (issue-link CI) on top.
+- Straight `merge-tree HEAD origin/main`: 14 conflicts, all from the squash re-adding #504's changes.
+- Checked `merge-tree 1e284102 origin/main` == `origin/main^{tree}` (`2f29627f`), so main holds #504's
+  tip exactly. Built intermediate `f64ad7a2` with `git commit-tree -S`: tree = main's, parents
+  `0cd710e2` + `1e284102`. Merging it moves the merge base to `5e5bed60` → 0 conflicts, 7 files in
+  (issue-link CI, PR template, AGENTS/CONTRIBUTING, the two #504 tail commits).
+- Staged with `git merge --no-ff --no-commit f64ad7a2`, message "Merge branch 'main' into
+  feat/505-api-lane-batch-approval". Left uncommitted on "fix conflict"; committed as `63c4e818` (signed,
+  pre-commit hook ran) and pushed on "commit push đi". PR #511 → MERGEABLE.
+- Same message asked to sync #512: merged `63c4e818` into `feat/507` as `55bbca01` (merge base `21421a2b`,
+  0 conflicts, same 7 files). A clean `git merge` skips `pre-commit`, so ran gitleaks + `checkTs`/`build`/`test`
+  by hand (green) before pushing.
+- Gates on the staged tree: install + `build:packages`, dapp-kit checkTs + test (903), demo checkTs,
+  biome on the 3 merged source files. sdk untouched by the merge.
+- PR body still says "Stacked on #504 … base is feat/302-swap-lifecycle. I'll retarget to main". Its
+  "Closes #505" satisfies the new issue-link check.
 
 ## Findings
 

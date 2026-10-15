@@ -4,7 +4,7 @@ repo: sodax-sdks
 github: 507
 status: Draft — PR #512, head a3edfe01 (review fixes in); mainnet matrix pending
 next: Mainnet rows on the demo preview (PR #512 body); retarget after #511 merges (merge, never rebase)
-updated: 2026-10-12
+updated: 2026-10-15
 tags: [eip-5792, atomic-batch, bridge, leverage-yield, dapp-kit, demo]
 related_issues: [gh-505, gh-302, gh-506]
 ---
@@ -22,6 +22,13 @@ SDK: `bridgeWithApproval` / `getApprovalStrategy` (bridge), `vaultSwapWithApprov
 bridge dialog + LY deposit on one button with an unconfirmed-batch hold. Docs + skills. Detail: process.md.
 
 ## Blocked on
+
+- 2026-10-15: synced with #511 after #504's squash: merge `55bbca01` (0 conflicts), gates green, pushed.
+  Base still `feat/505-api-lane-batch-approval`. Detail: `../gh-505-*/process.md` § 2026-10-15.
+
+0. 2026-10-14: merging #511 (with #504 `d2cc44f7`) in is pushed as merge `7c54c819`
+   (worktree `../sodax-sdks-512`). Two conflicts: `SwapService.ts` import (keep both `confirmApproval` and `confirmApprovalBatch`) and
+   `apps/demo/AGENTS.md` (take #504's new swap-card bullet, keep this branch's bridge/LY bullet).
 
 1. gh-505 § A1/A2 (the helper this PR reuses).
 2. **Merge** waits on #504 and PR A.
