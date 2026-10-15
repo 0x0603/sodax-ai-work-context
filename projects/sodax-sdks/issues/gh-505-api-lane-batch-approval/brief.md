@@ -2,8 +2,8 @@
 type: brief
 repo: sodax-sdks
 github: 505
-status: Open — PR #511, base main since #504 squash-merged (2026-10-15); head 63c4e818, MERGEABLE
-next: Fix the PR body's "stacked on #504" paragraph if the user agrees; mainnet rows on the playground preview
+status: Open — PR #511, base main; head a16b7f57 (review 6191191947 fixed), MERGEABLE
+next: PR body "stacked on #504" paragraph if the user agrees; mainnet rows on the playground preview
 updated: 2026-10-15
 tags: [eip-5792, atomic-batch, swaps-api, dapp-kit, playground]
 related_issues: [gh-507, gh-302, gh-506]

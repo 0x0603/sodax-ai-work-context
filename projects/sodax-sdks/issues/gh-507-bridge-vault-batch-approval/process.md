@@ -50,6 +50,29 @@ updated: 2026-10-15
 
 - 2026-10-15: merged #511's main sync `63c4e818` as `55bbca01`; see `../gh-505-api-lane-batch-approval/process.md` § 2026-10-15.
 
+- 2026-10-15: R0bi7 dual-agent review issuecomment-6191194626 (on `55bbca01`), Medium: an unconfirmed bridge / vault
+  batch that lands later has no SDK resume. Verified: `BridgeService.ts:698` and `LeverageYieldService.ts:1452` return
+  the `ATOMIC_BATCH_UNCONFIRMED` error before `completeBridge` / `completeVaultSwap`; no `resumeBatchId` on either
+  API; nothing relays a deposit nobody submits (`fallbackBridgeSteps` comment); demo only offers "I checked — start
+  over" (`BridgeDialog.tsx:255`, LY `page.tsx:829`) → a second deposit. Not fund loss: anyone can relay by hash, and
+  `confirmApprovalBatch`, `submitTransaction`, `leverageYield.notifySolver` are public, but undocumented. Same gap
+  as swap's d2cc44f7 (fixed in #504). Proposed: fix in #512 by mirroring `resumeBatchId` / `resumeBatchCallCount`.
+- 2026-10-15: fixed (uncommitted, worktree `../sodax-sdks-512` on `55bbca01`), mirroring swap's resume:
+  - SDK: `resumeBatchId` / `resumeBatchCallCount` on `BridgeWithApprovalParams` and `VaultSwapWithApprovalParams`;
+    private `resumeAtomicBatch` in both services: `confirmApprovalBatch` → `submitTransaction` by hash →
+    `waitUntilIntentExecuted`; LY then `EvmSolverService.getIntent(hub tx)` + `notifySolver`. Skips strategy and
+    backend submit-tx (relayData is lost). Relay failures carry `srcTxHash`; LY solver/intent-read failures also
+    `dstTxHash` (matches #509's direction). TSDoc on both `*WithApproval` methods.
+  - Tests: bridge +10, LY +11 (20 fail on the old services); dapp-kit hook pass-through +1 each.
+  - Demo: hold is now `{ batchId, callCount, order|payload(+summary) }`; "Check the batch again" resumes through
+    `useWalletProvider({ xChainType: 'EVM' })`; releases on success or `atomic-batch-failed`; "start over" stays.
+  - Docs: BRIDGE.md resume section + example, LEVERAGE_YIELD.md, regenerated pages, demo AGENTS.md, skills
+    (error-codes row, sdk bridge/LY features, public-api comment, dapp-kit bridge/LY features).
+  - Gates: sdk checkTs + test 3087, dapp-kit checkTs + test 931, demo checkTs, `pnpm lint`, check:ai, docs-pages,
+    doc-links, docs-nav, ai-dev-files, sdk knip, circular-deps, docs-drift vs `origin/feat/505` (throwaway tree).
+  - Committed `57ac69f5` (signed, hook ran), merged #511's `a16b7f57` as `b0a4f33a` (0 conflicts, playground only;
+    gitleaks + checkTs/build/test by hand), pushed. Review pass added the `confirmApprovalBatch` note to the error-codes row.
+
 ## Findings
 
 ## Changes During Work

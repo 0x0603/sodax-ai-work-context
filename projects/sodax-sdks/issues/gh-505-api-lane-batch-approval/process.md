@@ -138,6 +138,19 @@ should-fix a request-changes). Every finding verified in code first.
 - PR body still says "Stacked on #504 … base is feat/302-swap-lifecycle. I'll retarget to main". Its
   "Closes #505" satisfies the new issue-link check.
 
+- Review issuecomment-6191191947 (R0bi7 dual-agent, on `63c4e818`), fixed by a subagent, uncommitted in
+  `../sodax-sdks-511` (playground only; 8 files):
+  - Medium, correct and wider than reported: `reviewFromActivity` rebuilds a review without `partnerFee`; a failed
+    recheck clears `pendingBatch` but not `review`, so confirm could sign a fee-less swap. Also reachable in-session
+    (close the dialog while held → the restore effect swaps in the rebuilt snapshot). Fix: `ReviewSnapshot.restored`;
+    `confirm` refuses it; `reviewAgain()` + a "Review again" button rebuild from the form with the current fee.
+  - Low, correct: `reviewMessage` returned on `held` before the storage check, and the slot is never empty while held
+    (`UNCONFIRMED_BATCH_MESSAGE`), so the warning must outrank the error: `heldBatchMessage(error, saved)`.
+  - Tests 386 → 389 (pure lib tests; the hook guard and button have no test — playground has no DOM test setup).
+    Gates: playground checkTs, test, build, biome, check:ai-dev-files. AGENTS.md updated.
+  - Reviewed by the main session (one signing path: `confirm`; `ConfirmAction` branch order keeps held/tracking
+    flows intact). Committed `a16b7f57` (signed, hook ran) and pushed on "commit push".
+
 ## Findings
 
 ## Changes During Work

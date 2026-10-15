@@ -3,7 +3,7 @@ type: brief
 repo: sodax-sdks
 github: 507
 status: Draft — PR #512, head a3edfe01 (review fixes in); mainnet matrix pending
-next: Mainnet rows on the demo preview (PR #512 body); retarget after #511 merges (merge, never rebase)
+next: Mainnet rows on the demo preview; retarget after #511 merges
 updated: 2026-10-15
 tags: [eip-5792, atomic-batch, bridge, leverage-yield, dapp-kit, demo]
 related_issues: [gh-505, gh-302, gh-506]
