@@ -72,6 +72,7 @@ updated: 2026-10-15
     doc-links, docs-nav, ai-dev-files, sdk knip, circular-deps, docs-drift vs `origin/feat/505` (throwaway tree).
   - Committed `57ac69f5` (signed, hook ran), merged #511's `a16b7f57` as `b0a4f33a` (0 conflicts, playground only;
     gitleaks + checkTs/build/test by hand), pushed. Review pass added the `confirmApprovalBatch` note to the error-codes row.
+  - Synced #511's analytics fix `472e45c0` as merge `6dff5bc8` (hook ran), pushed.
 
 ## Findings
 

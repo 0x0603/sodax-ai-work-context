@@ -150,6 +150,10 @@ should-fix a request-changes). Every finding verified in code first.
     Gates: playground checkTs, test, build, biome, check:ai-dev-files. AGENTS.md updated.
   - Reviewed by the main session (one signing path: `confirm`; `ConfirmAction` branch order keeps held/tracking
     flows intact). Committed `a16b7f57` (signed, hook ran) and pushed on "commit push".
+- Review issuecomment-6191980585 (on `a16b7f57`), Low, analytics only, verified: a recheck-confirmed batch never set
+  `submittedPair` nor fired `trackSwapSubmitted`, and `clearActivity` kept the old pair, so settlement could report
+  under an earlier swap's pair. Fixed in `472e45c0`: pair set on every broadcast (incl. the recovered batch), reset in
+  `clearActivity`. No hook test (no DOM setup); playground checkTs + 389 tests + biome; hook ran; pushed.
 
 ## Findings
 

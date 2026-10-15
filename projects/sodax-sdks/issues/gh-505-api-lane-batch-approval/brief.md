@@ -2,7 +2,7 @@
 type: brief
 repo: sodax-sdks
 github: 505
-status: Open — PR #511, base main; head a16b7f57 (review 6191191947 fixed), MERGEABLE
+status: Open — PR #511, base main; head 472e45c0 (reviews 6191191947 + 6191980585 fixed); #512 synced (6dff5bc8)
 next: PR body "stacked on #504" paragraph if the user agrees; mainnet rows on the playground preview
 updated: 2026-10-15
 tags: [eip-5792, atomic-batch, swaps-api, dapp-kit, playground]
