@@ -2,7 +2,7 @@
 type: process
 repo: sodax-sdks
 github: 519
-updated: 2026-10-14
+updated: 2026-10-17
 ---
 
 # Process
@@ -75,8 +75,9 @@ updated: 2026-10-14
 
 ### 2026-10-14 — scope revision (approach + feasibility per item)
 
-- The user rejected the size-based scope: "bạn phải suy nghĩ được cách làm và khả thi thì mới show lên
-  cho tôi chứ?". Every item was reworked with an approach checked in code (`77281f0c`, via `git archive`).
+- The user rejected the size-based scope: an item should be shown only once its approach is worked out
+  and checked for feasibility. Every item was reworked with an approach checked in code (`77281f0c`,
+  via `git archive`).
 - Probes:
   - CommonJS `require()` of the sdk ESM build + `new Sodax()` (Node 22.15) ✓;
   - an ESM-only `package.json` ✓;
@@ -98,6 +99,177 @@ updated: 2026-10-14
   - the backend has tested Swagger specs.
 - Result: 260 points (P0 116, P1 92, P2 52), down from 348. Dropped: unsigned-tx-first (exists),
   viem-style actions, bigint, Injective trim, ABI fragments. ~18 points ship non-breaking in 2.x.
+
+### 2026-10-16 — align the paste-ready input with the scope
+
+- #519 checked: no comments, body still the template, no sub-issues, last update 2026-10-13.
+- `ideas.md` §1 predated the verified scope and still carried dropped ideas (unsigned-tx first,
+  ABI fragments, bigint, Injective trim, viem-style actions, OpenAPI client, one hook family,
+  tsup → tsdown, retiring `@sodax/libs`). At the user's request it is now one table (package · what ·
+  when), every row mapped to a `plan-v3-scope.md` item. Unscoped ideas were removed too (`@sodax/widget`,
+  agent-framework adapters, snippet typecheck for all packages, env id in query keys).
+- PR 504 merged (`5ee56ff8`, 2026-10-15). The user's 2.x issues #505 / #507 / #529 / #531 / #532 cover
+  part of E5.1 / E5.4; the lifecycle and batching rows say so. `plan-v3-scope.md` updated to match.
+- Then, at the user's request, rows numbered and ranked by an importance score /10 (weight impact first,
+  then correctness / security, then DX; breaking items nudged up because 3.0 is their window).
+
+### 2026-10-16 — per-item research, work order and sub-issues
+
+- **The request:** research how each of the 36 items is done; order them so nobody steps on anyone
+  and every dependency is explicit; split the big ones into sub-issues.
+- **Fan-out.** Four background research agents, one per cluster, all read-only:
+  - each worked on an extracted `git archive cc053fef` tree in the scratchpad;
+  - each probed only in its own scratch dir, with npm `--ignore-scripts` and never pnpm;
+  - no GitHub writes.
+
+  The checkout and the worktrees were not touched; the main clone stayed on `main` at cc053fef.
+- **In-flight work mapped from `gh pr diff --name-only`:**
+  - #534 Tron + MPC settle; it replaced #372;
+  - drafts #497 XRP and #498 Monad (stacked on #497); #95 Aleo; #163 wallet-hw;
+  - #483 (`!`, conflicting); #488; #501;
+  - the user's #509, #511, #512, #523; issues #529, #531, #532, #533.
+- **Release flow read.** One forward line, `main` → `release`, with the four checks in `release.mjs`.
+  The `PACKAGES` list is hard-coded in three places.
+- **Verification.** About 40 load-bearing claims re-checked by hand (`plan-v3-order.md` §9). Two
+  probes went to live endpoints:
+  - CORS preflight: the relay allow-list excludes `x-request-id`; swaps echoes it;
+  - `GET /v2/be/config/all`: 200, version 2020008.
+
+  Corrections found: `spoke.bitcoin` 21 (not 20); `walletProvider` in 55 hook files (not ~70); Aleo
+  WASM 55 MB (not 43).
+- **Reconciliation across clusters:**
+  - wallet boundary H (no `./react` in chain packages);
+  - one `WalletProviderSource`: D's T22.1 defines it, with C's `subscribe()`;
+  - viem peers: sdk `^2.29.2`, wallet-sdk-react `>=2.43` (wagmi v3);
+  - the T4.2 ↔ T13.3 cycle broken: T4.2 first, then T13.3.
+- **Lead-added gaps:**
+  - T13.5: dapp-kit chain hooks use the spoke getters;
+  - T17.3 and T17.7: B/C codemod transforms;
+  - T19.6: backend log capture;
+  - T7.0: TS 5.9 and a current viem.
+- **Synthesis data.** `artifacts/v3-probes/subissues.psv`, validated by `check.py`: no unknown
+  dependencies, no backwards waves, no cycles. `gen.py` produces the critical path and the totals.
+- **Totals.** 413 pts across 148 sub-issues; 229 required for 3.0.0; 17 breaking (62 pts).
+- **Files:**
+  - `plan-v3-order.md`, `plan-v3-subissues.md`;
+  - `research/*.md` (the agent reports, with reconciliation headers);
+  - `artifacts/v3-probes/`.
+- **Not done.** Nothing filed on GitHub: #519 is R0bi7's board. Nothing posted, no icon-project code
+  changed.
+
+### 2026-10-16 — feasibility check
+
+- **Question:** the user asked whether the plan is feasible.
+- **New facts:**
+  - downstream repos construct `SpokeService` / `EvmHubProvider` directly 0 times;
+  - sdks `main` received 135 non-merge commits in 90 days, mostly from three people;
+  - remote branches `feat/ton-mpc-integration` and `feat/zcash-mpc-integration` exist besides the
+    open chain PRs.
+- **Written up in `plan-v3-order.md` §10:** proven vs code-read vs unverified, capacity (5–8 months
+  alongside feature work), coordination risk, and a de-risking order.
+- **Added rule:** CJS consumers use only the root entry in 2.x, to avoid the dual-package hazard.
+
+### 2026-10-16 — dapp-kit packaging and install matrix
+
+- **Question:** should dapp-kit be split into many packages, and how can users of the API or of the
+  SDK install only what they need?
+- **dapp-kit at cc053fef:**
+  - dependencies are `@sodax/sdk` and viem;
+  - 88 API-lane hook files go through `sodax.api.*` / `sodax.backendApi.*`;
+  - 81 of them import types (and `isAuthFailure`) from `@sodax/sdk`;
+  - the leverage-yield and backend clients exist only inside the sdk.
+- **Measured (npm, `--ignore-scripts`):**
+  - swaps-api + bridge-api: 5.2 MB;
+  - the same plus react-query, react and react-dom: 21 MB, 0 advisories.
+- **Recommendation** (`plan-v3-order.md` §11):
+  - split only along install-weight axes (SDK vs API, chain, wallet); features stay subpaths;
+  - add an sdk-free API-hooks package on `@sodax/api`, re-exported by dapp-kit, so nothing breaks;
+  - move chain-specific dapp-kit hooks to per-chain subpaths in 3.0;
+  - per-persona install fixtures in CI;
+  - an install matrix in the docs.
+- **New sub-issues (proposed):** T28.4, T13.6–T13.10, T24.3. Totals are now 432 / 155; 231 are
+  required for 3.0.
+
+### 2026-10-16 — parent issues
+
+- **Request:** the user asked for the parent issues.
+- **Result:** 30 parents (items with two or more sub-issues) and 7 single-PR items, generated from
+  `subissues.psv`.
+- **Parent-level "waits on":** derived from the sub-issue dependencies, each with the first
+  sub-issue pair.
+- **Paste-ready drafts:** titles and bodies in `parent-issues.md`, with no context-repo paths.
+- **Not filed:** #519 is R0bi7's board; filing waits for the user.
+- **Later the same day:** at the user's request, a **Why it matters** benefit line for all 37 issues
+  (30 parents + 7 single PRs), a summary table, and paste-ready drafts for the single-PR items.
+
+### 2026-10-16 — client usage per issue
+
+- **Request:** the user asked, for every issue, what users get once it lands and how a client uses it.
+- **Before examples:** checked against cc053fef — `SodaxProvider({ config })`,
+  `SodaxWalletProvider({ config })`, `useQuote({ params: { payload } })`,
+  `useSwap()({ params, walletProvider })`, `useWalletProvider({ xChainId })`,
+  `getSwapQuoteQueryOptions({ sodax, payload })`, `useSwapLifecycle(...)`,
+  `new SwapsApi({ baseUrl, timeout, apiKey })`, `PrivateKeyEvmWalletConfig`, `sodax.initialize()`,
+  `ChainKeys.SOLANA_MAINNET`, `privy(options)`.
+- **After examples:** the names the research proposes, marked *(proposed)* until the ADRs.
+- **Written to** `client-usage.md`: an index (auto / opt-in / 3.0 / internal / later) and one section
+  per issue.
+
+### 2026-10-16 — a better wallet-sdk-react
+
+- **Question:** is there a better approach than plain adapters, e.g. for wallet-sdk-react?
+- **Code facts:**
+  - `SodaxWalletProvider.tsx:5-10` statically imports the EVM, Solana and Sui providers, and
+    `chainRegistry.ts` imports every chain;
+  - only EVM, Solana and Sui need React providers;
+  - sodax-frontend (54 files) and intents-whitelabel (27) use only SODAX hooks, with 0 direct imports
+    of wagmi, `@solana/wallet-adapter-react` or `@mysten/dapp-kit`.
+- **Recommendation** (`plan-v3-order.md` §12):
+  - lazy chain adapters (T3.9): all-chain apps start near the EVM size (124 KB vs 2.6 MB, an estimate
+    from measured entries; not prototyped);
+  - a headless `createSodaxWallets()` (T3.8): wagmi-style; the object is the `WalletProviderSource`
+    and replaces the singletons and fallback store;
+  - later: SSR cookies for every chain (T3.11) and mock adapters (T3.12);
+  - not now: bridges from other wallet stacks (no consumer yet), Reown AppKit (weight), a Wallet
+    Standard rewrite (stays in T31/T32).
+- **Gap found:** wallet-sdk-react's build switch was not covered by any sub-issue; added as T3.10
+  (192 `@/` aliases).
+- **Totals:** 448 pts / 160 sub-issues; 234 required for 3.0.
+
+### 2026-10-16 — every package rethought
+
+- **Request:** research and rethink all packages.
+- **Facts gathered:**
+  - workspace manifests and dependency graph;
+  - `@sodax/assets` is private and unpublished;
+  - `@sodax/libs` has 3 Turbopack-workaround subpaths, imported by the sdk, wallet-sdk-core and
+    wallet-sdk-react (3 files each);
+  - downstream imports: sdk 122/97/22, dapp-kit 42/0/18, wallet-sdk-react 51/0/26, types 3/3/14, and
+    0 for wallet-sdk-core, swaps-api, bridge-api and libs;
+  - npm weekly downloads (some transitive);
+  - wallet-sdk-react builds each chain's signer from wallet-sdk-core.
+- **Result:** `plan-v3-packages.md` — principles, the target map, dependency picture, persona
+  matrix, peer comparison, timeline, risks.
+- **Changed decisions:**
+  - the API hooks go to `@sodax/api/react` (renumbered T13.6–T13.9 → T28.5–T28.8);
+  - wallet-sdk-core folds into `@sodax/sdk/wallet` with a shim (T6.7, new);
+  - `@sodax/libs` is retired into chain-stacks and chain-injective (T1.30, new);
+  - kept separate on purpose: dapp-kit vs wallet-sdk-react, types vs api, api vs sdk.
+- **Totals:** 453 pts / 162 sub-issues; 239 required for 3.0; 19 breaking.
+
+### 2026-10-16 — final plan
+
+- **Request:** the user asked for the final plan.
+- **Result:** `plan-v3-final.md`, one entry point:
+  - outcome numbers;
+  - the package map and its rules;
+  - delivery model;
+  - roadmap by wave;
+  - the issue table generated from `subissues.psv` (30 parents + 7 singles, with outcomes);
+  - decisions with recommendations;
+  - coordination asks;
+  - totals and capacity, feasibility, next steps.
+- **Router:** `brief.md` now points to it first. The other plan files remain the detail.
 
 ## Findings
 

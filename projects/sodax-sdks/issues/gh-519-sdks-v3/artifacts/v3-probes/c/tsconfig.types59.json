@@ -1,0 +1,6 @@
+{
+  "extends": "/private/tmp/claude-501/-Users-sangnguyen-Documents-GitHub-sodax/c49067b2-d9ba-4d71-b8c3-4478532730a8/scratchpad/src-cc053fef/packages/types/tsconfig.json",
+  "include": ["/private/tmp/claude-501/-Users-sangnguyen-Documents-GitHub-sodax/c49067b2-d9ba-4d71-b8c3-4478532730a8/scratchpad/src-cc053fef/packages/types/src"],
+  "exclude": ["/private/tmp/claude-501/-Users-sangnguyen-Documents-GitHub-sodax/c49067b2-d9ba-4d71-b8c3-4478532730a8/scratchpad/src-cc053fef/packages/types/src/**/*.test.ts"],
+  "compilerOptions": { "noEmit": true, "rootDir": "/private/tmp/claude-501/-Users-sangnguyen-Documents-GitHub-sodax/c49067b2-d9ba-4d71-b8c3-4478532730a8/scratchpad/src-cc053fef/packages/types/src", "typeRoots": ["/private/tmp/claude-501/-Users-sangnguyen-Documents-GitHub-sodax/c49067b2-d9ba-4d71-b8c3-4478532730a8/scratchpad/agent-C/wsr-v3/node_modules/@types"], "types": ["node"], "baseUrl": "/private/tmp/claude-501/-Users-sangnguyen-Documents-GitHub-sodax/c49067b2-d9ba-4d71-b8c3-4478532730a8/scratchpad/agent-C/wsr-v3", "paths": { "*": ["/private/tmp/claude-501/-Users-sangnguyen-Documents-GitHub-sodax/c49067b2-d9ba-4d71-b8c3-4478532730a8/scratchpad/agent-C/wsr-v3/node_modules/*", "/private/tmp/claude-501/-Users-sangnguyen-Documents-GitHub-sodax/c49067b2-d9ba-4d71-b8c3-4478532730a8/scratchpad/agent-C/wsr-v3/node_modules/@types/*"] } }
+}

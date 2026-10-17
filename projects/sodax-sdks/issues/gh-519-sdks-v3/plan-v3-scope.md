@@ -2,12 +2,18 @@
 type: plan
 repo: sodax-sdks
 github: 519
-updated: 2026-10-14
+updated: 2026-10-16
 tags: [v3, scope, estimate, story-points, work-breakdown, feasibility]
 related_issues: [gh-302, gh-456]
 ---
 
 # GH-519 · v3 scope: verified approach, feasibility, packages, points
+
+> **Superseded where it conflicts (2026-10-16).** `plan-v3-order.md`, `plan-v3-subissues.md` and
+> `research/*.md` re-research every item against cc053fef. Each research file ends with a
+> corrections list against this scope. Examples: there are 14 error codes, not 26; E5.2 and E7.3 are
+> additive; E3.3 ships in 2.x; chain packages have no `./react`; the plugin option is `plugins`; viem is
+> `>=2.43` for wagmi v3. Keep this file as the 2026-10-14 record.
 
 Every item below records:
 
@@ -125,7 +131,7 @@ This replaces the first version of this file, whose points came from LOC counts 
 
 | ID | Approach | Evidence | Pts | Breaking | Tier |
 | --- | --- | --- | --: | :-: | :-: |
-| E5.1 | Lifecycle / progress / resume engine around `relayTxAndWaitPacket` (every flow uses it) plus `getSubmitTxStatus` for swap / bridge / leverage. Per-flow step maps, plus dapp-kit hooks | swap 2, MM 4, bridge 1, staking 5, migration 4, leverage 2, dex 6 calls. Builds on PR 504 (open, mergeable) | 13 | – | P1 |
+| E5.1 | Lifecycle / progress / resume engine around `relayTxAndWaitPacket` (every flow uses it) plus `getSubmitTxStatus` for swap / bridge / leverage. Per-flow step maps, plus dapp-kit hooks | swap 2, MM 4, bridge 1, staking 5, migration 4, leverage 2, dex 6 calls. Builds on PR 504 (merged 2026-10-15, `5ee56ff8`) | 13 | – | P1 |
 | E5.2 | Map `SwapsApiError` / `BridgeApiError` (5 transport codes) into `SodaxError` | `SodaxError` already carries 26 codes + feature + phase (`errors/codes.ts`) | 3 | ✔ (API clients) | P1 |
 | E5.3 | Thread `signal` into fetch and polling loops; add a correlation-id header and put it in the error context | viem actions take no `AbortSignal`, so chain RPC calls stay uncancellable | 3 | – | P1 |
 | E5.4 | EIP-5792 batching for every feature | after PR 504 | 5 | – | P2 |
@@ -258,14 +264,14 @@ every install, along with 2 RPC calls per Solana deposit.
    - E4.1 PancakeSwap.
 4. **E3.1 core and entries, E3.3 types split, E1.2 ESM-only, E1.6 peers, E6.5 wagmi v3.**
 5. **API freeze, then E10.1–10.3 and E9.1.**
-6. **3.0 RC, then E10.5 downstream.** E5.1 lifecycle can start as soon as PR 504 merges.
+6. **3.0 RC, then E10.5 downstream.** E5.1 lifecycle can start any time: PR 504 merged on 2026-10-15.
 
 ## Remaining risks
 
 These are cost and coordination risks; feasibility itself is no longer in question.
 
-- **In-flight work in v2 shape adds port cost:** PR 504 lifecycle / batching, PR 372 Tron, PR 95 Aleo.
-  Agree a cutoff.
+- **In-flight work in v2 shape adds port cost:** PR 372 Tron, PR 95 Aleo, and the 2.x lifecycle /
+  batching issues (#505, #507, #529, #531, #532). PR 504 merged on 2026-10-15. Agree a cutoff.
 - **Remote config by default (E3.2)** makes startup depend on the backend. Needs a product decision.
 - **ESM-only:** sodax-backend needs either our `typesVersions` (zero change for it) or `module: nodenext`.
   Keep `apps/node-cjs` as the CI smoke test.

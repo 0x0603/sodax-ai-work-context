@@ -2,7 +2,7 @@
 type: research
 repo: sodax-sdks
 github: 519
-updated: 2026-10-14
+updated: 2026-10-16
 tags: [v3, idea-capture, lightweight, bundle-size, dx, ai, architecture]
 related_decisions: [sodax-sdks/0003-progress-reporting-vocabulary]
 related_issues: [gh-302, gh-456]
@@ -16,90 +16,63 @@ related_issues: [gh-302, gh-456]
 
 ## 1. Paste-ready input
 
-Format follows the issue: bullets per package, no details, name prefix. Lightweight items first in
-every section.
+One table, sorted by importance score (the user asked for a ranking over per-package grouping). Aligned
+with `plan-v3-scope.md` on 2026-10-16, then corrected the same day against the per-item research
+(`plan-v3-order.md`): every row maps to a scoped item, and the ideas the scope
+dropped are gone (reasons in its § Dropped). Lifecycle and batching rows reflect the user's own 2.x
+issues (#505, #507, #529, #531, #532).
 
 ```markdown
-**0x0603** — baseline measured on published 2.2.0 (esbuild, minified, browser): `new Sodax()` = 1.27 MB gzip;
-importing one helper from `@sodax/sdk` = 832 KB gzip (tree-shaking does not work); minimal swap dapp
-(dapp-kit + wallet-sdk-react) = 3.0 MB gzip; `npm i @sodax/sdk` = 412 packages / 777 MB. Lightweight first.
-Measured v3 what-ifs for an EVM-only app (chain plugins, client-first actions, no PancakeSwap): swap dapp 3.0 MB →
-~0.2 MB gzip (0.6 MB with WalletConnect); `npm i @sodax/sdk` 777 MB / 35 advisories → ~85 MB / 0; dapp install
-1.8 GB / 81 advisories → 108 MB / 0; Node import 0.9 s → 0.1 s.
+**0x0603** — lightweight first. Measured on published 2.2.0; the v3 column is a measured what-if for an EVM-only app.
 
-## `@sodax/sdk`
-- [0x0603] Chain plugins: core = hub + EVM (viem) only; each non-EVM chain is an opt-in package with its chain lib, never in core deps (EVM-only what-if: `new Sodax()` −83% gzip, install 777 → ~85 MB; cf. LI.FI SDK v4 `@lifi/sdk-provider-*`)
-- [0x0603] Replace the eager `Sodax` god object with client-first standalone actions (`getQuote(client, …)`, viem / LI.FI v4 / Aave style); all-in-one facade only as opt-in convenience
-- [0x0603] Make tree-shaking work: no import-time side effects (`initEccLib`), unbundled multi-entry ESM dist, pure top-level constants
-- [0x0603] Drop the PancakeSwap SDKs (358 MB of our install — six nested viem copies — plus Solana web3.js v1 and 20 advisories) — vendor the CL math + ABI fragments we use
-- [0x0603] Replace thinly-used heavy libs: icon-sdk-js → tiny JSON-RPC client, stellar-sdk → `/minimal` entry, Solana web3.js v1 (critical fixes only) + anchor → @solana/kit + Codama client (70 → 33 MB install, 9 → 0 advisories), injective sdk-ts → minimal cosmjs pieces, bignumber.js → bigint
-- [0x0603] viem / shared libs as peer dependencies with ranges, not exact-pinned deps (viem installs 8× / 355 MB with the sdk, 15× / 669 MB with the React layer; our exact 2.29.2 pin also blocks the `ws` fix for consumers)
-- [0x0603] ESM-only (engines already Node ≥ 22.12, `require(esm)` works) — no CJS twin, no duplicate `.d.cts`
-- [0x0603] Polyfill-free core (Uint8Array / WebCrypto, no global `Buffer`) → works in React Native, Workers, Bun, Deno without config
-- [0x0603] Lazy-load chain modules on first use (Node import today 0.9–2 s, ~260 MB RSS → ~0.1 s / 75 MB for an EVM core; backend services pay it to read `ChainKeys`)
-- [0x0603] Remote config on by default (token / chain lists out of the bundle; `initialize()` is a no-op today)
-- [0x0603] Ship only the ABI fragments we call (ABIs are ~184 KB of the dist)
-- [0x0603] Unsigned-tx first: every action can return a prepared tx/intent to sign anywhere (wallet, Safe, MPC, backend); execution helpers on top
-- [0x0603] SDK-level lifecycle / progress events + resumable flows for every multi-step action (generalize `useSwapLifecycle`; cf. LI.FI `executeRoute` / `resumeRoute`, Across `onProgress`)
-- [0x0603] One typed error model end to end: `Result<T, SodaxError<Code>>`, API clients included (cf. Aave `ResultAsync` + typed errors)
-- [0x0603] Signer-only wallet interface (address / sign / send); receipt polling, ATA lookups, tx building move into chain modules (cf. Relay `AdaptedWallet`)
-- [0x0603] Chain plugin contract (keys + spoke + wallet adapter + raw-tx schema in one place) — Stacks support is spread over 67 files in 9 packages
-- [0x0603] `AbortSignal` on every async call (quotes, status polling, waits) — React Query already hands one to every queryFn
-- [0x0603] Correlation id per user action, sent on every API call and carried in errors (support / debugging across SDK → API → relay)
-- [0x0603] EIP-5792 batching (approve + action in one wallet prompt) as the default EVM path for every feature, not only swaps
-- [0x0603] `testing` entry: typed mock wallet providers + API mocks for integrators
-- [0x0603] v2 → v3 codemods + a short compat window
+| | Today | v3 |
+| --- | --- | --- |
+| Minimal swap dapp (gzip) | 3.0 MB | ~0.2 MB (0.6 MB with WalletConnect) |
+| `npm i @sodax/sdk` | 777 MB · 35 advisories | ~85 MB · 0 |
+| dapp-kit + wallet-sdk-react install | 1.8 GB · 81 advisories | 108 MB · 0 |
+| Node import + `new Sodax()` | 0.9 s | 0.1 s |
 
-## `@sodax/dapp-kit`
-- [0x0603] Per-feature subpath entries; stop `export * from '@sodax/sdk'`; sdk as a peer
-- [0x0603] Query-key factory + `queryOptions()` builders for every read (prefetch, Suspense, SSR hydration), env/instance id in the key (cf. `@wagmi/core/query`)
-- [0x0603] One error model (today: hooks returning `data.ok`, hooks throwing, `mutateAsyncSafe`)
-- [0x0603] Resolve wallet provider + address from context instead of threading `walletProvider` through every mutation
-- [0x0603] One hook family per action with a transport option, instead of parallel on-chain vs API families (swap / swapsApi, bridge / bridgeApi, leverageYield / leverageYieldApi)
-- [0x0603] Consistent names: `chainKey` / `address` params; specific hook names (`useSwapQuote`, not `useQuote`)
-- [0x0603] Polling presets instead of 52 hard-coded `refetchInterval`s; let `enabled` through
-- [0x0603] `'use client'` entries + SSR-safe providers; `SodaxProvider` accepts an existing instance
-- [0x0603] Lifecycle hooks for every multi-step flow (MM, bridge, vaults), same shape as `useSwapLifecycle`
+Sorted by **Score** = importance out of 10: measured weight impact first, then correctness / security, then DX. Breaking items score a bit higher because 3.0 is their window.
+When: **Now** = non-breaking, ship in 2.x · **Must** = 3.0 lightweight core · **Should** = recommended for 3.0 · **Later** = 3.x
 
-## `@sodax/wallet-sdk-core`
-- [0x0603] One entry per chain, chain libs as optional peers (an EVM-only app should not install Injective / Bitcoin / NEAR / ICON libs)
-- [0x0603] Thin adapters over standards (EIP-1193 / viem WalletClient, Wallet Standard for Solana & Sui) instead of custom providers
-- [0x0603] Move private-key / mnemonic signers to a server-only entry
-- [0x0603] No import-time side effects (`initEccLib`, `ECPairFactory`), no global `Buffer`
-- [0x0603] Dedupe with the sdk (viem chain defs written 3×, ICON interop shim 3×, ICONEX request queue 2×)
-
-## `@sodax/wallet-sdk-react`
-- [0x0603] Build-time chain opt-in: `adapters={[evm(), solana()]}` from subpaths (`xchains/evm` alone = 124 KB gzip vs 2.6 MB for `SodaxWalletProvider`; cf. LI.FI widget v4 `@lifi/widget-provider-*`)
-- [0x0603] wagmi v2 → v3: connector wallet SDKs (MetaMask, Coinbase, WalletConnect…) become optional peers instead of hard deps (wagmi alone: 371 pkgs / 576 MB / 23 advisories → 24 pkgs / 102 MB / 0)
-- [0x0603] Never shadow the app's QueryClient (EvmProvider wraps the whole subtree in its own today); bring-your-own wagmi config
-- [0x0603] wagmi / viem / react-query as peers with ranges
-- [0x0603] No module singletons (global zustand store, static XService instances) → state per provider instance, SSR-safe
-- [0x0603] Typed per-chain account hooks; drop the `X` / `xChainId` naming; one shared config with dapp-kit
-- [0x0603] Embedded / social wallets as adapters on subpaths (Privy pattern, extend to others)
-
-## `@sodax/skills`
-- [0x0603] Generate an API model (api-extractor / TypeDoc JSON) and derive hook index, query-key table, `llms-full.txt` from it — no hand-kept lists
-- [0x0603] `@sodax/mcp`: read tools (quote, status, balances, positions) + build-unsigned-tx tools; never holds keys (LI.FI and Aave ship read-only MCPs that return unsigned txs)
-- [0x0603] Tool schemas generated from our valibot schemas (→ JSON Schema), one source for MCP and agent kits
-- [0x0603] Agent-framework adapters generated from the same tool definitions (Vercel AI SDK tools, Coinbase AgentKit)
-- [0x0603] Pin every distribution channel to the released version; archive the v1 → v2 migration content
-- [0x0603] Typecheck snippets for all packages (today: dapp-kit + wallet-sdk-react only)
-
-## API Packages
-- [0x0603] One `@sodax/api` with subpaths (swaps, bridge, leverage-yield, backend, sponsoring): one transport, one error type; the sdk uses it directly (no wrapper services, no third HTTP stack)
-- [0x0603] Generate clients + schemas from the backend OpenAPI spec
-- [0x0603] Don't bundle `@sodax/types` (each client is ~128 KB min, mostly a duplicated token list); validation schemas optional
-- [0x0603] Exhaustive chain switches (swaps-api raw-tx schema has no BITCOIN branch and falls back to a permissive schema)
-- [0x0603] "API mode" as the lightest integration path: quote + build tx server-side, client only signs (Rango / NEAR 1Click / deBridge pattern)
-
-## Cross-cutting (`@sodax/types`, `@sodax/libs`, repo)
-- [0x0603] Split `@sodax/types` into zero-runtime types + a data package with per-chain entries; `sideEffects: false`; stop inlining it (5 token-list copies in one swap dapp)
-- [0x0603] Drop vendored third-party typings from types (near-api-js 6.7k lines, solana-web3 4k lines)
-- [0x0603] Retire `@sodax/libs` vendoring (its Injective bundle carries a private copy of viem + ethers + axios)
-- [0x0603] tsup → tsdown (tsup is unmaintained)
-- [0x0603] CI budgets per scenario: gzip size via size-limit (LI.FI: quote ≤ 6 kB, EVM provider ≤ 115 kB), install footprint, `npm audit` on a fresh consumer install (35 advisories for the sdk, 81 incl. 1 critical for the React layer; repo `overrides` don't reach consumers)
-- [0x0603] Runtime matrix in CI: Node, Bun, Deno, Workers, React Native, Vite / Next / Turbopack
-- [0x0603] New package idea: `@sodax/widget` — drop-in swap / bridge UI on top of dapp-kit for partners (LI.FI Widget / Relay Kit style)
+| # | Score | Package | What | When |
+| --: | --: | --- | --- | --- |
+| 1 | 10 | `@sodax/sdk` | Chain plugins: core = hub + EVM; each non-EVM chain is an opt-in `@sodax/chain-<name>`; `@sodax/chains-all` for all-chain apps | Must |
+| 2 | 9 | `@sodax/sdk` | Unbundled ESM built with `tsc`, no import-time side effects (`initEccLib`) → one helper import 832 → 37 KB | Now |
+| 3 | 9 | `@sodax/wallet-sdk-react` | Chain adapters `adapters={[evm(), solana()]}`; no global singletons | Must |
+| 4 | 8 | `@sodax/sdk` | ESM-only; viem / wagmi / react-query as peers with ranges | Must |
+| 5 | 8 | `@sodax/sdk` | Vendor the ~1K LOC of PancakeSwap CL math and drop its SDKs (131 MB, 20 advisories); the `Price` / `Token` type swap waits for 3.0 | Now |
+| 6 | 8 | `@sodax/wallet-sdk-core` | Chain wallet providers move into the chain plugins; private-key / mnemonic signers in a server-only entry | Must |
+| 7 | 8 | `@sodax/wallet-sdk-react` | wagmi v3: wallet SDKs become optional peers (576 → 102 MB) | Must |
+| 8 | 7 | `@sodax/sdk` | Lighter chain libs: ICON reads via a small JSON-RPC client, Stellar `/minimal`, Solana instructions without Anchor (the dependency itself goes in 3.0) | Now |
+| 9 | 7 | `@sodax/wallet-sdk-react` | Reuse the app's QueryClient (today `EvmProvider` wraps its own) | Now |
+| 10 | 7 | Cross-cutting | Stop inlining `@sodax/types` (5 token-list copies in one swap dapp) | Now |
+| 11 | 7 | Cross-cutting | CI gates: bundle size, install size, consumer `npm audit`, attw | Now |
+| 12 | 7 | `@sodax/sdk` | Per-feature entries (`@sodax/sdk/swap`, …) next to the `Sodax` facade, which stays | Must |
+| 13 | 7 | `@sodax/dapp-kit` | Per-feature subpaths; sdk as a peer; no `export *` | Must |
+| 14 | 7 | Cross-cutting | Split `@sodax/types` into light entries (chain keys / configs / token lists) | Now |
+| 15 | 6 | `@sodax/sdk` | Polyfill-free core (no `Buffer`) | Must |
+| 16 | 6 | `@sodax/skills` | Update the content to v3 (the `check:ai` suite gates it) | Must |
+| 17 | 6 | Cross-cutting | Migration: codemods, docs, demo apps | Must |
+| 18 | 6 | `@sodax/sdk` | Lifecycle / progress / resume for every flow (swaps-api, bridge, leverage-yield already in progress in 2.x) | Should |
+| 19 | 6 | `@sodax/sdk` | One error shape for API failures (transport code, retryable); `AbortSignal` + correlation id on API calls and polling | Should |
+| 20 | 5 | `@sodax/sdk` | Remote config by default (token / chain lists out of the bundle) — needs a product call | Should |
+| 21 | 5 | `@sodax/dapp-kit` | `queryOptions` builders + query-key factory for every query (8 of 126 today) | Should |
+| 22 | 5 | `@sodax/dapp-kit` | Wallet from context instead of a `walletProvider` argument; one error style instead of three | Should |
+| 23 | 5 | `@sodax/wallet-sdk-core` | Signer-only interface (RPC reads move into the plugins); dedupe chain defs and ICON shims with the sdk | Should |
+| 24 | 5 | API packages | "API mode" docs: server builds the tx, client only signs | Should |
+| 25 | 4 | API packages | BITCOIN branch in the swaps-api raw-tx schema | Now |
+| 26 | 4 | `@sodax/dapp-kit` | Consistent names (`chainKey` / `address`, `useSwapQuote`); `'use client'` entries; `SodaxProvider` accepts an instance | Should |
+| 27 | 4 | `@sodax/skills` | Generate the hook index and query-key table; pin docs and AI channels to the release branch | Should |
+| 28 | 4 | API packages | One `@sodax/api` (swaps + bridge + the sdk's backend client); old packages as re-export shims | Should |
+| 29 | 4 | Cross-cutting | Runtime matrix in CI (Node, Bun, Deno, Workers, React Native, Vite / Next) | Should |
+| 30 | 3 | `@sodax/wallet-sdk-react` | Typed per-chain account hooks; drop the `X` / `xChainId` naming | Should |
+| 31 | 3 | `@sodax/sdk` | EIP-5792 batching for the remaining features; `testing` entry (fake wallets, API mocks); Solana plugin on `@solana/kit` | Later |
+| 32 | 3 | `@sodax/wallet-sdk-core` | Adapters over standards (EIP-1193, Wallet Standard) | Later |
+| 33 | 3 | `@sodax/skills` | MCP-ready tool schemas from valibot for the existing SODAX MCP servers (no third server) | Later |
+| 34 | 3 | API packages | OpenAPI drift gate against our valibot schemas | Later |
+| 35 | 2 | `@sodax/dapp-kit` | `transport` option on quote / swap / status / allowance / approve; polling presets | Later |
+| 36 | 2 | `@sodax/wallet-sdk-react` | Embedded / social wallets as adapters | Later |
 ```
 
 ## 2. Evidence behind the bullets
@@ -212,4 +185,5 @@ Only what is not already in `measurements.md`.
 - Chain usage share (which chains justify being in core vs plugin)? Needs analytics, not code.
 - Partner integration mix: SDK vs Swaps API vs whitelabel? Decides how far "API mode" goes.
 - Any partner on Node < 22.12 or a CJS-only toolchain that `require(esm)` would break?
-- Keep `Sodax` class as a compat facade in v3, or hard break with codemods?
+- `plan-v3-scope.md` keeps the `Sodax` facade (most of v3 becomes additive). Does the team agree, or
+  prefer a hard break with codemods?

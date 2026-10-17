@@ -1,0 +1,15 @@
+{
+  "include": ["src"],
+  "compilerOptions": {
+    "noEmit": true, "lib": ["ESNext", "DOM"], "target": "ES2023", "module": "NodeNext", "moduleResolution": "NodeNext",
+    "importHelpers": true, "skipLibCheck": true, "strict": true, "noUncheckedIndexedAccess": true, "noImplicitOverride": true,
+    "verbatimModuleSyntax": true, "noUnusedLocals": true, "noImplicitReturns": true, "noFallthroughCasesInSwitch": true,
+    "esModuleInterop": true, "resolveJsonModule": true, "allowJs": true, "jsx": "react-jsx",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@sodax/types": ["/private/tmp/claude-501/-Users-sangnguyen-Documents-GitHub-sodax/c49067b2-d9ba-4d71-b8c3-4478532730a8/scratchpad/src-cc053fef/packages/types/src/index.ts"],
+      "@sodax/wallet-sdk-core": ["./stubs/wallet-sdk-core/index.d.ts"],
+      "@injectivelabs/wallet-base": ["./stubs/injective-wallet-base/index.d.ts"]
+    }
+  }
+}
