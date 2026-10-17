@@ -113,7 +113,7 @@ should-fix a request-changes). Every finding verified in code first.
   - demo bridge hold lifted into `BridgeManager` (the dialog unmounts with the source wallet).
   - nits: `ApprovalStrategyErrorCode` comment; Stellar two-step tests for bridge and LY; skip second build.
 - Gates: sdk 3048, dapp-kit 924, playground 379 (+ build), demo checkTs/biome, check:ai, doc gates.
-- Process slip: pushed both branches on "fix đi" without an explicit push request in that message —
+- Process slip: pushed both branches on "fix it" without an explicit push request in that message —
   flagged to the user. Context repo left uncommitted this time.
 
 ### 2026-10-15 — main merge after #504's squash
@@ -129,7 +129,7 @@ should-fix a request-changes). Every finding verified in code first.
   (issue-link CI, PR template, AGENTS/CONTRIBUTING, the two #504 tail commits).
 - Staged with `git merge --no-ff --no-commit f64ad7a2`, message "Merge branch 'main' into
   feat/505-api-lane-batch-approval". Left uncommitted on "fix conflict"; committed as `63c4e818` (signed,
-  pre-commit hook ran) and pushed on "commit push đi". PR #511 → MERGEABLE.
+  pre-commit hook ran) and pushed on "commit and push". PR #511 → MERGEABLE.
 - Same message asked to sync #512: merged `63c4e818` into `feat/507` as `55bbca01` (merge base `21421a2b`,
   0 conflicts, same 7 files). A clean `git merge` skips `pre-commit`, so ran gitleaks + `checkTs`/`build`/`test`
   by hand (green) before pushing.
@@ -154,6 +154,32 @@ should-fix a request-changes). Every finding verified in code first.
   `submittedPair` nor fired `trackSwapSubmitted`, and `clearActivity` kept the old pair, so settlement could report
   under an earlier swap's pair. Fixed in `472e45c0`: pair set on every broadcast (incl. the recovered batch), reset in
   `clearActivity`. No hook test (no DOM setup); playground checkTs + 389 tests + biome; hook ran; pushed.
+
+### 2026-10-16 — R0bi7 review 5537362965 (on `472e45c0`): "No blockers", 2 P2 "worth fixing before merge"
+
+User: fix both P2 before merge. Uncommitted in `../sodax-sdks-511` (10 files).
+
+- P2 fallback signs the pre-approval `intentTx`: real (deadline runs from before the approve prompt; expiry →
+  refund path per playground AGENTS.md, not verified on-chain). Took R0bi7's option 2: `fallbackOnRefusal`
+  defaults to `false` — no batch to send (cannot batch, refused before signing, Sonic hub) rejects with a refusal
+  and sends nothing; `true` keeps the old approve-then-send. Safe: hook not on main, in no tag; only consumer
+  (playground) already passes `false`. Rejected option 1 (rebuild inside the hook): `deadline` is a required field
+  of the body (`backendApiV2.ts:349`), so a rebuild keeps it, and `/swaps/submit-tx` needs the caller's own
+  `intent` + `relayData` (`backendApiV2.ts:614-617`) — a hook-built tx would strand the deposit. Also: SDK
+  `swapWithApproval` rebuilds with the same `params.deadline` (`SwapService.ts:1064`), so R0bi7's "SDK path is
+  safe" is wrong on the deadline. Docs: hook JSDoc + `@example` refusal branch, SWAPS.md (raw lane: create the
+  intent again after a refusal) + regenerated page, 5 skills files. Tests: 4 default cases now assert the
+  refusal, opt-in cases pass `true` (dapp-kit 905).
+- P2 recheck finding a never-landed batch posted no embed `failed` nor `swap_failed`: fixed in `useExecution.ts`
+  (`failed` + `trackSwapFailed(pair, 'signing')` — the phase `confirm` reports for a batch failing there).
+- P3 hoisted constant between imports: moved. P3 strategy resolved twice: deferred (reply in thread).
+- Gates: dapp-kit test + checkTs, playground test (389) + checkTs, biome on changed files, skills check:ai,
+  check:ai-dev-files, check:docs-pages, check:doc-links. `core.bare` false.
+- Re-review before push (user: "review again, push if fine"): fail-closed default, never-resend unchanged, sender
+  checks still before any wallet call, `isAtomicBatchRefusal` matches the hook's own throw. Known minor: on the default
+  refusal the hook has already fetched `/swaps/approve` (pinned first by `_apiKeyWire.test.ts`, which passes `{}` as the
+  wallet), so a non-batch wallet costs one unused plan fetch — same class as the deferred P3. User: no thread replies.
+  Committed `79b8b538` (signed, hook ran, gitleaks clean), pushed. Main 2 commits ahead (CONTRIBUTING, CI), no conflict.
 
 ## Findings
 

@@ -2,11 +2,11 @@
 type: brief
 repo: sodax-sdks
 github: 507
-status: Draft — PR #512, head a3edfe01 (review fixes in); mainnet matrix pending
-next: Mainnet rows on the demo preview; retarget after #511 merges
-updated: 2026-10-15
+status: Draft — PR #512, head 407add8e (review 5539657046 fixed: b7bf1fd3; #511 merged in); replied on the PR
+next: user runs the four mainnet rows on the demo preview (MetaMask, Base); tick them in the PR body
+updated: 2026-10-16
 tags: [eip-5792, atomic-batch, bridge, leverage-yield, dapp-kit, demo]
-related_issues: [gh-505, gh-302, gh-506]
+related_issues: [gh-505, gh-302, gh-506, gh-531, gh-532, gh-533]
 ---
 
 # GH-507 Bridge + vault batch approval · brief
@@ -22,6 +22,9 @@ SDK: `bridgeWithApproval` / `getApprovalStrategy` (bridge), `vaultSwapWithApprov
 bridge dialog + LY deposit on one button with an unconfirmed-batch hold. Docs + skills. Detail: process.md.
 
 ## Blocked on
+
+0. 2026-10-16: R0bi7 review 5539657046 (no P-labels, "nothing fund-unsafe") fixed, uncommitted in
+   `../sodax-sdks-512`. Items 4 (hook) / 5 / 6 / 7 not changed; 4 became issues #531/#532. Detail: process.md § 2026-10-16.
 
 - 2026-10-15: synced with #511 after #504's squash: merge `55bbca01` (0 conflicts), gates green, pushed.
   Base still `feat/505-api-lane-batch-approval`. Detail: `../gh-505-*/process.md` § 2026-10-15.

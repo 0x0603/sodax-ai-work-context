@@ -2,11 +2,11 @@
 type: brief
 repo: sodax-sdks
 github: 505
-status: Open — PR #511, base main; head 472e45c0 (reviews 6191191947 + 6191980585 fixed); #512 synced (6dff5bc8)
-next: PR body "stacked on #504" paragraph if the user agrees; mainnet rows on the playground preview
-updated: 2026-10-15
+status: Open — PR #511, base main; head 79b8b538 (R0bi7 review 5537362965 fixed and pushed); #512 not yet synced
+next: merge #511 into #512 when asked; PR body is stale (stacked-on-#504 line, hook fallback sentence) — update if the user agrees
+updated: 2026-10-16
 tags: [eip-5792, atomic-batch, swaps-api, dapp-kit, playground]
-related_issues: [gh-507, gh-302, gh-506]
+related_issues: [gh-507, gh-302, gh-506, gh-529]
 ---
 
 # GH-505 API-lane batch approval · brief
@@ -21,6 +21,9 @@ unconfirmed-batch hold, docs + skills. Every local gate green except `docs:valid
 Detail: process.md § Session 2.
 
 ## Blocked on
+
+000. 2026-10-16: R0bi7 review 5537362965 — both P2 fixed, pushed as `79b8b538`: `fallbackOnRefusal` now defaults to
+     `false` (no stale pre-approval intent by default), playground recheck posts `failed`. Detail: process.md § 2026-10-16.
 
 00. 2026-10-15: #504 squash-merged as `5ee56ff8`; GitHub moved #511's base to main → 14 conflicts on a
     straight merge. Pushed as merge `63c4e818` (worktree `../sodax-sdks-511`) of a signed intermediate
@@ -46,6 +49,8 @@ stacked on this branch as its own PR.
 3. Hook only for "allowance short"; caller passes `intentTx`; non-batch wallets keep today's path.
 4. No `useSwapsApiApprovalStrategy` read hook until a UI needs the label.
 5. Same rules as #504: Sonic sequential, no fallback after the wallet got the batch, no new global codes.
+6. `fallbackOnRefusal` defaults to `false`; the hook never rebuilds the intent itself (submit-tx needs the caller's
+   `intent` + `relayData`, and the deadline lives in the body).
 
 ## Which file answers what
 
