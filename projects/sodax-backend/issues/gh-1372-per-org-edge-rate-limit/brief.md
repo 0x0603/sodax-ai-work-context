@@ -3,7 +3,7 @@ type: brief
 repo: sodax-backend
 github: 1372
 status: Active
-next: Fidel review; align the #1372 plan comment with no divisor; configure alerting before rollout
+next: Fidel review; configure alerting before rollout
 updated: 2026-10-20
 ---
 
@@ -16,7 +16,7 @@ then opens exactly one row from the map below.**
 
 - The user owns this task (GitHub assignee is still paulrouge). PRs open: sodax-backend #1380
   (da77c015) and sodax-unified-api #136 (a88f7a7). Re-review found no new P0/P1;
-  stale-sync P1 is addressed (`review-followup.md`). The issue plan comment still says divisor 2.
+  stale-sync P1 is addressed (`review-followup.md`). #136 body and the #1372 plan comment updated.
 - Direction set by Paul: HAProxy + a sidecar polling `/v1/keyset`; default tier Base; flexible
   tiers/limits; gateway docs update is in scope.
 - Implemented: auth-server tier defaults + org overrides, effective limits in the keyset, dashboard
@@ -31,8 +31,8 @@ Nothing blocks coding. Deploy needs a verifier token from Paul and gateway acces
 
 ## Next action
 
-Fidel reviews #136. Align the #1372 plan comment with the full per-gateway limit; current PR bodies
-already match. Rollout needs the Discord webhook and an external host/service check if dead-process
+Fidel reviews #136. The #1372 plan comment and the #136 body match the code (the attached plan file
+predates the change and says so). Rollout needs the Discord webhook and an external host/service check if dead-process
 alerting is required. No upstream edits, posts or deployment were made in the re-review.
 
 ## Settled — do not re-litigate
