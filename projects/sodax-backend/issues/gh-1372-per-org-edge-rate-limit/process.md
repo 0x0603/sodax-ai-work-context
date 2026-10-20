@@ -241,6 +241,18 @@ the dashboard routes' own validation (house convention), drawer tier select from
 Re-verified: api-auth unit 76/76, integration 25/25 on a fresh Postgres, tsc (api-auth, client,
 dashboard), Biome; gateway CI block + both doc snippets, py3.8 compile, self-test 18/18, e2e 6/6.
 
+## Independent review of both PRs (2026-10-20)
+
+- Read backend #1380 at 7d1621ec and gateway #136 at be53347 against issue #1372. No upstream
+  code edits or GitHub review/comment posts. Findings and scope are in `review.md`.
+- Backend targeted verification passed: 44 unit, 25 real-Postgres integration, 25 guard/snapshot
+  client tests; api-auth/dashboard typechecks passed.
+- P1 operational gap: sidecar poll/apply failures stay inside a live daemon without an exposed
+  freshness/failure signal or alert. Keep-last-good is correct; detecting indefinite staleness
+  is the missing counterpart of the snapshot pattern.
+- Gateway-c also receives prod traffic, so a/b divisor 2 is not an exact fleet-wide quota.
+  Treat this as a rollout/accounting limitation of the accepted local-counter design.
+
 ## Changes During Work
 
 - 2026-10-20 — plan correction: the first draft reused sc0 for `st_rl_org` on keyed requests.

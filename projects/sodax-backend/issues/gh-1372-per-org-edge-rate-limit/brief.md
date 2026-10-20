@@ -3,7 +3,7 @@ type: brief
 repo: sodax-backend
 github: 1372
 status: Active
-next: post-PR review findings → fix commits on the same branches; Fidel to review sodax-unified-api#136
+next: address sync-staleness monitoring and confirm gateway-c budget before rollout; see review.md
 updated: 2026-10-20
 ---
 
@@ -15,14 +15,14 @@ then opens exactly one row from the map below.**
 ## State in five lines
 
 - The user owns this task (GitHub assignee is still paulrouge). PRs open: sodax-backend #1380
-  (28cd3291 + 7d1621ec) and sodax-unified-api #136 (fe1afc7 + 4c984e7 + be53347), reviewed and fixed
-  (`process.md` §Post-PR review). Gateways need prep before the cfg lands: socket group + map files.
+  (7d1621ec) and sodax-unified-api #136 (be53347). Independent review: backend checks pass;
+  gateway needs sync-staleness monitoring before rollout (`review.md`). No upstream code changed.
 - Direction set by Paul: HAProxy + a sidecar polling `/v1/keyset`; default tier Base; flexible
   tiers/limits; gateway docs update is in scope.
-- Verified: tier assignment lives on the auth-server, tier definitions in code, `tenants.limits`
-  exists but nothing reads it.
+- Implemented: auth-server tier defaults + org overrides, effective limits in the keyset, dashboard
+  editors, and the gateway sidecar/HAProxy limiter. Gateway prep still needs socket group + map files.
 - HAProxy 2.8 mechanics verified locally (map files must pre-exist on 2.8).
-- Work = sodax-backend PR, then sodax-unified-api PR; deploy later.
+- Gateway-c also serves production traffic; the divisor must reflect the actual rollout topology.
 
 ## Blocked on
 
@@ -30,7 +30,8 @@ Nothing blocks coding. Deploy needs a verifier token from Paul and gateway acces
 
 ## Next action
 
-Implement the sodax-backend part of `plan.md` §Design.
+Address the P1 operational finding in `review.md`, confirm gateway-c's budget, then continue review
+with Fidel. Deployment remains outside the review request.
 
 ## Settled — do not re-litigate
 
@@ -49,6 +50,7 @@ Implement the sodax-backend part of `plan.md` §Design.
 | Implementation spec, sodax-backend PR | `plan-backend.md` | 2.6k |
 | Implementation spec, sodax-unified-api PR | `plan-gateway.md` | 3.3k |
 | Evidence: code findings, probes, spike, Paul's chat | `process.md` | 4.5k |
+| Independent review of both PRs, findings and verification | `review.md` | 1.5k |
 | Result | `outcome.md` | 0k |
 
 ## Landmines
