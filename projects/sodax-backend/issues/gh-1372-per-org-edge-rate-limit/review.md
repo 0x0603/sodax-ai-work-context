@@ -52,6 +52,9 @@ that integration; the repository alone does not establish its existence.
 
 - `scripts/README.md:449` prescribes divisor 2 on gateway-a/b and otherwise defaults to 1, while
   line 496 says gateway-c serves about 10% of production. Those are three independent counters.
+  The user subsequently clarified that today's production probe observed the expected a/b doubling
+  and no evidence of production requests traversing c; its production share remains a documented,
+  unconfirmed assumption rather than a measured fact for this review.
   At fixed 45/45/10 distribution the a/b caps bind near 1.11 times the nominal global rate;
   their possible budgets sum to twice the configured limit if traffic can redistribute freely
   (`L/2 + L/2 + L`). These are arithmetic implications of the documented configuration, not

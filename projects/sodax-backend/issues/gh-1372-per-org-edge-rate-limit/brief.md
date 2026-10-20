@@ -22,7 +22,8 @@ then opens exactly one row from the map below.**
 - Implemented: auth-server tier defaults + org overrides, effective limits in the keyset, dashboard
   editors, and the gateway sidecar/HAProxy limiter. Gateway prep still needs socket group + map files.
 - HAProxy 2.8 mechanics verified locally (map files must pre-exist on 2.8).
-- Gateway-c also serves production traffic; the divisor must reflect the actual rollout topology.
+- Divisor 2 remains the selected design. The user measured a/b doubling today; gateway-c's documented
+  prod share was not observed in that probe. Strict global-quota alternatives are in `design-global-quota.md`.
 
 ## Blocked on
 
@@ -51,6 +52,7 @@ with Fidel. Deployment remains outside the review request.
 | Implementation spec, sodax-unified-api PR | `plan-gateway.md` | 3.3k |
 | Evidence: code findings, probes, spike, Paul's chat | `process.md` | 4.5k |
 | Independent review of both PRs, findings and verification | `review.md` | 1.5k |
+| Limits of divisor 2; designs for a global quota | `design-global-quota.md` | 1k |
 | Result | `outcome.md` | 0k |
 
 ## Landmines

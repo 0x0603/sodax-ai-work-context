@@ -253,6 +253,17 @@ dashboard), Biome; gateway CI block + both doc snippets, py3.8 compile, self-tes
 - Gateway-c also receives prod traffic, so a/b divisor 2 is not an exact fleet-wide quota.
   Treat this as a rollout/accounting limitation of the accepted local-counter design.
 
+## Global quota follow-up (2026-10-20)
+
+- User confirmed divisor 2 remains intentional on a/b, with documented failover/skew tradeoffs;
+  today's IP-limit probe observed doubling and did not show c carrying production traffic.
+- Compared a shared atomic limiter, org ownership, quota reservation batches, Durable Objects,
+  Enterprise aggregation and active/passive. See `design-global-quota.md` for sources and boundaries.
+- Recommendation if exact global accounting becomes required: a separate data-plane limiter
+  with atomic shared state; keep api-auth off the request path. Fail-open and asynchronous store
+  failover are incompatible with an absolute failure-inclusive cap.
+- Architecture discussion only; the selected PR implementation and deployment remain unchanged.
+
 ## Changes During Work
 
 - 2026-10-20 — plan correction: the first draft reused sc0 for `st_rl_org` on keyed requests.
