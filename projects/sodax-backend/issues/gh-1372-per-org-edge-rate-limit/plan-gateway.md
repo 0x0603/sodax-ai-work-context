@@ -11,7 +11,7 @@ Contracts and decisions: `plan.md`. Paths are relative to the sodax-unified-api 
 numbers are at `development` 0db34ec). Read `AGENTS.md` (review rubric) and `CLAUDE.md` first.
 Branch: `feat/1372-per-org-rate-limit` → PR to `development`.
 
-Verified on HAProxy 2.8.31 (`process.md` §HAProxy 2.8 spike): map lookup with `sha2(256),hex,lower`,
+Verified on HAProxy 2.8.31 (session 1 in `process.md`, §HAProxy 2.8 spike): map lookup with `sha2(256),hex,lower`,
 `map_str_int`, `sub(txn.var)`, `req.hdr(x,1)`, `tune.stick-counters 4` + `sc3`,
 `prepare/add/commit map` (works on a `level operator` socket; `disable frontend` is denied there),
 map files surviving a reload. **2.8 has no `opt@`/`virt@`** — a referenced map file must exist.

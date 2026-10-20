@@ -3,7 +3,7 @@ type: brief
 repo: sodax-backend
 github: 1372
 status: Active
-next: update both PR bodies and the #1372 plan comment (still say divisor 2), then Fidel review
+next: Fidel review; align the #1372 plan comment with no divisor; configure alerting before rollout
 updated: 2026-10-20
 ---
 
@@ -15,15 +15,15 @@ then opens exactly one row from the map below.**
 ## State in five lines
 
 - The user owns this task (GitHub assignee is still paulrouge). PRs open: sodax-backend #1380
-  and sodax-unified-api #136. Latest push: divisor removed, sidecar stale-sync status/alert
-  (`review.md` P1), docs. PR bodies and the #1372 plan comment still mention divisor 2.
+  (da77c015) and sodax-unified-api #136 (a88f7a7). Re-review found no new P0/P1;
+  stale-sync P1 is addressed (`review-followup.md`). The issue plan comment still says divisor 2.
 - Direction set by Paul: HAProxy + a sidecar polling `/v1/keyset`; default tier Base; flexible
   tiers/limits; gateway docs update is in scope.
 - Implemented: auth-server tier defaults + org overrides, effective limits in the keyset, dashboard
   editors, and the gateway sidecar/HAProxy limiter. Gateway prep still needs socket group + map files.
 - HAProxy 2.8 mechanics verified locally (map files must pre-exist on 2.8).
 - No divisor: one HAProxy counts a client's prod traffic. The earlier "2x" was IPv4 + IPv6 counted as
-  two IPs (`process.md` "Divisor withdrawn"). canary-api is a separate HAProxy.
+  two IPs (session 1, "Divisor withdrawn"). canary-api is a separate HAProxy.
 
 ## Blocked on
 
@@ -31,8 +31,9 @@ Nothing blocks coding. Deploy needs a verifier token from Paul and gateway acces
 
 ## Next action
 
-With the user's OK, update both PR bodies and the #1372 plan comment (they still say "divided by 2"),
-then Fidel reviews #136. Deployment is outside scope.
+Fidel reviews #136. Align the #1372 plan comment with the full per-gateway limit; current PR bodies
+already match. Rollout needs the Discord webhook and an external host/service check if dead-process
+alerting is required. No upstream edits, posts or deployment were made in the re-review.
 
 ## Settled — do not re-litigate
 
@@ -49,8 +50,9 @@ then Fidel reviews #136. Deployment is outside scope.
 | The plan: decisions, contracts, rollout | `plan.md` | 1.6k |
 | Implementation spec, sodax-backend PR | `plan-backend.md` | 2.6k |
 | Implementation spec, sodax-unified-api PR | `plan-gateway.md` | 3.3k |
-| Evidence: code findings, probes, spike, Paul's chat | `process.md` | 4.5k |
-| Independent review of both PRs, findings and verification | `review.md` | 1.5k |
+| Session index: planning, implementation and reviews | `process.md` | 0.2k |
+| Initial review (historical; findings since addressed) | `review.md` | 2k |
+| Latest review at a88f7a7 / da77c015 and verification | `review-followup.md` | 1k |
 | Shared-counter designs (not needed: premise withdrawn) | `design-global-quota.md` | 1.5k |
 | Result | `outcome.md` | 0k |
 

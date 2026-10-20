@@ -10,6 +10,10 @@ tags: [api-auth, haproxy, rate-limit, review]
 
 # Review of backend #1380 and gateway #136
 
+> Historical review. Re-reviewed after the next push at gateway a88f7a7 / backend da77c015:
+> the stale-sync P1 is addressed and the divisor premise is withdrawn. Current assessment and
+> verification: `review-followup.md`.
+
 Reviewed at backend `7d1621ec24775efee05babcdf1743e9e309ed0bc` and gateway
 `be53347e9d15f008be80b6525493d6fdb8ca21cf`. Sources: issue #1372 and its design/plan
 comments, current PR diffs, surrounding source, repository instructions and local probes.
@@ -108,7 +112,8 @@ that integration; the repository alone does not establish its existence.
 
 ## Follow-up (2026-10-20)
 
-- P1 addressed in the gateway working tree (not yet pushed): status file, `--status` exit code, one
-  Discord alert per outage, state carried across restarts. See `process.md` "Divisor withdrawn".
+- P1 addressed and pushed in gateway a88f7a7: status file, `--status` exit code, one
+  Discord alert per outage, state carried across restarts. See session 1 in `process.md`,
+  "Divisor withdrawn".
 - The gateway-c / divisor-2 accounting note no longer applies: the divisor is removed and prod shows
   one counter; the earlier 2x was IPv4 + IPv6.
