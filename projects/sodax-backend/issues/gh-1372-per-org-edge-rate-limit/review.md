@@ -105,3 +105,10 @@ that integration; the repository alone does not establish its existence.
   retained the exact previous runtime map and reset the ETag. A 304 repaired a manually cleared
   runtime map. A full HAProxy process restart loaded the correct saved maps before sidecar/API use.
 - All temporary containers were removed and both upstream worktrees remained clean.
+
+## Follow-up (2026-10-20)
+
+- P1 addressed in the gateway working tree (not yet pushed): status file, `--status` exit code, one
+  Discord alert per outage, state carried across restarts. See `process.md` "Divisor withdrawn".
+- The gateway-c / divisor-2 accounting note no longer applies: the divisor is removed and prod shows
+  one counter; the earlier 2x was IPv4 + IPv6.

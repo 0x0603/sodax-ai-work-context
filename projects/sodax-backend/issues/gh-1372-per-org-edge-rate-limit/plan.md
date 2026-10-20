@@ -33,8 +33,8 @@ changed without a deploy.
 4. Updating the gateway docs that say per-key limits stay in the apps is part of this work. (Paul)
 5. `base` has the same scopes as `pro`, so moving orgs changes nothing.
 6. The in-app submit-tx 10/60s per-IP throttle is NOT changed here (known gap).
-7. Prod has two unpeered gateways; open-source HAProxy `peers` overwrite counters rather than sum
-   them. Each gateway therefore enforces `ceil(limit / divisor)` with divisor 2 on gateway-a/b.
+7. Counters are per HAProxy and unpeered (open-source `peers` overwrite rather than sum). One HAProxy
+   counts a client's prod traffic, so each gateway enforces the full limit — no divisor.
 
 ## Contracts shared by both PRs
 
@@ -74,7 +74,7 @@ changed without a deploy.
 5. **Paul issues a verifier token** for the gateways; owners add it to prod api-auth
    `API_AUTH_VERIFIER_TOKENS`.
 6. **Install the sidecar** on gateway-c, then gateway-a/b (`scripts/README.md` new section;
-   divisor 2 on a/b). Maps stay empty — no tier has a limit yet.
+   set `KEYSET_DISCORD_WEBHOOK_URL`). Maps stay empty — no tier has a limit yet.
 7. **Turn it on:** set `base` (and `pro`) `rateLimitPerMinute` in the dashboard Tiers tab, e.g.
    1800. Probe `canary-api.sodax.com` with a real key.
 8. **Turn it off at any time:** clear the tier limit (effective within ~15s), or stop the sidecar

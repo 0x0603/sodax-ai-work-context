@@ -8,6 +8,10 @@ tags: [rate-limit, distributed-systems, haproxy, redis]
 
 # Global quota alternatives
 
+> **Premise withdrawn (2026-10-20).** The "about 600" probe below counted one client's IPv4 and IPv6
+> as two IPs; pinned to one family, prod shows one counter. The divisor is removed and no shared
+> counter is planned. Kept only as background if an exact global quota is ever required.
+
 Follow-up to `review.md`. The user confirmed that the current choice is divisor 2 on production
 gateway-a/b and divisor 1 on canary-c. Today's user-run IP-limit probe admitted about 600 for a
 per-node threshold of 300 and did not show production traffic reaching c. The documentary claim

@@ -77,6 +77,9 @@ Clean re-run (same day, `--parallel-max 96`, inside the 10s window): 590/900 in 
 in 4.0s -> exactly 2 x 300. (V) The design doc says gateway-c takes 10% of prod; no third counter
 showed up, so either that weight is not live or this client never lands on gateway-c. (D)
 
+**Superseded:** the 2x was this client's IPv4 and IPv6 addresses, not two gateways. See
+"Divisor withdrawn" below.
+
 ## Re-verification of the questions for Paul (2026-10-20)
 
 - Deployed config = what was read: `haproxy.cfg` blob `7906a9e1` is identical on `development`,
@@ -263,6 +266,31 @@ dashboard), Biome; gateway CI block + both doc snippets, py3.8 compile, self-tes
   with atomic shared state; keep api-auth off the request path. Fail-open and asynchronous store
   failover are incompatible with an absolute failure-inclusive cap.
 - Architecture discussion only; the selected PR implementation and deployment remain unchanged.
+
+## Divisor withdrawn: the 2x was IPv4 + IPv6 (2026-10-20)
+
+- Paul: "the haproxy is first and from there we split among 2 prod and 1 dev" — deployments behind
+  one HAProxy.
+- The IP counter keys on `CF-Connecting-IP` with `ipmask(32,64)` (haproxy.cfg:268), and
+  api.sodax.com has A and AAAA records. The earlier runs let curl use both families, so one client
+  counted as two IPs. (V)
+- Re-probe with the family pinned: `curl -4` 900 -> 300 pass; `curl -6` 900 -> 300 pass. (V)
+- IPv4 on api.sodax.com exhausted (320 -> 300 pass, 20 x 429), then canary-api.sodax.com at once:
+  40/40 pass, so canary is a separate HAProxy (the cap keys on IP only, not host). (V)
+- No second prod counter and no gateway-c prod share seen from this egress; another region or
+  Cloudflare affinity could still land elsewhere. (D)
+- Decision: the sidecar divisor is removed; each gateway enforces the full limit. That is exact with
+  one prod HAProxy, and only lenient (never below the limit) if a second one exists, whereas divisor
+  2 would halve every partner's limit on a single counter. No Redis or shared counter.
+- Same pass fixed the `review.md` P1: status file, one Discord alert per outage (retried until
+  delivered), `--status` exit code, `KEYSET_STALE_SECONDS` (>= 3 polls); state survives a restart,
+  uninstall removes it; `--once` leaves the status to the service; catch-all with traceback.
+- Then /simplify (4 agents) and the user's /code-review (11 findings). Skipped: watchdog/OnFailure
+  (Restart=always never reaches "failed"; remote causes are not fixed by a restart), a node_exporter
+  textfile metric (second repo; README says nothing runs `--status` yet), restoring the divisor for a
+  gateway-c share not observed.
+- Tests: self-test 43/43 drives the loop with fake keyset/HAProxy/clock (also py3.8); 28/28
+  deliberate mutants killed; real-HTTP webhook harness 14/14; HAProxy 2.8 e2e 6/6; cfg valid.
 
 ## Changes During Work
 

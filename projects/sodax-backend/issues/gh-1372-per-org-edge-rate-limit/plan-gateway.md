@@ -64,7 +64,7 @@ backend st_rl_org
 **Comments:** rewrite L202–203 ("Flood protection only … does not replace the app-level business
 throttles") to describe two layers — per-IP flood protection, plus a per-org cap for requests with a
 known key. Add the org cap to the numbered tier list in the comment block (L217–248), noting it is
-per gateway, the limit comes from api-auth divided by `KEYSET_LIMIT_DIVISOR`, and it never latches
+per gateway, the limit comes from api-auth as is, and it never latches
 the jail.
 
 **PR description must list the effect per route family** (`AGENTS.md` P1 rubric): keyed requests on
@@ -124,7 +124,6 @@ lines parsed the same way as `sodax_deploy/config.py`; real environment variable
 | `KEYSET_TOKEN` | required | verifier token; never logged |
 | `KEYSET_POLL_SECONDS` | `15` | |
 | `KEYSET_TIMEOUT_SECONDS` | `10` | |
-| `KEYSET_LIMIT_DIVISOR` | `1` | `2` on gateway-a/b; per-gateway limit = `ceil(limit / divisor)` |
 | `KEYSET_MAX_LIMIT` | `1000000` | cap, mirrors api-auth validation |
 | `KEYSET_MAPS_DIR` | `/etc/haproxy/maps` | must match the paths in haproxy.cfg |
 | `KEYSET_SOCKET` | `/run/haproxy/keyset-sync.sock` | also accept `tcp://host:port` (local testing) |
@@ -137,7 +136,7 @@ lines parsed the same way as `sodax_deploy/config.py`; real environment variable
 3. **200** → parse; require a `keys` list. For each entry keep it only if:
    `orgStatus == "active"`; `limits.rateLimitPerMinute` is an `int` (not bool), ≥ 1 (cap at
    `KEYSET_MAX_LIMIT`); `keyHash` matches `^[0-9a-f]{64}$`; `orgId` matches `^[A-Za-z0-9_-]{1,64}$`.
-   Rows: `keys[keyHash] = orgId`, `orgs[orgId] = ceil(limit / divisor)`. Count kept and skipped.
+   Rows: `keys[keyHash] = orgId`, `orgs[orgId] = limit`. Count kept and skipped.
    Validation is also the guard against command injection on the socket — nothing unvalidated is
    ever written to a file or the socket.
 4. Render both files deterministically: header `# managed by keyset-sync.py — do not edit`, then
@@ -158,7 +157,7 @@ SIGTERM → exit cleanly. Logs go to stdout (journald).
 
 **`--self-test`** (no network, no socket), each case asserted:
 suspended org skipped; org without limit skipped; limit `0`, `1.5`, `"100"`, `true` skipped; bad
-hash skipped; orgId containing a space or newline skipped; divisor 2 → `ceil(1801/2) = 901`; cap at
+hash skipped; orgId containing a space or newline skipped; cap at
 `KEYSET_MAX_LIMIT`; two keys of one org → one org row; rendering is sorted and stable; parsing of
 `New version created: 3`.
 
@@ -217,7 +216,7 @@ Design doc v1.4.0 (doc-semver, `CONTRIBUTING.md` L57–112):
   `docs/design/versions/`; bump `Version`; Version-history row "1.4.0 — per-org rate limit at the
   edge (sodax-backend#1372) — ADR-004".
 - §4.1: add an "Org cap" row (scope: requests with a key mapped to an active org that has a limit;
-  threshold: limit ÷ divisor per 60s per gateway; effect: 429 `org_rate_limited`, `Retry-After: 60`,
+  threshold: limit per 60s per gateway; effect: 429 `org_rate_limited`, `Retry-After: 60`,
   never feeds the jail). Replace "Business limits per route or per API key stay in the apps. This
   layer is flood protection only." Correct "A `peers` section would fix both": open-source peers
   overwrite counters, so they would only stop a reload from clearing them.
