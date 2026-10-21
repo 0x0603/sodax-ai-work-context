@@ -92,3 +92,17 @@ new tier" is useful, but overrides do not themselves make tiers dynamically crea
 overrides eliminates the branches behind review findings 4/9/10, not the independent counter issues.
 
 No change to PR #1380 or #136 was authorized or made in this assessment.
+
+## Map file persistence assessment
+
+Keep disk snapshots alongside runtime maps: requests use RAM, while startup/reload can recover
+policy without waiting for api-auth. Normal map writes happen on changes, with periodic forced
+resync. `write_atomic` writes a same-directory temporary file, flushes/fsyncs it, then replaces the
+destination. This avoids exposing a partially written file; it is not a cross-map transaction.
+
+The current push order is disk then runtime for the limits map, followed by disk then runtime for
+the key map. A runtime failure can therefore leave disk ahead of RAM, and a later failure can leave
+only the first map updated. Earlier wording about preserving the last maps should not imply an
+all-or-nothing rollback of both maps and both storage layers. Retry clears the ETag and reconciles
+on subsequent ticks. Reload during a partial update deserves explicit verification; this follow-up
+identified the ordering from code and did not reproduce a race or modify the gateway.

@@ -26,3 +26,6 @@ rollout, and distinguish local protection from strict global quota. No code chan
 Assessed the tier-only proposal: prefer its narrower scope, with caveats about Paul's exact intent,
 unverified production tenant data and the mirrored dashboard tier vocabulary. Proposal only; no
 upstream edit was requested. Details are in `mechanism-overview.md`.
+
+Assessed map persistence: disk snapshots are appropriate; atomicity is per file/map, not across both
+maps and RAM/disk. Documented the partial-apply/reload boundary from code; no new reproduction.
