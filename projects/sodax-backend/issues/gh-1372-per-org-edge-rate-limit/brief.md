@@ -13,6 +13,10 @@ updated: 2026-10-21
 still increment the org counter before returning, blocking other IPs of that org. Independently
 reproduced on HAProxy 2.8.31. See `review-fixes-2026-10-21.md` for scope, tests and file fingerprints.
 
+Post-merge rollout table reviewed in `rollout-plan-review.md`: ordering is sound, but add override
+preflight, explicit map ownership, token activation, controlled policy activation and rollback.
+Gateway #136 is now at `6abc75d`; backend fixes are still staged locally. The write-cap P1 remains.
+
 **Security follow-up (2026-10-21):** local HAProxy + actual app-guard probes found a key-normalization
 mismatch that bypasses the org cap (valid key with NBSP padding). Fix before rollout; Cloudflare
 forwarding is untested. `security-assessment.md` also records a conditional verifier-token redirect
@@ -67,6 +71,7 @@ alerting is required. No upstream edits, posts or deployment were made in the re
 | Initial review (historical; findings since addressed) | `review.md` | 2k |
 | Latest review at a88f7a7 / da77c015 and verification | `review-followup.md` | 1k |
 | Review of the uncommitted fixes; remaining write-cap accounting P1 | `review-fixes-2026-10-21.md` | 1.2k |
+| Review of the user's seven-step post-merge rollout table | `rollout-plan-review.md` | 1k |
 | Short mechanism explanation and architecture assessment | `mechanism-overview.md` | 0.9k |
 | Security assessment: org-cap bypass reproduction, redirect token handling and map-file boundary | `security-assessment.md` | 1.3k |
 | Shared-counter designs (not needed: premise withdrawn) | `design-global-quota.md` | 1.5k |

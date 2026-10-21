@@ -59,3 +59,10 @@ Reviewed the actual local fixes on both PR branches. Sidecar 55/55, guard 21/21 
 passed. An independent HAProxy 2.8.31 probe reproduced a remaining P1: write-cap-rejected POSTs still
 consume the org budget and block a GET from another IP. Keyed/keyless isolation and the 300/10s
 baseline passed. See `review-fixes-2026-10-21.md`; no code fixes or upstream posts made in this review.
+
+## Post-merge rollout plan review — 2026-10-21
+
+Read the user's seven-step pasted rollout table. Recorded corrections in `rollout-plan-review.md`,
+especially existing overrides, sidecar write permissions, verifier-token reload, fleet-wide tier
+activation and rollback. Gateway head is now 6abc75d and clean; backend fixes are staged. The known
+write-cap accounting P1 is still present. Plan review only, no deployment or external posts.
