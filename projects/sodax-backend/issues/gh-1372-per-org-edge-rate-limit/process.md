@@ -78,3 +78,13 @@ Recorded the exact claim boundaries, test limitations and incremental cleanup pr
 Runbook follow-up: added stop/start instructions beside `--once` in gateway `scripts/README.md` to
 avoid concurrent writers. Deferred file splitting and configuration cleanup. Documentation diff
 checked; the upstream edit remains local and uncommitted. No runtime changes or test run.
+
+## Review of local quality fixes — 2026-10-21
+
+Reviewed both PR diffs plus local sidecar/CI fixes. Found a reproducible verifier-token leak when an
+environment token contains a newline: HTTP exception text reaches logs, status and a fake Discord
+payload. The new HAProxy CI check also failed on a concurrent flood admitting 101 against an exact
+100 upper assertion. Backend 106/106 (25 real Postgres), guard 21/21, sidecar 66/66 on host and Linux
+Python 3.8, and three typechecks pass. Write-cap and initial-health mutations fail as intended.
+Details, remaining overclaims and file fingerprints are in `review-quality-fixes-2026-10-21.md`.
+No application edits, upstream posts or deployment were made.

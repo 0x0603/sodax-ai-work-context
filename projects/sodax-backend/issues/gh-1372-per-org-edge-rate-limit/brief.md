@@ -3,7 +3,7 @@ type: brief
 repo: sodax-backend
 github: 1372
 status: Active
-next: fix write-cap rejections consuming org budget; then commit the fixes and Fidel review
+next: fix verifier-token error redaction and flaky CI flood assertion; then publish and re-review gateway changes
 updated: 2026-10-21
 ---
 
@@ -33,7 +33,11 @@ Code-quality follow-up at gateway `856743e`: the write-cap ordering fix is prese
 55/55. Additional fake-transport probes confirm partial-map updates and initial healthy-before-first-
 success status; see `code-quality-review.md` for claim boundaries and incremental improvements.
 Follow-up: the local gateway runbook now says to stop the service before `--once` and start it again
-afterward. File splitting and configuration cleanup are deferred; the runbook edit is uncommitted.
+afterward. File splitting remains deferred; the runbook edit is part of the uncommitted gateway changes.
+
+Latest re-review: local gateway changes add typed Config, initial-success health, partial-apply tests,
+flock and real-HAProxy CI. Two P1s remain: an invalid token environment value leaks through error
+reporting, and the parallel flood assertion can fail on valid behavior. See `review-quality-fixes-2026-10-21.md`.
 
 ## State in five lines
 
@@ -54,9 +58,9 @@ Nothing blocks coding. Deploy needs a verifier token from Paul and gateway acces
 
 ## Next action
 
-Fidel reviews #136. The #1372 plan comment and the #136 body match the code (the attached plan file
-predates the change and says so). Rollout needs the Discord webhook and an external host/service check if dead-process
-alerting is required. No upstream edits, posts or deployment were made in the re-review.
+Fix the two P1s and reconcile the remaining wording in `review-quality-fixes-2026-10-21.md`, then publish
+the current gateway changes for re-review. Rollout still needs gateway access and verifier/webhook
+provisioning. No upstream edits, posts or deployment were made in this review.
 
 ## Settled — do not re-litigate
 
@@ -79,6 +83,7 @@ alerting is required. No upstream edits, posts or deployment were made in the re
 | Review of the uncommitted fixes; remaining write-cap accounting P1 | `review-fixes-2026-10-21.md` | 1.2k |
 | Review of the user's seven-step post-merge rollout table | `rollout-plan-review.md` | 1k |
 | Sidecar maintainability, overclaims and partial-apply/initial-health probes | `code-quality-review.md` | 1k |
+| Both PRs plus local quality fixes: token-error leak, flaky CI and verification | `review-quality-fixes-2026-10-21.md` | 1.5k |
 | Short mechanism explanation and architecture assessment | `mechanism-overview.md` | 0.9k |
 | Security assessment: org-cap bypass reproduction, redirect token handling and map-file boundary | `security-assessment.md` | 1.3k |
 | Shared-counter designs (not needed: premise withdrawn) | `design-global-quota.md` | 1.5k |
