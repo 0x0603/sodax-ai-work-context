@@ -29,3 +29,10 @@ upstream edit was requested. Details are in `mechanism-overview.md`.
 
 Assessed map persistence: disk snapshots are appropriate; atomicity is per file/map, not across both
 maps and RAM/disk. Documented the partial-apply/reload boundary from code; no new reproduction.
+
+## Security assessment — 2026-10-21
+
+See `security-assessment.md`: isolated HAProxy 2.8.31 + Node test reproduced org-cap bypass with a
+valid NBSP-padded key; the actual transpiled `ApiKeyGuard` also accepted it in enforce mode. An exact
+sidecar fetch probe forwarded a dummy verifier token across a host-changing redirect. Map/socket
+injection probes were rejected. No production traffic, real credentials or upstream mutations.
