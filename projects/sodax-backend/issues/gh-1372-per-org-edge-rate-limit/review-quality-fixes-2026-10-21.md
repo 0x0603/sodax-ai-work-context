@@ -8,6 +8,10 @@ tags: [review, security, sidecar, ci, rate-limit]
 
 # Review of both PRs and the local quality fixes
 
+**Pushed-head follow-up:** both P1s below are resolved at gateway `d1015b1`. No new P0/P1 was found
+in the changed code. See "Re-review of the pushed fixes" at the end for independent verification and
+the remaining non-blocking description wording. The original findings below are historical.
+
 Scope: backend HEAD `5c46060431441f900b1ce6db70a000944cb2498a`, gateway HEAD
 `856743ec8e53369ab3f7ac8ea17a760c425c00ae`, and the local gateway changes to the sidecar,
 runbook, CI, CLAUDE.md and new `tests/edge-rate-limits.sh`. Application source was read, not edited.
@@ -99,3 +103,47 @@ or otherwise use a justified concurrency bound rather than an exact upper cap of
 | `gateway-configs/haproxy/haproxy.cfg` | `6dd79026c1699e938a4e89b000e5d460acdc185ce0c0e827c12a324f0276b002` |
 | Backend keyset service | `e3a9b41eb7e264389f7c5dd84c7f64be724f306df6f5354e2478c958ae65e687` |
 | ApiKeyGuard | `4062341e281c8e91145d6f7a67617808262d5a8f8b1aeab408466adbc6dd296f` |
+
+## Re-review of the pushed fixes
+
+Verified GitHub and local HEAD agree: gateway #136 is
+`d1015b1e61fa7f23415459c2fc1c3ffe12cd9b14`; backend #1380 remains unchanged at
+`5c46060431441f900b1ce6db70a000944cb2498a`. Both application working trees are clean. Reviewed the
+two newly pushed gateway commits (`aaa4c6a`, `d1015b1`) against the prior review; no upstream sources
+were changed or comments posted.
+
+### Previous P1s: resolved
+
+- Invalid-token leak: startup requires visible ASCII without spaces/control characters; request-building
+  ValueError has a generic message; stored errors and unexpected tracebacks are scrubbed, as are `--once`
+  errors. Independently tried seven invalid suffixes (LF, CR, CRLF, space, tab, NUL, NBSP), all rejected
+  without echoing the dummy secret. Bypassing validation to exercise the real request error still left
+  no token in logs, status or a fake stale alert. A synthetic unexpected exception containing a valid
+  dummy token also kept it out of all three reporting sinks, including the traceback.
+- Flaky flood assertion: exact organization admission remains sequential in step 3; the P=16 flood
+  now permits a bounded race overshoot and verifies the org cap followed by jail. The current integration
+  script passed all 26 checks locally. The earlier false "second sync is a 304" label is also corrected.
+
+### Verification in this follow-up
+
+- Sidecar: 70/70 on host Python and Linux Python 3.8, the latter as UID/GID 65534.
+- Real HAProxy 2.8 integration: 26/26, including runtime updates, write-cap accounting, IP isolation,
+  flood jail, policy removal, reload and cold restart.
+- The GitHub gateway CI run at exactly `d1015b1` is successful: runtime integration, config validation,
+  sidecar self-test and promotion-path guard all pass. Backend Build and Test also passes.
+- Shell syntax and diff whitespace checks pass. No broader backend rerun: its HEAD has not changed
+  since the prior 106-test Postgres run and three typechecks documented above.
+- No live gateway, production API key or real Discord webhook was used. The integration harness removed
+  its temporary container and files.
+
+### Remaining wording, not a new blocking code finding
+
+The PR body still claims every mixed-map state falls back to per-IP and is repaired by the next poll.
+An old key can still resolve against the newly committed limit; the next poll retries, and repair depends
+on the failure clearing. Suggested wording: "A partial apply can leave new limits with old keys. Lookup
+misses use the per-IP limits, and subsequent polls retry synchronization." The module's broad "every such
+mixed state is safe" should carry the same policy/auth distinction. The self-test's "no network, no socket"
+label also still means no external dependency; its redirect case uses loopback HTTP.
+
+These are wording corrections, not additional P0/P1 findings. Per-gateway approximate counters,
+non-transactional map pairs, last-map retention and the same-host watchdog boundary remain unchanged.

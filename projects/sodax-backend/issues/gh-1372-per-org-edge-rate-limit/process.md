@@ -88,3 +88,11 @@ payload. The new HAProxy CI check also failed on a concurrent flood admitting 10
 Python 3.8, and three typechecks pass. Write-cap and initial-health mutations fail as intended.
 Details, remaining overclaims and file fingerprints are in `review-quality-fixes-2026-10-21.md`.
 No application edits, upstream posts or deployment were made.
+
+## Re-review of pushed fixes — 2026-10-21
+
+Verified clean local/GitHub heads d1015b1 / 5c460604. Both prior P1s are resolved. Sidecar 70/70 on
+host and Linux Python 3.8, real-HAProxy integration 26/26, and remote CI pass. Independent malformed-token
+and unexpected-exception probes show no dummy token in logs, status or fake alerts. No new P0/P1 found;
+the PR body's mixed-map fallback/next-poll claim still needs narrower wording. Updated the final section
+of `review-quality-fixes-2026-10-21.md`. No upstream edits, posts or deployment.

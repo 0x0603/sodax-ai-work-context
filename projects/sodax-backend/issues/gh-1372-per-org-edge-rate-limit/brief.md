@@ -3,47 +3,28 @@ type: brief
 repo: sodax-backend
 github: 1372
 status: Active
-next: fix verifier-token error redaction and flaky CI flood assertion; then publish and re-review gateway changes
+next: reviewer sign-off and rollout preparation; correct remaining PR-description wording
 updated: 2026-10-21
 ---
 
 # GH-1372 Per-org rate limit · brief
 
-**Latest local review:** the uncommitted security fixes are present; one P1 remains: write-cap 429s
-still increment the org counter before returning, blocking other IPs of that org. Independently
-reproduced on HAProxy 2.8.31. See `review-fixes-2026-10-21.md` for scope, tests and file fingerprints.
-
-Post-merge rollout table reviewed in `rollout-plan-review.md`: ordering is sound, but add override
-preflight, explicit map ownership, token activation, controlled policy activation and rollback.
-Gateway #136 is now at `6abc75d`; backend fixes are still staged locally. The write-cap P1 remains.
-
-**Security follow-up (2026-10-21):** local HAProxy + actual app-guard probes found a key-normalization
-mismatch that bypasses the org cap (valid key with NBSP padding). Fix before rollout; Cloudflare
-forwarding is untested. `security-assessment.md` also records a conditional verifier-token redirect
-leak and the map-file threat boundary. No upstream code was changed.
-
-Fallback probe: a synthetic invalid org limit is skipped and removes its map entries while the sync
-still reports healthy; the key falls back to per-IP. Whole-fetch failures retain the current maps.
-See `security-assessment.md`; production invalid data was not established.
+**Latest independent verification:** pushed heads #136 `d1015b1` and #1380 `5c460604` match local
+clean working trees. Both previous P1s are resolved; no new P0/P1 found. Sidecar 70/70 on host and
+Linux Python 3.8, real HAProxy integration 26/26, and GitHub CI pass. See the final section of
+`review-quality-fixes-2026-10-21.md`; a mixed-map fallback sentence in the PR body still needs narrowing.
 
 **The entry point. An agent resuming this task reads this file and nothing else,
 then opens exactly one row from the map below.**
 
-Code-quality follow-up at gateway `856743e`: the write-cap ordering fix is present and self-test is
-55/55. Additional fake-transport probes confirm partial-map updates and initial healthy-before-first-
-success status; see `code-quality-review.md` for claim boundaries and incremental improvements.
-Follow-up: the local gateway runbook now says to stop the service before `--once` and start it again
-afterward. File splitting remains deferred; the runbook edit is part of the uncommitted gateway changes.
-
-Latest re-review: local gateway changes add typed Config, initial-success health, partial-apply tests,
-flock and real-HAProxy CI. Two P1s remain: an invalid token environment value leaks through error
-reporting, and the parallel flood assertion can fail on valid behavior. See `review-quality-fixes-2026-10-21.md`.
+Earlier local reviews are historical; their blocking findings are addressed in the pushed heads above.
+File splitting remains deferred. Typed Config, initial-success health, partial-apply tests, flock,
+runbook changes and the real-HAProxy CI job are committed.
 
 ## State in five lines
 
-- The user owns this task (GitHub assignee is still paulrouge). PRs open: sodax-backend #1380
-  (da77c015) and sodax-unified-api #136 (a88f7a7). Re-review found no new P0/P1;
-  stale-sync P1 is addressed (`review-followup.md`). #136 body and the #1372 plan comment updated.
+- The user owns this task. PRs open: sodax-backend #1380 (`5c460604`) and sodax-unified-api #136
+  (`d1015b1`). Independent re-review found no new P0/P1; previous token-error and flaky-CI P1s are fixed.
 - Direction set by Paul: HAProxy + a sidecar polling `/v1/keyset`; default tier Base; flexible
   tiers/limits; gateway docs update is in scope.
 - Implemented: auth-server tier defaults + org overrides, effective limits in the keyset, dashboard
@@ -58,9 +39,9 @@ Nothing blocks coding. Deploy needs a verifier token from Paul and gateway acces
 
 ## Next action
 
-Fix the two P1s and reconcile the remaining wording in `review-quality-fixes-2026-10-21.md`, then publish
-the current gateway changes for re-review. Rollout still needs gateway access and verifier/webhook
-provisioning. No upstream edits, posts or deployment were made in this review.
+Reviewer sign-off and rollout preparation. Narrow the remaining PR-body mixed-map claim as described in
+`review-quality-fixes-2026-10-21.md`. Rollout still needs gateway access and verifier/webhook provisioning.
+No upstream edits, posts or deployment were made in this review.
 
 ## Settled — do not re-litigate
 
@@ -83,7 +64,7 @@ provisioning. No upstream edits, posts or deployment were made in this review.
 | Review of the uncommitted fixes; remaining write-cap accounting P1 | `review-fixes-2026-10-21.md` | 1.2k |
 | Review of the user's seven-step post-merge rollout table | `rollout-plan-review.md` | 1k |
 | Sidecar maintainability, overclaims and partial-apply/initial-health probes | `code-quality-review.md` | 1k |
-| Both PRs plus local quality fixes: token-error leak, flaky CI and verification | `review-quality-fixes-2026-10-21.md` | 1.5k |
+| Latest pushed-head review: both P1s resolved, 70 self-tests and 26 HAProxy checks pass | `review-quality-fixes-2026-10-21.md` | 2k |
 | Short mechanism explanation and architecture assessment | `mechanism-overview.md` | 0.9k |
 | Security assessment: org-cap bypass reproduction, redirect token handling and map-file boundary | `security-assessment.md` | 1.3k |
 | Shared-counter designs (not needed: premise withdrawn) | `design-global-quota.md` | 1.5k |
