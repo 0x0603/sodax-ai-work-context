@@ -3,11 +3,15 @@ type: brief
 repo: sodax-backend
 github: 1372
 status: Active
-next: Fidel review; configure alerting before rollout
+next: fix write-cap rejections consuming org budget; then commit the fixes and Fidel review
 updated: 2026-10-21
 ---
 
 # GH-1372 Per-org rate limit · brief
+
+**Latest local review:** the uncommitted security fixes are present; one P1 remains: write-cap 429s
+still increment the org counter before returning, blocking other IPs of that org. Independently
+reproduced on HAProxy 2.8.31. See `review-fixes-2026-10-21.md` for scope, tests and file fingerprints.
 
 **Security follow-up (2026-10-21):** local HAProxy + actual app-guard probes found a key-normalization
 mismatch that bypasses the org cap (valid key with NBSP padding). Fix before rollout; Cloudflare
@@ -62,6 +66,7 @@ alerting is required. No upstream edits, posts or deployment were made in the re
 | Session index: planning, implementation and reviews | `process.md` | 0.2k |
 | Initial review (historical; findings since addressed) | `review.md` | 2k |
 | Latest review at a88f7a7 / da77c015 and verification | `review-followup.md` | 1k |
+| Review of the uncommitted fixes; remaining write-cap accounting P1 | `review-fixes-2026-10-21.md` | 1.2k |
 | Short mechanism explanation and architecture assessment | `mechanism-overview.md` | 0.9k |
 | Security assessment: org-cap bypass reproduction, redirect token handling and map-file boundary | `security-assessment.md` | 1.3k |
 | Shared-counter designs (not needed: premise withdrawn) | `design-global-quota.md` | 1.5k |
