@@ -115,3 +115,19 @@ local rate counters in this configuration. Whole-host power loss is a separate d
 so the replacement's directory entry is not guaranteed durable. Consider a directory fsync and
 explicit recovery for a complete map-pair snapshot; neither was implemented or power-loss-tested.
 Reference: [Linux fsync requirements](https://man7.org/linux/man-pages/man2/fsync.2.html).
+
+## Current monitoring and dashboard gap
+
+At the same pinned PR heads, the sidecar writes status JSON every tick with `updatedAt`,
+`lastSuccessAt`, `consecutiveFailures`, `lastError`, `keysetVersion` and `healthy`. `--status` checks
+status freshness as well as the stored healthy flag; default stale threshold is 300 seconds.
+An optional Discord webhook reports stale sync and recovery while the process is alive. No
+external scheduler currently runs `--status`, so a dead process/host needs independent monitoring.
+The healthy flag includes an initial grace period: no first successful sync should be shown as
+initializing/unknown in any future dashboard integration, not confirmed healthy.
+
+The dashboard's API Keys / Verification view reads swaps-api's own in-app keyset poller through
+`/healthz/api-key-verification`. It does not read the HAProxy sidecar status. Neither the dashboard
+nor monitoring-service references keyset-sync at these heads. Add a host collector plus an internal
+status API if dashboard visibility is wanted, with one row per gateway and separate heartbeat age,
+last successful sync, failure/error and version fields. A systemd active state alone is insufficient.

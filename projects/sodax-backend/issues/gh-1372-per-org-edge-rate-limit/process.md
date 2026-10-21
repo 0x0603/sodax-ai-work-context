@@ -40,3 +40,7 @@ injection probes were rejected. No production traffic, real credentials or upstr
 Crash follow-up: distinguished sidecar failure, HAProxy restart and host power loss. Found that the
 file is fsynced before replacement but the parent directory is not fsynced afterward; documented
 this durability boundary in `mechanism-overview.md`. Code/docs reasoning only, no crash test or fix.
+
+Monitoring follow-up: sidecar has status JSON, `--status` and optional stale/recovery Discord alerts;
+dashboard Verification monitors swaps-api instead and has no sidecar integration. Documented the
+independent host-check requirement and initial healthy-flag grace period in `mechanism-overview.md`.
