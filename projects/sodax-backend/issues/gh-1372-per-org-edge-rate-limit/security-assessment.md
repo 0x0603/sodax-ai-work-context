@@ -63,8 +63,6 @@ or edit tiers. Do not describe this as arbitrary credential minting.
 Prefer a fixed HTTPS endpoint and fail on redirects, or enforce strict same-origin HTTPS redirects
 without forwarding credentials to a different origin. Retest using the production Python version.
 
-## Existing shared-key availability risk
-
 ## Invalid-entry fallback probe
 
 An exact sidecar `run_tick()` probe with local temporary files and a fake runtime socket applied a
@@ -79,7 +77,7 @@ The current API validators reject this zero value on new writes. Any fix must di
 row from intentional removal, suspension or no-limit configuration and make skipped-invalid data
 visible to monitoring. A generic keep-last-row policy must not silently resurrect revoked entries.
 
-## Shared-key availability detail
+## Existing shared-key availability risk
 
 An attacker who knows an org's plaintext key can consume its shared rate budget, including by
 requests to non-portal routes the app does not authorize. All such requests count before app auth.
