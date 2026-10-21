@@ -3,11 +3,16 @@ type: brief
 repo: sodax-backend
 github: 1372
 status: Active
-next: reviewer sign-off and rollout preparation; correct remaining PR-description wording
+next: verify post-simplify fixes, filesystem privilege boundaries and header/test contract changes
 updated: 2026-10-21
 ---
 
 # GH-1372 Per-org rate limit · brief
+
+**New local follow-up:** post-simplify changes are being edited. The twelve-finding triage is in
+`finding-triage-2026-10-21.md`: privileged temp-symlink writes were reproduced in a dummy container,
+and a fresh 304 can incorrectly report healthy with zero applied maps. The earlier pushed-head
+assessment below does not approve the new working-tree changes or close these follow-up concerns.
 
 **Latest independent verification:** pushed heads #136 `d1015b1` and #1380 `5c460604` match local
 clean working trees. Both previous P1s are resolved; no new P0/P1 found. Sidecar 70/70 on host and
@@ -65,6 +70,7 @@ No upstream edits, posts or deployment were made in this review.
 | Review of the user's seven-step post-merge rollout table | `rollout-plan-review.md` | 1k |
 | Sidecar maintainability, overclaims and partial-apply/initial-health probes | `code-quality-review.md` | 1k |
 | Latest pushed-head review: both P1s resolved, 70 self-tests and 26 HAProxy checks pass | `review-quality-fixes-2026-10-21.md` | 2k |
+| Twelve-finding triage: privileged symlinks, first-304 readiness and header/test contract | `finding-triage-2026-10-21.md` | 1k |
 | Short mechanism explanation and architecture assessment | `mechanism-overview.md` | 0.9k |
 | Security assessment: org-cap bypass reproduction, redirect token handling and map-file boundary | `security-assessment.md` | 1.3k |
 | Shared-counter designs (not needed: premise withdrawn) | `design-global-quota.md` | 1.5k |

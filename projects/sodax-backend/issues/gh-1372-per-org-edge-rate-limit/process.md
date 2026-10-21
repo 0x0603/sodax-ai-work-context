@@ -96,3 +96,11 @@ host and Linux Python 3.8, real-HAProxy integration 26/26, and remote CI pass. I
 and unexpected-exception probes show no dummy token in logs, status or fake alerts. No new P0/P1 found;
 the PR body's mixed-map fallback/next-poll claim still needs narrower wording. Updated the final section
 of `review-quality-fixes-2026-10-21.md`. No upstream edits, posts or deployment.
+
+## Triage of twelve post-simplify findings — 2026-10-21
+
+Assessed the user's classification; local fixes are being edited concurrently. A root/user-separated
+dummy container reproduced a temp symlink making `write_atomic` overwrite/chmod outside maps. A fresh
+304 probe also reported healthy and status exit 0 with zero applied maps. Documented the incomplete
+HAProxy pathname-race mitigation and the changed duplicate-header test contract in
+`finding-triage-2026-10-21.md`. No upstream edits, posts or deployment.
