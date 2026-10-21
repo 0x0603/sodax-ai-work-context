@@ -14,6 +14,10 @@ mismatch that bypasses the org cap (valid key with NBSP padding). Fix before rol
 forwarding is untested. `security-assessment.md` also records a conditional verifier-token redirect
 leak and the map-file threat boundary. No upstream code was changed.
 
+Fallback probe: a synthetic invalid org limit is skipped and removes its map entries while the sync
+still reports healthy; the key falls back to per-IP. Whole-fetch failures retain the current maps.
+See `security-assessment.md`; production invalid data was not established.
+
 **The entry point. An agent resuming this task reads this file and nothing else,
 then opens exactly one row from the map below.**
 

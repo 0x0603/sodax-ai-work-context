@@ -65,6 +65,22 @@ without forwarding credentials to a different origin. Retest using the productio
 
 ## Existing shared-key availability risk
 
+## Invalid-entry fallback probe
+
+An exact sidecar `run_tick()` probe with local temporary files and a fake runtime socket applied a
+valid limit of 10, then a keyset containing the same org with limit 0. The second tick removed both
+map entries, returned success and wrote `healthy: true` with zero consecutive failures. This confirms
+the mechanism behind the earlier review's invalid-limit concern: invalid individual entries are
+skipped rather than preserving the previous policy. By the gateway ACLs, the affected key then takes
+the per-IP path. A wholly malformed keyset or fetch exception instead leaves the current maps alone.
+This used synthetic invalid input; it does not establish that production has invalid tenant limits.
+
+The current API validators reject this zero value on new writes. Any fix must distinguish an invalid
+row from intentional removal, suspension or no-limit configuration and make skipped-invalid data
+visible to monitoring. A generic keep-last-row policy must not silently resurrect revoked entries.
+
+## Shared-key availability detail
+
 An attacker who knows an org's plaintext key can consume its shared rate budget, including by
 requests to non-portal routes the app does not authorize. All such requests count before app auth.
 Tracking also precedes the org-rate rejection, so repeated rejected attempts can prolong the org's

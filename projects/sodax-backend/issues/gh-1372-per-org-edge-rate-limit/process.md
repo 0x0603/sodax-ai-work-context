@@ -44,3 +44,7 @@ this durability boundary in `mechanism-overview.md`. Code/docs reasoning only, n
 Monitoring follow-up: sidecar has status JSON, `--status` and optional stale/recovery Discord alerts;
 dashboard Verification monitors swaps-api instead and has no sidecar integration. Documented the
 independent host-check requirement and initial healthy-flag grace period in `mechanism-overview.md`.
+
+Fallback follow-up: an exact sidecar loop probe applied limit 10, then synthetic invalid limit 0.
+The second tick cleared both entries yet reported healthy/success. Documented the distinction from
+whole-fetch failure; no claim of invalid production data and no upstream changes.
