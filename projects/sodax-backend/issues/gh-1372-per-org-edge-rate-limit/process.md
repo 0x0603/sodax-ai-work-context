@@ -22,3 +22,7 @@ for the user. See `mechanism-overview.md` for policy synchronization, request pr
 Follow-up: assessed the approach against current PR code and official HAProxy documentation. Keep
 the architecture, settle rejected-attempt semantics and keyed/keyless counter interaction before
 rollout, and distinguish local protection from strict global quota. No code changes or new test run.
+
+Assessed the tier-only proposal: prefer its narrower scope, with caveats about Paul's exact intent,
+unverified production tenant data and the mirrored dashboard tier vocabulary. Proposal only; no
+upstream edit was requested. Details are in `mechanism-overview.md`.

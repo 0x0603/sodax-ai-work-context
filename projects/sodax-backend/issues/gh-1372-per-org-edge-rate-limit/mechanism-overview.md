@@ -70,3 +70,25 @@ References: [HAProxy traffic policing](https://www.haproxy.com/documentation/hap
 and [Runtime API persistence](https://www.haproxy.com/documentation/haproxy-runtime-api/).
 Existing local reproduction evidence is in `review-2026-10-21.md`; this follow-up read code and docs
 and did not rerun the stack or change upstream sources.
+
+## Tier-only proposal assessment
+
+The user requested an assessment of Claude's proposal to remove org overrides, not implementation.
+Prefer tier-only limits for the current issue if no org-specific need exists. Paul's recorded request
+asks for flexible tiers and limits; it does not explicitly require or prohibit overrides. The live
+issue's tier-based wording supports the narrower scope. The claim that all production
+`tenants.limits` values are empty was not independently verified in this conversation.
+
+Tier-only limits still mean one counter per org, with the threshold obtained from its tier, not one
+shared counter for the whole tier. Keeping the keyset's `limits` shape permits this change entirely
+in the backend without redesigning the gateway. Remove org-specific merge/UI/BFF behavior, update
+tests and comments/docs, and preserve the existing tenant column. The tenant PATCH route must stay
+for status and tier edits.
+
+Adding a tier is not literally two isolated lines: the dashboard currently mirrors `TIERS` in
+`apps/sodax-backend-dashboard/lib/api-scopes.ts`, in addition to shared `TIERS`/`TIER_SCOPES`.
+It requires coordinated deployment and validation. Clarifying whether that satisfies "easily add a
+new tier" is useful, but overrides do not themselves make tiers dynamically creatable. Removing
+overrides eliminates the branches behind review findings 4/9/10, not the independent counter issues.
+
+No change to PR #1380 or #136 was authorized or made in this assessment.
