@@ -53,7 +53,7 @@ alerting is required. No upstream edits, posts or deployment were made in the re
 | Session index: planning, implementation and reviews | `process.md` | 0.2k |
 | Initial review (historical; findings since addressed) | `review.md` | 2k |
 | Latest review at a88f7a7 / da77c015 and verification | `review-followup.md` | 1k |
-| Short explanation of policy sync, request handling and shared org counters | `mechanism-overview.md` | 0.6k |
+| Short mechanism explanation and architecture assessment | `mechanism-overview.md` | 0.9k |
 | Shared-counter designs (not needed: premise withdrawn) | `design-global-quota.md` | 1.5k |
 | Result | `outcome.md` | 0k |
 

@@ -18,3 +18,7 @@ Open the session relevant to the question; do not read the directory end to end.
 
 Verified the unchanged open PR heads through GitHub CLI and prepared a concise two-flow explanation
 for the user. See `mechanism-overview.md` for policy synchronization, request processing and limits.
+
+Follow-up: assessed the approach against current PR code and official HAProxy documentation. Keep
+the architecture, settle rejected-attempt semantics and keyed/keyless counter interaction before
+rollout, and distinguish local protection from strict global quota. No code changes or new test run.

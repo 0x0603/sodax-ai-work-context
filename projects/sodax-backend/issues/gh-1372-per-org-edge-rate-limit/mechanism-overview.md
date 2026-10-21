@@ -48,3 +48,25 @@ proof that the application will authorize a request.
 This session only explained the existing implementation. No upstream code, issue comments,
 deployment or review status changed. The GitHub connector failed authentication; `gh` supplied the
 live issue, PR metadata and source at the exact heads above.
+
+## Architecture assessment
+
+Follow-up assessment on 2026-10-21 confirmed that both open PR heads remain unchanged. Keep this
+architecture for tier-based edge traffic protection: central policy, local enforcement, organization
+identity shared across keys, and no per-request dependency on the auth service.
+
+Before rollout, settle the org counter's semantics and the interaction between keyed and keyless
+traffic. Counting rejected attempts is a supported abuse-limiting policy, not inherently an HAProxy
+bug, but sustained retries can prolong an organization's rejection period. If the product promises
+an allowance of admitted requests, count admission separately from abuse attempts. Keyed traffic
+also feeds the ordinary per-IP counter, potentially throttling keyless callers sharing that IP;
+separate that budget from the all-traffic flood detector if isolation is required.
+
+The 15-second policy delay, retained stale maps and local per-gateway counters are deliberate
+tradeoffs. Add independent stale/dead-process monitoring before relying on alerting. A strict global
+commercial quota would require a stronger shared-accounting design; it is outside this issue.
+
+References: [HAProxy traffic policing](https://www.haproxy.com/documentation/haproxy-configuration-tutorials/security/traffic-policing/)
+and [Runtime API persistence](https://www.haproxy.com/documentation/haproxy-runtime-api/).
+Existing local reproduction evidence is in `review-2026-10-21.md`; this follow-up read code and docs
+and did not rerun the stack or change upstream sources.
