@@ -72,3 +72,10 @@ authentication vulnerability, and the transport was a fake rather than real HAPr
    helps deployment checks. Avoid turning a small polling service into a framework for this cleanup.
 
 No application code was changed, no GitHub comment was posted and nothing was deployed.
+
+## Runbook follow-up
+
+Added a short instruction beside the manual `--once` example in the gateway runbook: stop
+`sodax-keyset-sync` before running it and start the service again afterward to avoid concurrent map
+writes. File splitting and configuration cleanup remain deferred. Documentation diff checked;
+no runtime changes or new test run. The upstream runbook edit is local and uncommitted.

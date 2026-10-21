@@ -74,3 +74,7 @@ self-test passed 55/55. Temporary fake-HAProxy probes reproduced mixed runtime m
 on the second map and healthy/exit-0 status before any successful initial sync; retry converged.
 Recorded the exact claim boundaries, test limitations and incremental cleanup priorities in
 `code-quality-review.md`. No application edits, GitHub posts or deployment.
+
+Runbook follow-up: added stop/start instructions beside `--once` in gateway `scripts/README.md` to
+avoid concurrent writers. Deferred file splitting and configuration cleanup. Documentation diff
+checked; the upstream edit remains local and uncommitted. No runtime changes or test run.

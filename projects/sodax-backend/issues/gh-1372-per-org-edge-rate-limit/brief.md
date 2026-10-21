@@ -32,6 +32,8 @@ then opens exactly one row from the map below.**
 Code-quality follow-up at gateway `856743e`: the write-cap ordering fix is present and self-test is
 55/55. Additional fake-transport probes confirm partial-map updates and initial healthy-before-first-
 success status; see `code-quality-review.md` for claim boundaries and incremental improvements.
+Follow-up: the local gateway runbook now says to stop the service before `--once` and start it again
+afterward. File splitting and configuration cleanup are deferred; the runbook edit is uncommitted.
 
 ## State in five lines
 
