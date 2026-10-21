@@ -66,3 +66,11 @@ Read the user's seven-step pasted rollout table. Recorded corrections in `rollou
 especially existing overrides, sidecar write permissions, verifier-token reload, fleet-wide tier
 activation and rollback. Gateway head is now 6abc75d and clean; backend fixes are staged. The known
 write-cap accounting P1 is still present. Plan review only, no deployment or external posts.
+
+## Sidecar quality review — 2026-10-21
+
+Reviewed clean pushed heads 856743e / 5c460604; the write-cap ordering fix is present. Sidecar
+self-test passed 55/55. Temporary fake-HAProxy probes reproduced mixed runtime maps after failure
+on the second map and healthy/exit-0 status before any successful initial sync; retry converged.
+Recorded the exact claim boundaries, test limitations and incremental cleanup priorities in
+`code-quality-review.md`. No application edits, GitHub posts or deployment.

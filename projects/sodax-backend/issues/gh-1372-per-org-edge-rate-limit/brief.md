@@ -29,6 +29,10 @@ See `security-assessment.md`; production invalid data was not established.
 **The entry point. An agent resuming this task reads this file and nothing else,
 then opens exactly one row from the map below.**
 
+Code-quality follow-up at gateway `856743e`: the write-cap ordering fix is present and self-test is
+55/55. Additional fake-transport probes confirm partial-map updates and initial healthy-before-first-
+success status; see `code-quality-review.md` for claim boundaries and incremental improvements.
+
 ## State in five lines
 
 - The user owns this task (GitHub assignee is still paulrouge). PRs open: sodax-backend #1380
@@ -72,6 +76,7 @@ alerting is required. No upstream edits, posts or deployment were made in the re
 | Latest review at a88f7a7 / da77c015 and verification | `review-followup.md` | 1k |
 | Review of the uncommitted fixes; remaining write-cap accounting P1 | `review-fixes-2026-10-21.md` | 1.2k |
 | Review of the user's seven-step post-merge rollout table | `rollout-plan-review.md` | 1k |
+| Sidecar maintainability, overclaims and partial-apply/initial-health probes | `code-quality-review.md` | 1k |
 | Short mechanism explanation and architecture assessment | `mechanism-overview.md` | 0.9k |
 | Security assessment: org-cap bypass reproduction, redirect token handling and map-file boundary | `security-assessment.md` | 1.3k |
 | Shared-counter designs (not needed: premise withdrawn) | `design-global-quota.md` | 1.5k |
