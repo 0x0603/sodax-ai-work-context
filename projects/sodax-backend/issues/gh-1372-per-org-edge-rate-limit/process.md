@@ -36,3 +36,7 @@ See `security-assessment.md`: isolated HAProxy 2.8.31 + Node test reproduced org
 valid NBSP-padded key; the actual transpiled `ApiKeyGuard` also accepted it in enforce mode. An exact
 sidecar fetch probe forwarded a dummy verifier token across a host-changing redirect. Map/socket
 injection probes were rejected. No production traffic, real credentials or upstream mutations.
+
+Crash follow-up: distinguished sidecar failure, HAProxy restart and host power loss. Found that the
+file is fsynced before replacement but the parent directory is not fsynced afterward; documented
+this durability boundary in `mechanism-overview.md`. Code/docs reasoning only, no crash test or fix.

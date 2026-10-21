@@ -106,3 +106,12 @@ only the first map updated. Earlier wording about preserving the last maps shoul
 all-or-nothing rollback of both maps and both storage layers. Retry clears the ETag and reconciles
 on subsequent ticks. Reload during a partial update deserves explicit verification; this follow-up
 identified the ordering from code and did not reproduce a race or modify the gateway.
+
+Crash boundary: a sidecar process failure before replacement leaves the old destination intact; a
+failure after replacement but before runtime commit can leave disk ahead of RAM. HAProxy's map
+commit is atomic per map, not across both maps. A HAProxy restart reloads disk policy but resets the
+local rate counters in this configuration. Whole-host power loss is a separate durability boundary:
+`write_atomic` fsyncs the temporary file but does not fsync the parent directory after `os.replace`,
+so the replacement's directory entry is not guaranteed durable. Consider a directory fsync and
+explicit recovery for a complete map-pair snapshot; neither was implemented or power-loss-tested.
+Reference: [Linux fsync requirements](https://man7.org/linux/man-pages/man2/fsync.2.html).
