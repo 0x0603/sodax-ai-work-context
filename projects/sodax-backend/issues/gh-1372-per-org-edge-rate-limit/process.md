@@ -48,3 +48,7 @@ independent host-check requirement and initial healthy-flag grace period in `mec
 Fallback follow-up: an exact sidecar loop probe applied limit 10, then synthetic invalid limit 0.
 The second tick cleared both entries yet reported healthy/success. Documented the distinction from
 whole-fetch failure; no claim of invalid production data and no upstream changes.
+
+Monitoring effort check: existing monitoring-service is a local Docker monitor, not a gateway
+collector, and the dashboard Prometheus URL field has no consumer. Estimated a focused cross-repo
+status transport/UI/external-check addition; user requested sizing only, no implementation.

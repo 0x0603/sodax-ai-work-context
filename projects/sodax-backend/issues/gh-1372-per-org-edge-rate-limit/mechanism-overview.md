@@ -131,3 +131,10 @@ The dashboard's API Keys / Verification view reads swaps-api's own in-app keyset
 nor monitoring-service references keyset-sync at these heads. Add a host collector plus an internal
 status API if dashboard visibility is wanted, with one row per gateway and separate heartbeat age,
 last successful sync, failure/error and version fields. A systemd active state alone is insufficient.
+
+Effort check: monitoring-service currently watches its local Docker daemon (`new Docker()`); there
+is no gateway-sidecar collector in the pinned code. The dashboard has a `prometheusMetricsUrl` env
+field but no consumer found for it, so it is not evidence of an existing integration. A focused
+implementation needs a status transport/collector, dashboard aggregation/UI, and an independently
+scheduled alert check. Expect a few hundred lines including tests/config, with connectivity and
+host deployment the unresolved scope variables; this is an estimate, not an implementation request.
