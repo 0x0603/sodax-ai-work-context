@@ -4,7 +4,7 @@ repo: sodax-backend
 github: 1372
 status: Active
 tags: [rate-limit, haproxy, api-auth, gateway, api-keys]
-updated: 2026-10-20
+updated: 2026-10-22
 related_decisions: []
 related_issues: [1371]
 ---
@@ -32,7 +32,7 @@ per-IP limit.
 - No key -> general per-IP limit. Maps and table never hold plaintext keys.
 - HAProxy only rate-limits; auth stays in the app. An empty map must never turn into a 401.
 - Sidecar dies -> last limits stay; keys minted after that fall back to the IP limit.
-- "HAProxy is a single node, so no peers are needed." **Wrong — see process.md.**
+- "HAProxy is a single node, so no peers are needed." (Kept: one HAProxy serves all prod; see `plan.md`.)
 
 ## Acceptance Criteria (derived, not stated in the issue)
 

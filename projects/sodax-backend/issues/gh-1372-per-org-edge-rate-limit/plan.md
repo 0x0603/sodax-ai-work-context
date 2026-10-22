@@ -2,89 +2,118 @@
 type: plan
 repo: sodax-backend
 github: 1372
-updated: 2026-10-20
+related_prs: [sodax-backend#1380, sodax-unified-api#136]
+updated: 2026-10-22
 ---
 
-# Plan — per-org rate limit at HAProxy
-
-Written so someone who was not in the discussion can implement it. Two PRs in two repos:
-
-- **PR 1 — sodax-backend:** tiers, tier limits, keyset change, dashboard, docs → `plan-backend.md`
-- **PR 2 — sodax-unified-api:** HAProxy config, sidecar, deploy agent, docs → `plan-gateway.md`
-
-Evidence behind every decision (code reads, live probes, the HAProxy 2.8 spike, the chat with Paul)
-is in `process.md`.
+# Per-org rate limit at HAProxy — plan and result
 
 ## Goal
 
-A request carrying a valid API key is rate-limited per **org** at HAProxy: every key of that org
-shares one budget, taken from the org's tier or an org-level override. Requests without a key, with
-an unknown key, or from a suspended org keep today's per-IP edge limits. Tiers and limits can be
-changed without a deploy.
+A request with a valid API key is rate-limited per **org** at HAProxy: all of an org's keys and IPs share
+one budget, taken from its tier or an org override. Keyless calls, unknown keys, suspended orgs and orgs
+with no limit keep the per-IP edge limits. Limits change without a deploy.
 
-## Decided — do not re-open
+## Decisions
 
-1. HAProxy enforces it. It learns limits like the backend does: a sidecar on each gateway polls
-   api-auth `GET /v1/keyset` every 15s. (Paul)
-2. New tier `base` is the default for new orgs. Paul moves existing orgs with his own DB command —
-   no backfill migration. (Paul)
-3. Tiers and limits must be easy to change. Tier names and scopes stay in code (security-relevant,
-   reviewed); limits are data in api-auth, editable from the dashboard. (Paul + design)
-4. Updating the gateway docs that say per-key limits stay in the apps is part of this work. (Paul)
-5. `base` has the same scopes as `pro`, so moving orgs changes nothing.
-6. The in-app submit-tx 10/60s per-IP throttle is NOT changed here (known gap).
-7. Counters are per HAProxy and unpeered (open-source `peers` overwrite rather than sum). One HAProxy
-   counts a client's prod traffic, so each gateway enforces the full limit — no divisor.
+1. **HAProxy enforces it.** A sidecar on each gateway polls api-auth `/v1/keyset` every 15s and loads two
+   maps (key hash → org, org → limit). api-auth stays off the request path. (Paul)
+2. **One HAProxy serves all prod**, so each org has one counter; no peers, no divisor. A reload (every
+   gateway deploy) restarts the counter, so around a deploy an org can get up to twice its limit. (Paul)
+3. **Tiers `base` and `pro`, same scopes.** Names and scopes in code; limits are data in api-auth
+   (`tier_limits`), edited on the dashboard's Tiers tab; an org's own `tenants.limits` wins key by key. (Paul)
+4. **Every org starts on `base`.** Migration 0004 moves existing orgs from `pro` (the only tier before);
+   it changes no behaviour, since scopes are equal and no tier has a limit at deploy. (user)
+5. **Tier limits are set by hand, never seeded.** A limit lifts the app's submit-tx throttle within ~15s,
+   so the edge cap must be live first; Paul also wants nothing to change on deploy and a usage check first.
+6. **Submit-tx throttle skip.** The in-app 10/60s per-IP throttle on swaps, leverage-yield and bridge
+   `submit-tx` is skipped for a key whose org has a limit (`OrgLimitAwareThrottlerGuard`, opt-in on those
+   three routes). Not built into `HaproxyThrottlerGuard`: sponsoring-api uses it to guard the sponsor
+   account. (Paul)
+7. **The edge write cap stays** (120 POSTs per 60s per IP on submit routes), for limited orgs too.
+8. **The edge never authenticates** and never returns 401. Auth stays in the apps.
+9. **Edge and app read the same key bytes:** the edge hashes the whole value of the only `x-api-key`
+   header; the app guard accepts only one bare key (`[A-Za-z0-9_-]+`) and never trims.
+10. Per-org overrides stay (special cases). The org cap covers every non-portal route.
 
-## Contracts shared by both PRs
+## Contracts
 
 | Thing | Value |
 |---|---|
-| Limit key | `rateLimitPerMinute` — integer 1..1,000,000, requests per rolling 60s per org. The only key allowed (`ORG_LIMIT_KEYS`). |
-| Tier names | `base`, `pro` (lowercase). Unknown tier = zero scopes (fail closed) and no tier limits. |
-| Effective limits | tier defaults (`tier_limits.limits`) overlaid key by key by the org's `tenants.limits`. |
-| Keyset | each entry's `limits` = the **effective** limits, keys sorted. Other fields unchanged. |
-| "No org limit" | `rateLimitPerMinute` absent → HAProxy treats the key as keyless (per-IP limits). 0 is rejected at write time; the kill switch is `status: suspended`. |
-| Gateway maps | `/etc/haproxy/maps/apikey_org.map` = `<sha256 hex of key> <orgId>`; `/etc/haproxy/maps/org_limit.map` = `<orgId> <per-gateway limit>` |
-| Hash | sha256 of the FIRST `x-api-key` header, lowercase hex — same as api-auth and the app guard. |
+| Limit key | `rateLimitPerMinute`, whole number 1..1,000,000 (`isOrgLimit` in `@repo/shared-enums`), requests per rolling 60s per org |
+| No limit | key absent → keyless at the edge, throttle kept in the app. 0 is refused; the kill switch is `status: suspended` |
+| Keyset `limits` | effective limits: org value if valid, else the tier's |
+| Maps | `/etc/haproxy/maps/apikey_org.map` = `<sha256 hex> <orgId>`, `org_limit.map` = `<orgId> <limit>` |
 | Edge 429 | `{"ok":false,"error":"org_rate_limited"}`, `Retry-After: 60` |
-| Safety | the edge never returns 401; any failure falls back to today's behaviour. |
 
-## Guardrails for the implementer
+## What shipped
 
-- Do not deploy anything, touch a gateway, or touch prod api-auth. Rollout below is run by the owners.
-- Follow each repo's own git workflow: sodax-backend branches off `development`, PR to
-  `development` (`CLAUDE.md` §Git Workflow); sodax-unified-api feature branch → `development`, then
-  promotion PRs (`CLAUDE.md` §Branch flow). Stage files by name; never `git add .`.
-- Do not create or push the `design-v1.4.0` tag — the merger does that.
-- No AI attribution in commits or PR bodies.
-- Start from a fresh `development`. Partial work from planning exists only as uncommitted files on
-  one machine — ignore it.
+- **sodax-backend #1380** (`dcf4f0b7`, tests `432d4070`): `base` tier, `tier_limits` + `GET/PATCH /v1/tiers`,
+  effective limits in the keyset, dashboard Tiers tab and org override, strict key shape in the guard,
+  `OrgLimitAwareThrottlerGuard`, `isOrgLimit` in shared-enums, migration 0004.
+- **sodax-unified-api #136** (`cd05f43`): org cap in `fe_edge`, `keyset-sync.py` sidecar + watchdog +
+  Discord alerts, deploy agent creates missing map files, ADR-004 and design doc v1.4.0.
 
-## Rollout (owners, after both PRs merge — every step is reversible and changes nothing alone)
+What a keyed org on `base` meets after rollout:
 
-1. **Deploy backend** (api-auth + dashboard). Migration creates `tier_limits` (empty) and sets the
-   default tier to `base`. Check: `GET /v1/tiers` lists `base` and `pro` with `{}` limits.
-2. **Paul moves orgs:** `UPDATE tenants SET tier = 'base';` — exactly lowercase, only after step 1.
-   Check: minting a key on the portal still works.
-3. **Pre-create map files on every gateway** (before the cfg reaches it):
-   `sudo install -d -m 0755 /etc/haproxy/maps && sudo touch /etc/haproxy/maps/apikey_org.map /etc/haproxy/maps/org_limit.map`
-4. **Promote the gateway cfg** development → canary → master. Maps are empty, so nothing changes.
-   Check with the edge-404 probe: 400 keyless requests → 300 pass.
-5. **Paul issues a verifier token** for the gateways; owners add it to prod api-auth
-   `API_AUTH_VERIFIER_TOKENS`.
-6. **Install the sidecar** on gateway-c, then gateway-a/b (`scripts/README.md` new section;
-   set `KEYSET_DISCORD_WEBHOOK_URL`). Maps stay empty — no tier has a limit yet.
-7. **Turn it on:** set `base` (and `pro`) `rateLimitPerMinute` in the dashboard Tiers tab, e.g.
-   1800. Probe `canary-api.sodax.com` with a real key.
-8. **Turn it off at any time:** clear the tier limit (effective within ~15s), or stop the sidecar
-   and empty the maps, or revert the cfg.
+| Limit | Scope | Value |
+|---|---|---|
+| Org cap (edge) | all routes, all its keys and IPs | 3000/min |
+| Write cap (edge) | submit routes, per IP | 120/min (today 10/min, from the app throttle) |
+| Jail (edge) | per IP | 1500 per 10s |
+| Per-IP rate cap 300/10s (edge) | not applied to keyed requests | — |
+| App submit-tx throttle | skipped | — |
 
-## Out of scope / known gaps
+## Rollout
 
-- In-app submit-tx 10/60s per-IP throttle still applies to keyed callers.
-- `X-RateLimit-*` response headers (asked for in #740) — not added at the edge.
-- Canary API keys are not recognised at the edge (canary api-auth is internal-only); they keep the
-  per-IP limits on `canary-api.sodax.com`.
-- The existing edge 429 bodies end in a literal `\n` (`lf-string` does not interpret it) — mention in
-  the gateway PR, do not fix here.
+Run by the owners; full steps in the [rollout comment](https://github.com/icon-project/sodax-backend/issues/1372#issuecomment-6309961777).
+
+1. Deploy api-auth (migration 0004 runs on start), the dashboard, swaps-api and bridge-api.
+2. Prepare gateways (sidecar group, map files), promote the cfg `development → canary → master`.
+3. Add the gateway verifier token to api-auth; install the sidecar and watchdog with
+   `KEYSET_DISCORD_WEBHOOK_URL`; send the test alert.
+4. Test with one org override, including 12 `POST /v1/bridge/submit-tx` with `{}` on its `bridge:write` key:
+   12 × 400 = the skip works; a 429 on the 11th = bridge-api's `API_KEY_ENFORCEMENT` is `off`.
+5. Check each org's busiest minute against 3000 (`api_usage_hourly` ÷ 60 is only an hourly average).
+6. Set `base` 3000, `pro` 6000 (Paul's starting values). This also lifts the app throttle for every org
+   with a write key at once.
+
+Rollback: clear the tier limits (~15s), or stop the sidecar and empty the maps. Before rolling api-auth
+back past `base`: `UPDATE tenants SET tier = 'pro' WHERE tier = 'base';`.
+
+## Open — waiting on Paul (the user posts nothing more on the PRs)
+
+- `API_KEY_ENFORCEMENT` on prod bridge-api. swaps-api reports `monitor`; if bridge is `off`, bridge
+  submits keep the 10/min throttle.
+- Keep or lift the 120/min write cap for orgs with a limit.
+- Rollout inputs: verifier token, gateway access, someone with stateful-Mongo access for the usage check,
+  reviewers for both PRs.
+- FYI only: the gateway repo's §6, `CLAUDE.md` and `README.md:14` still describe gateway-a/b as prod and
+  a 10% prod share on gateway-c.
+
+## Verified (at `432d4070` / `cd05f43`)
+
+- CI green on both PRs; the backend pre-commit gate (full `pnpm test`) passed.
+- Real swaps-api and bridge-api AppModules + api-auth + HAProxy with the #136 cfg, 36/36: skip for a tier
+  limit and an override; throttle kept for no limit, read-only key, suspended org, unknown key, keyless;
+  clearing and restoring a limit flips it; `off` → no skip; `enforce` → 401/403; through the edge the
+  write cap holds at 120, the app throttle at 10 per real client IP, an org override of 20 at 20.
+- Load, 50 concurrent, ~22,750 requests: no 5xx or connection errors; app throttle exactly 10 and write
+  cap exactly 120; org cap 3000 let 3001 through; skip and throttle paths have equal latency
+  (p50 8.6 ms).
+- Migration 0004 from prod's state: `pro` → `base`, limits and key scopes untouched, a re-run is a no-op.
+
+## Risks and follow-ups
+
+- **Prod load:** limited orgs go from 10 to up to 120 submits/min per IP. Watch the submit queues and
+  give-up incidents after setting limits.
+- **Shared budget:** a leaked key can spend its org's whole budget. Refusals are not counted, so it
+  cannot hold the org below the limit.
+- **Sidecar monitoring:** health is in its status file and Discord alerts only while the process lives;
+  nothing on the dashboard, and a dead host needs independent monitoring.
+- **Canary:** the edge polls prod api-auth, so canary keys get per-IP edge limits while canary apps
+  skip the throttle.
+- **If exact limits across several HAProxies are ever needed:** a shared limiter (SPOE + one Redis,
+  sliding-window log). Open-source peers overwrite rather than sum.
+- Not done: `X-RateLimit-*` headers (#740); edge 429 bodies end in a literal `\n`; bridge-api has no
+  `/healthz/api-key-verification` although `CLAUDE.md` says it does.
