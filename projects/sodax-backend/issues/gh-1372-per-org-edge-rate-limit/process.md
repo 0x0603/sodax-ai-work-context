@@ -13,6 +13,7 @@ Open the session relevant to the question; do not read the directory end to end.
 | --- | --- | --- | --- |
 | 1 | 2026-10-20 | Planning, probes, implementation, initial review, topology correction and divisor withdrawal | `process/01-2026-10-20-planning-and-implementation.md` |
 | 2 | 2026-10-20 | Re-review of a88f7a7 / da77c015; stale-sync finding addressed | `process/02-2026-10-20-re-review.md` |
+| 3 | 2026-10-21 → 22 | Local e2e harness `e2e-local.sh` (22 checks); Paul's remarks: submit-tx throttle skip, migration 0004, one-HAProxy docs, reviews | `process/03-2026-10-21-local-e2e-harness.md` |
 
 ## Mechanism explanation — 2026-10-21
 

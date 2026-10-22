@@ -108,3 +108,21 @@ policy makes a leaked shared credential harmless.
 - [Python redirect implementation](https://github.com/python/cpython/blob/3.14/Lib/urllib/request.py)
 - [Gateway PR](https://github.com/icon-project/sodax-unified-api/pull/136)
 - [Backend PR](https://github.com/icon-project/sodax-backend/pull/1380)
+
+## Status after fixes (2026-10-21, uncommitted on both PR branches)
+
+1. **NBSP / edge-app key mismatch: fixed.** The guard (`@repo/api-auth-client`) now accepts only a header
+   that is one bare key (`[A-Za-z0-9_-]+`) and never trims it. Real HTTP parse, real keyset from a local
+   api-auth, a real key: `0xA0 + key + 0xA0` was authorised by the old guard and is `unknown_key` (401
+   in enforce) with the new one; the plain key still passes. Every minted key, including the ones
+   migrated from `stateful_org_api_keys`, is `sodax_` + base64url, so no valid key changes outcome.
+   Also closes the comma-joined / repeated-header variant.
+2. **Redirect token leak: fixed.** The sidecar uses an opener that never follows redirects (a 3xx is a
+   sync error) and refuses a non-https `KEYSET_URL` unless it is a loopback host. Self-test runs a loopback
+   api-auth that answers 302: refused, and the target never sees the Authorization header. Prod
+   `https://auth.sodax.com/v1/keyset` answers 401 directly; `http://` answers 308 (now refused at start).
+3. **Budget exhaustion: partly fixed, rest is inherent.** Refused requests are no longer counted
+   (`table_http_req_rate` read before `track-sc3`): a replay that used to give 0/10 now gives 7/10. A key
+   holder can still use an org's limit up; documented in the design doc and api-authentication.md.
+4. **Crash consistency.** Directory fsync added after the rename. Two-map ordering left as is: every mixed
+   state falls back to per-IP, and a restarted sidecar re-pushes both maps.
