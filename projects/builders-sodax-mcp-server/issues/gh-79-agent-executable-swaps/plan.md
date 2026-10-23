@@ -3,7 +3,7 @@ type: plan
 repo: builders-sodax-mcp-server
 github: 79
 tags: [mcp, swaps-api, agents, non-custodial]
-updated: 2026-10-22
+updated: 2026-10-23
 ---
 
 # GH-79 Builders MCP agent-executable swaps — verdict
@@ -27,7 +27,7 @@ The epic is done when:
 | 1 | Client layer: `@sodax/swaps-api@2.2.0` + `@sodax/types@2.2.0` + `viem`, exact pins; `engines >=22.12.0`. Not the full `@sodax/sdk`. | Full SDK 2.2.0: 777 MB, ~260 MB RSS, 35 npm advisories (11 high). Light set: 82 MB, 0 advisories. The SDK's `sodax.api.swaps` wraps this same client. Amends epic D3; the ADR records it. |
 | 2 | Chain reads (balance, receipt, allowance): one small read-once reader per family behind a `ChainReader` interface, on the repo's `fetchJson`. Swap each family to an SDK v3 chain plugin when those ship. | 2.2.0 has no light reusable reader. The interface keeps the later switch mechanical. |
 | 3 | Build the intent tx with `createIntent`, passing an explicit `minOutputAmount` (from slippage) and `deadline` (`getDeadline`). | `getQuote(…, {includeTxData})` sets `deadline: 0` (never expires) and minOut = quote (zero slippage). |
-| 4 | `track`: read status → if not submitted, one receipt check → EVM: the mined input must contain the quote's calldata → `submitTx` once → status. | `submit-tx` verifies nothing on-chain. Smart wallets and EIP-5792/7702 batches wrap the calldata, so match by containment, not equality. |
+| 4 | `track`: read status → if not submitted, one on-chain check → `submitTx` once → status. EVM: the receipt succeeded and holds the log from `addresses.connection` carrying the cached relay payload. Other families: success, and the sender is the quote's source address, until each reader can read the message. | `submit-tx` verifies nothing on-chain. Input matching is not enough: the same bytes can go to another contract, and a smart-wallet batch can succeed while the inner call fails. Each EVM deposit emits one `connection` log (one event type; the asset manager emits none) whose data carries the calldata payload. |
 | 5 | `cancel`: first call builds the unsigned cancel tx; second call, with `cancelTxHash`, checks its receipt and relays it (`submitIntent`). Not offered for Solana or Bitcoin sources. | The backend only returns the unsigned tx. No endpoint provides Solana/Bitcoin cancel relay data. |
 | 6 | Swaps API calls use a guarded `fetch`: submit budget ≤ 8/min, a circuit that honours `Retry-After`, and fail-fast `RATE_LIMITED {retryAfterSec}`. Builder tools are untouched. | Every user shares the server's IP: `submit-tx` allows 10/60 s per IP, and the edge jails an IP after a flood. `SwapsApi` retries 429 with no delay. |
 | 7 | Forward the caller's `x-api-key` on Swaps API calls only (stdio: `SODAX_API_KEY`); one client per request. No partner fee. | Attribution follows the key at submit-tx. The partner fee is not key-driven today. |
@@ -138,7 +138,7 @@ a draft for R0bi7.
 | 83 | Resolver: address → symbol / `native` → fuzzy match (always `ambiguous`) → `not_found` + suggestions (the native token first for wrapped names). Strict `units.ts`. `sodax_resolve_token`. | Fixture tests: Sonic WETH / sodaETH, Hyper USDC / USDT0, ICON legacy bnUSD, "WETH on Arbitrum" → ETH (native), "ETH" ≠ Tether |
 | 86 | `ChainReader` per family; EVM allowance toward `assetManager`; env RPC overrides; `sodax_get_balance`. | Recorded-fixture tests per family; one live read per family (no funds) |
 | 84 | Quote per decision 3 and decision 11. Price-only mode when no address is given. `MISSING_INPUT` when a Stacks source lacks `srcPublicKey` or a Bitcoin source lacks `bound.accessToken`. Solana blockhash warning. EVM steps marked batchable (EIP-5792). | Canary contract tests for EVM, Sonic, Solana and Sui sources; `AMOUNT_TOO_LOW`, `INSUFFICIENT_FUNDS` and `DESTINATION_NOT_READY` covered |
-| 85 | `track` / `cancel` per decisions 4 and 5. MCP-only states: `awaiting_source_confirmation`, `source_failed`, `queued`, `expired_unsubmitted`, `not_submitted`, `not_submitted_unknown_quote`. | State-machine tests; 5 calls → 1 submit; calldata-mismatch and smart-wallet batch cases |
+| 85 | `track` / `cancel` per decisions 4 and 5. MCP-only states: `awaiting_source_confirmation`, `source_failed`, `queued`, `expired_unsubmitted`, `not_submitted`, `not_submitted_unknown_quote`. | State-machine tests; 5 calls → 1 submit; wrong-contract, failed-inner-call (smart-wallet batch) and payload-mismatch cases |
 | 87 | Safety and analytics per decision 12. | One test per rule; a tx hash is not flagged; no addresses in analytics |
 | 88 | `scripts/e2e/swapCanary.ts` (MCP client + viem signer, 5 USDC, alternating direction) and `e2e-canary.yml` (daily + dispatch, never on PRs, Discord on failure, balance floor). | One green scheduled run + one deliberate red run |
 | 89 | README swap walkthrough and `server.json` tools. In `gosodax/sodax-sdks`, under its own issue linked as a sub-issue of #89: update `docs/builders-mcp.mdx` and add the skill `packages/skills/skills/sodax-sdk/builders-mcp/SKILL.md`. | sodax-sdks docs and skills gates green |
@@ -196,7 +196,9 @@ Raise these in our PR thread; no new tracker issues.
 
 ## Risks
 
-- **Restart window:** losing the in-process cache needs an operator relay; an alert fires when it happens.
+- **Restart window:** losing the in-process cache needs an operator relay. The alert fires only when `track` is called
+  again for that tx (`not_submitted_unknown_quote`, with source chain, tx hash and quote id); a swap nobody tracks again
+  stays silent.
 - **Submit throughput:** about 8 submits/min server-wide until follow-up (a).
 - **Non-EVM readers:** proven on historical data only, not on live swaps.
 - **Public RPC rate limits:** operators can override RPCs via env.

@@ -3,7 +3,7 @@ type: brief
 repo: builders-sodax-mcp-server
 github: 79
 status: Active — plan only
-next: user confirms ownership + go-ahead; then implement plan.md "Work per sub-issue" in order
+next: R0bi7 reassigns #79–#89 to the user; on the user's go-ahead, the ADR first as a draft PR, then plan.md "Work per sub-issue" in order
 updated: 2026-10-23
 ---
 
@@ -14,21 +14,28 @@ updated: 2026-10-23
 ## State
 
 - The plan verdict is in `plan.md`. No code exists.
+- ADR draft (#80) is written locally, not committed: `builders-sodax-mcp-server` (clone in the workspace), branch
+  `feat/agent-executable-swaps` off `development` @ `02ba5df`, `docs/adr/0001-sodax-mcp-execution-model.md` plus a
+  README link.
 - `improvement-ideas.md` lists 14 candidate changes. None is adopted, and `plan.md` stays the plan until the user picks.
-- Epic #79 is unassigned; sub-issues #80–#89 are assigned to R0bi7 (`gosodax/builders-sodax-mcp-server`).
+- The user owns the epic as of 2026-10-23. On GitHub, #79 is still unassigned and #80–#89 are still assigned to R0bi7
+  (`gosodax/builders-sodax-mcp-server`) until he reassigns them.
 - The handoff named "@0xmatterhorn"; that is not a GitHub login.
 - Nothing has been posted, committed or pushed in any upstream repo.
 
 ## Blocked on
 
-1. The user's go-ahead, plus confirmation that they own the epic.
+1. The user's go-ahead to start coding, and R0bi7 reassigning #79–#89 to the user.
 2. R0bi7's agreement to the ADR decisions.
-3. A funded test wallet and a canary API key.
-4. A gosodax admin for the E2E secrets and the staging `SODAX_ENV=canary` setting.
+3. Paul and R0bi7 on rate limiting (D2): whether the MCP moves behind HAProxy or keeps its own limit. Decision 6
+   stands until then.
+4. A funded test wallet and a canary API key.
+5. A gosodax admin for the E2E secrets and the staging `SODAX_ENV=canary` setting.
 
 ## Next action
 
-Wait for the user. Do not start coding on a plan approval alone.
+The user reviews the ADR draft and asks R0bi7 to reassign the issues. On the user's word, commit the ADR, push and
+open the PR as a draft. Do not start coding on a plan approval alone.
 
 ## Settled — do not re-litigate
 
