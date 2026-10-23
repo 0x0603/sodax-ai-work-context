@@ -14,14 +14,14 @@ updated: 2026-10-23
 ## State
 
 - The plan verdict is in `plan.md`. No code exists.
-- ADR draft (#80) is written locally, not committed: `builders-sodax-mcp-server` (clone in the workspace), branch
-  `feat/agent-executable-swaps` off `development` @ `02ba5df`, `docs/adr/0001-sodax-mcp-execution-model.md` plus a
-  README link.
+- ADR (#80) is pushed, no PR yet: `gosodax/builders-sodax-mcp-server` branch `feat/agent-executable-swaps` @ `4ed6726`
+  (off `development` @ `02ba5df`), `docs/adr/0001-sodax-mcp-execution-model.md` plus a README link. Local clone at
+  `sodax/builders-sodax-mcp-server/`.
 - `improvement-ideas.md` lists 14 candidate changes. None is adopted, and `plan.md` stays the plan until the user picks.
 - The user owns the epic as of 2026-10-23. On GitHub, #79 is still unassigned and #80–#89 are still assigned to R0bi7
   (`gosodax/builders-sodax-mcp-server`) until he reassigns them.
 - The handoff named "@0xmatterhorn"; that is not a GitHub login.
-- Nothing has been posted, committed or pushed in any upstream repo.
+- Upstream, only the ADR branch is pushed. Nothing has been posted on any issue or PR.
 
 ## Blocked on
 
@@ -34,8 +34,8 @@ updated: 2026-10-23
 
 ## Next action
 
-The user reviews the ADR draft and asks R0bi7 to reassign the issues. On the user's word, commit the ADR, push and
-open the PR as a draft. Do not start coding on a plan approval alone.
+The user asks R0bi7 to reassign the issues. On the user's word, open the PR from `feat/agent-executable-swaps` as a
+draft so R0bi7 reviews the ADR first. Do not start coding on a plan approval alone.
 
 ## Settled — do not re-litigate
 
