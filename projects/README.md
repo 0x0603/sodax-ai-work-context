@@ -1,20 +1,22 @@
 # Project Context
 
-Repo-scoped context. Directory names match the real workspace repo folders so
-agents navigate by convention:
+Repo-scoped context. Directory names match the repo names so agents navigate by
+convention. Code lives in the hub (`sodax-command-center/`) unless noted:
 
 | Context path | Workspace repo |
 | ------------ | -------------- |
-| `projects/sodax-backend/` | `sodax-backend/` |
-| `projects/sodax-frontend/` | `sodax-frontend/` |
-| `projects/sodax-sdks/` | `sodax-sdks/` |
-| `projects/intents-whitelabel/` | `intents-whitelabel/` |
+| `projects/sodax-backend/` | `sodax-command-center/repos/backend/sodax-backend/` |
+| `projects/sodax-frontend/` | `sodax-command-center/repos/client/sodax-frontend/` |
+| `projects/sodax-sdks/` | `sodax-command-center/repos/client/sodax-sdks/` |
+| `projects/builders-sodax-mcp-server/` | `sodax-command-center/repos/client/builders-sodax-mcp-server/` |
+| `projects/sodax-command-center/` | `sodax-command-center/` (hub issues, e.g. cross-repo features) |
+| `projects/intents-whitelabel/` | `intents-whitelabel/` (not in the hub) |
 
 ## Per-repo layout
 
 ```
 projects/<repo>/
-├── README.md            # repo overview
+├── README.md            # my notes; the overview is the hub card docs/repos/<repo>.md
 ├── issues/              # one folder per GitHub issue or ad-hoc task
 │   └── gh-1234-wallet-connect-flow/
 │       ├── brief.md     # entry point: state, blockers, next action, file map
@@ -66,7 +68,9 @@ scripts/new-issue.sh <repo> task <kebab title...>
 
 ## Where things live
 
-- Issue-scoped plan → the issue's `plan.md`; cross-repo plan → top-level `plans/`.
+- Issue-scoped plan → the issue's `plan.md`. A cross-repo feature → the hub's
+  *Cross-repo feature* issue, dossier in `projects/sodax-command-center/issues/`.
+  Cross-repo plans with no hub issue → top-level `plans/`.
 - Repo-scoped decision → `projects/<repo>/decisions/`; cross-cutting → top-level
   `decisions/`.
 - Reusable synthesized knowledge (not tied to one issue) → top-level `knowledge/`.

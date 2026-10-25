@@ -4,7 +4,9 @@ Upstream: `github.com/icon-project/sodax-frontend`
 
 ## Overview
 
-TODO: app structure, key routes/components, how it's run locally.
+See the hub card `sodax-command-center/docs/repos/sodax-frontend.md` (stack, layout,
+build/test, interfaces, gotchas). Code: `sodax-command-center/repos/client/sodax-frontend/`.
+Notes below are only what the card doesn't cover.
 
 ## Layout
 

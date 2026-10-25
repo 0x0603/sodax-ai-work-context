@@ -3,7 +3,7 @@ type: knowledge
 area: operations
 status: Stable
 tags: [swaps-api, backend, docker, solver, stacks, runbook, env, mongo, redis, rpc-config, apps-demo, allowance]
-updated: 2026-08-21
+updated: 2026-10-25
 related_issues: []
 related_decisions: []
 ---
@@ -179,8 +179,8 @@ is empty/unset the SDK default applies:
 | Field | Default |
 | ----- | ------- |
 | `solverApiEndpoint` | `https://api.sodax.com/v1/intent` (**prod** solver) |
-| `intentsContract` | `0x6382D6ccD780758C5e8A6123c33ee8F4472F96ef` |
-| `protocolIntentsContract` | `0xaFf2EDb3057ed6f9C1dA6c930b8ddDf2beE573A5` |
+| `intentsContract` | Sonic `intents`: `onchain find intents` in the hub |
+| `protocolIntentsContract` | Sonic `protocol_intents`: `onchain find protocol_intents` in the hub |
 
 Consequences:
 

@@ -4,7 +4,9 @@ Upstream: `github.com/icon-project/sodax-backend`
 
 ## Overview
 
-TODO: what this service does, key entry points, how it's run locally.
+See the hub card `sodax-command-center/docs/repos/sodax-backend.md` (stack, layout,
+build/test, interfaces, gotchas). Code: `sodax-command-center/repos/backend/sodax-backend/`.
+Notes below are only what the card doesn't cover.
 
 ## Layout
 

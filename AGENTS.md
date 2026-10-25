@@ -12,22 +12,39 @@ Its absolute path can differ by machine:
 
 | Path                       | Owner          | Purpose                                  |
 | -------------------------- | -------------- | ---------------------------------------- |
-| `sodax-backend/`           | icon-project   | TODO: describe                           |
-| `sodax-frontend/`          | icon-project   | TODO: describe                           |
-| `sodax-sdks/`              | icon-project   | TODO: describe                           |
-| `intents-whitelabel/`      | icon-project   | TODO: describe                           |
+| `sodax-command-center/`    | icon-project   | **Team hub — new code work starts here.** Core repos as submodules under `repos/<layer>/<name>` |
+| `intents-whitelabel/`      | icon-project   | Not in the hub; work in this clone       |
+| `sodax-document/`          | icon-project   | Not in the hub; docs sync target         |
+| `sodax-backend/`, `sodax-frontend/`, `sodax-sdks/`, `builders-sodax-mcp-server/`, `sodax-sdks-<n>/` | upstream | Legacy standalone clones, kept only to finish in-flight branches. Delete once clean |
 | `sodax-ai-work-context/`   | 0x0603 (mine)  | **This repo** — private, synced AI memory |
 
 The `icon-project/*` repos are upstream work repos. `sodax-ai-work-context` is a
 **separate private repo** for my own AI work context (plans, decisions,
 research). Keep the two worlds separate.
 
+## Working in `sodax-command-center/`
+
+The hub's own `CLAUDE.md` is the router for code: repo cards
+(`docs/repos/<name>.md`), cross-repo interfaces, `onchain find`, and skills such
+as `create-issue`. This file stays the router for my context only; from the hub
+it lives at `../sodax-ai-work-context/`.
+
+- Branch, commit and open PRs inside `repos/<layer>/<name>`, never in the hub.
+  Don't commit the submodule pointer changes `scripts/bootstrap.sh` leaves behind.
+- `bootstrap.sh` moves clean submodules back to their default branch: check the
+  feature branch out again afterwards, and never commit on the default branch.
+- Parallel work in one repo: `git worktree` inside the submodule, not a new clone.
+- Addresses come from the hub registry (`PYTHONPATH=tools python3.12 -m onchain
+  find <query>`); cite the command in notes instead of copying addresses.
+
 ## How to use this memory
 
-Orient before searching deeply:
+Orient before searching deeply (paths below are relative to `sodax-ai-work-context/`):
 
 1. Read `INDEX.md` (the repo map + search recipes).
-2. Read `projects/<repo>/README.md` for the repo you're working on.
+2. For what a repo is and how to build it, read the hub card
+   `sodax-command-center/docs/repos/<name>.md`. `projects/<repo>/README.md` only
+   holds my notes on top of it.
 3. If there's a GitHub issue, open `projects/<repo>/issues/gh-<number>-*/` and
    read **`brief.md`** — state, blockers, next action, and a map of which file
    answers which question. This is how you resume a task after pulling context.
@@ -77,7 +94,10 @@ While working:
 
 Where things go:
 
-- Issue-scoped plan → the issue's `plan.md`; cross-repo plan → top-level `plans/`.
+- Issue-scoped plan → the issue's `plan.md`. A cross-repo feature → the hub's
+  *Cross-repo feature* issue, dossier under `projects/sodax-command-center/issues/`.
+  Top-level `plans/` is for my own cross-repo plans with no hub issue (triage,
+  trackers).
 - Repo-scoped decision → `projects/<repo>/decisions/`; cross-cutting → top-level
   `decisions/`.
 - Reusable synthesized knowledge → top-level `knowledge/` (see its `README.md`).
@@ -85,7 +105,9 @@ Where things go:
   so `rg` can traverse both ways.
 - **Code changes go in the actual `icon-project` repo. Plans / decisions / notes
   go ONLY in this context repo.** Never commit personal notes into an
-  `icon-project` repo.
+  `icon-project` repo. One exception, because the hub asks for it: a
+  non-obvious fact about a repo that helps the whole team (a gotcha, a build
+  quirk) goes into that repo's hub card through a hub PR.
 
 ## Sync (2 machines)
 

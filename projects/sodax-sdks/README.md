@@ -4,7 +4,9 @@ Upstream: `github.com/icon-project/sodax-sdks`
 
 ## Overview
 
-TODO: packages in the SDK, public API surface, build/test/release flow.
+See the hub card `sodax-command-center/docs/repos/sodax-sdks.md` (stack, layout,
+build/test, interfaces, gotchas). Code: `sodax-command-center/repos/client/sodax-sdks/`.
+Notes below are only what the card doesn't cover.
 
 ## Layout
 

@@ -2,6 +2,8 @@
 
 Upstream: `github.com/gosodax/builders-sodax-mcp-server` (default branch `development`,
 production `master`, release-please). Hosted at `https://builders.sodax.com/mcp`.
+Hub card: `sodax-command-center/docs/repos/builders-sodax-mcp-server.md`. Code:
+`sodax-command-center/repos/client/builders-sodax-mcp-server/`.
 
 ## Overview
 

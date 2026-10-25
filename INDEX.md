@@ -4,7 +4,8 @@ The map of this repo. **Read this first**, then drill into the specific area.
 
 ## Start here
 
-1. `projects/<repo>/README.md` for the repo you're working on.
+1. What a repo is: the hub card `sodax-command-center/docs/repos/<name>.md`.
+   My notes on it: `projects/<repo>/README.md`.
 2. If there's a GitHub issue: `projects/<repo>/issues/gh-<number>-*/**brief.md**`
    — state, blockers, next action, and a map of which file answers which
    question. **Read the brief, then open one file from its map.** Only fall back
