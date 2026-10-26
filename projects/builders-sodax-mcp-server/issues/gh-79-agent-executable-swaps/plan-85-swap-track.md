@@ -9,7 +9,7 @@ updated: 2026-10-26
 
 # #85 — `sodax_swap_track` and `sodax_swap_cancel`
 
-Status: plan, reviewed (§Review). Drafted by a planning agent on 2026-10-26 from `feat/84-swap-quote` with #84's
+Status: commits 1–5 shipped as one commit in draft PR #95 (`33cb75a`, 2026-10-26); commit 6 (contract tests) and 7 (Sonic) not started. Plan reviewed (§Review). Drafted by a planning agent on 2026-10-26 from `feat/84-swap-quote` with #84's
 second-review fixes in the working tree (Sonic sources refused, `swapContract` in the catalog). Branch
 `feat/85-swap-track` off the #84 commit that carries those fixes. Not started.
 

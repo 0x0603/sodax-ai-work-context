@@ -2,8 +2,8 @@
 type: brief
 repo: builders-sodax-mcp-server
 github: 79
-status: Active — #81 in PR #91, #82 in draft PR #92, #83 in draft PR #93, #84 in draft PR #94
-next: #85 off `6339278` per plan-85-swap-track.md; review plan-87; hub PR from `docs/builders-mcp-swap-sdk` once #94 merges
+status: Active — #81 in PR #91, #82 in draft PR #92, #83 in draft PR #93, #84 in draft PR #94, #85 in draft PR #95
+next: #87 off `feat/85-swap-track` per plan-87 (2 open questions); #85 contract tests; hub PR from `docs/builders-mcp-swap-sdk` once #94 merges
 updated: 2026-10-26
 ---
 
@@ -50,7 +50,7 @@ On another machine: in the hub submodule `git fetch` and check out `feat/84-swap
 merges. Reviews of PR #90–#94 are still open (no reviewer requested). Follow-up PR: pnpm 10 + `minimumReleaseAge`
 instead of the hand pins — spec in `plan-84-swap-quote.md` §Follow-up PR. ADR on PR #90: D5 needs "env, else the
 SDK default" on its RPC line, and D6 and §Quote must drop "the quote's balance check" / "checks the balance" (#86 cut); not done, push only on
-the user's go-ahead. `plan-87-safety-analytics.md` is drafted and waits for the user's review (open: keep the USD warning, its default level).
+the user's go-ahead. `plan-87-safety-analytics.md` is reviewed (open: keep the USD warning, its default level). #85 is draft PR #95 (`feat/85-swap-track` @ `33cb75a`, stacked on #94): commits 1–5 of plan-85 as one commit, after /simplify and /code-review (high); 435 tests. Contract tests (commit 6) are a follow-up. `plan-88-canary-e2e.md` is reviewed (blocked on prerequisites 3 and 4).
 
 Workflow the user asked for on each sub-issue: plan (agent) → review the plan → implement → `/simplify` →
 `/code-review` → fix → wait for an explicit "commit push" → draft PR. Live probes and contract tests use
@@ -98,7 +98,8 @@ Workflow the user asked for on each sub-issue: plan (agent) → review the plan 
 | #84 implementation plan (reviewed): quote build path, partner fee, REST over `SwapsApiService`, errors, cache, SDK commit after the cooldown; §After implementation | `plan-84-swap-quote.md` | 4.5k |
 | #85 implementation plan (reviewed): track state machine, deposit check from the `connection` Message log, RPC env, alerts, cancel flow, relay-for-refund on expired deposits, same-key rule (`QUOTE_KEY_MISMATCH`), 1 open question (backend asks, for the PR thread) | `plan-85-swap-track.md` | 9k |
 | #86 implementation plan (reviewed, cut 2026-10-26): `sodax_get_balance` reads balances through the SDK (`getWalletBalance`), no allowance, quote reads no chain; error wrapping, SDK follow-ups | `plan-86-get-balance.md` | 3.5k |
-| #87 implementation plan (draft, not reviewed): secret screening, USD value + warning, analytics outcomes, Discord on unexpected errors, a test per ADR rule; 2 open questions (USD warning, its default), 2 deferred | `plan-87-safety-analytics.md` | 4k |
+| #87 implementation plan (reviewed 2026-10-26): secret screening, USD value + warning, analytics outcomes, Discord on unexpected and integrity errors, URL-free error logs, a test per ADR rule; 2 open questions (USD warning, its default), 2 deferred | `plan-87-safety-analytics.md` | 4k |
+| #88 implementation plan (reviewed 2026-10-26): built server in the runner over `/mcp?profile=swap`, viem EOA signer in `scripts/e2e/`, 5 USDC Arbitrum↔Base (richer side sends), `canary-e2e` environment, `curl` Discord alert with the stage, leak check on green and red runs; 4 open questions (reviewer agrees with each) | `plan-88-canary-e2e.md` | 5k |
 | Discussion log: balance in BE, custom RPC, full SDK vs light, rate limit, API key, cancel, partner fee | `process.md` | 2k |
 | Candidate changes from before the ADR revision, not re-mapped | `improvement-ideas.md` | 1.9k |
 

@@ -79,3 +79,21 @@ updated: 2026-10-26
   the key; both cut in a commit on PR #94 (`plan-84-swap-quote.md` §Follow-up commit). A missed `sodax_swap_track`
   strands the deposit: the ready quote returns `afterSend`, and a BE deposit watcher is the real fix (`plan.md`
   §Follow-ups). No MCP-side chain watcher.
+- #85 implemented in the working tree (commits 1–5 of plan-85) by a forked agent; departures: no in-memory cancel
+  payload map (the second call rebuilds the cancel, the build is deterministic), cancel integrity failures are
+  `SWAP_MISMATCH`, the quote refuses Sonic sources (hub path unreachable until plan-85 commit 7).
+- #87 plan reviewed by an independent agent: no blockers; 9 should-fix items applied (see plan-87 §Review).
+- #85 /simplify (4 agents): applied the shared `source.ts`, one cancellability rule for track and cancel, hub and
+  fill hashes validated in the status schema, `sameHex` / `EVM_TX_HASH_PATTERN` in `constants.ts`, the relay id from
+  `getIntentRelayChainId`, retry advice moved into `registerActionTool` (covers `INTERNAL` too), cancel reads the
+  receipt before any backend call and rebuilds once, track won't resubmit its own submitted tx, `minimumReceived`
+  stored as returned, a shared deposit fixture. Skipped: viem transport limits (SDK follow-up), parallel receipt and
+  tx reads, skipping the catalog for cached quotes, merging the two quote flags, a generic Swaps API test stub.
+- #88 plan drafted and reviewed by separate agents; 10 should-fix items applied (see plan-88 §Review).
+- #85 /code-review (high), 10 findings. Fixed: a checked deposit the backend refuses (`SWAP_REJECTED`, e.g. its
+  clock already past the deadline) goes to relay-for-refund instead of "check and try again"; the one-deposit claim is
+  made before any await (two txs for one quote at once submitted both; mutation-checked); a backend row only gets the
+  quote's `minimumReceived` when this server submitted that tx for it; a pending tx with a lost quote waits instead
+  of "not a SODAX deposit"; retry advice no longer claims the deposit is safe; relay rate limits and outages retry
+  instead of alerting; a relayed quote is kept 24 h so a later track doesn't page for a refund in progress. Skipped:
+  Sonic sources refused (by plan, commit 7), viem decoders (no new dependency), the cancel rebuild (no state).
