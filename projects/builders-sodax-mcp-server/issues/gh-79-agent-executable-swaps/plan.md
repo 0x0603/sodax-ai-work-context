@@ -172,8 +172,7 @@ a draft for R0bi7.
 
 ## Prerequisites before code
 
-1. The user confirms they are taking the epic and is assigned. The handoff named "@0xmatterhorn", which is not a
-   GitHub login. R0bi7's issue bodies are never edited.
+1. The user confirms they are taking the epic and is assigned. "@0xmatterhorn" is the user's Discord handle. R0bi7's issue bodies are never edited.
 2. R0bi7 agrees to the ADR decisions.
 3. A test wallet with ~20 USDC and gas on Arbitrum and Base, plus a canary API key.
 4. A gosodax admin adds the E2E secrets and sets `SODAX_ENV=canary` on staging.

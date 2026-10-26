@@ -3,8 +3,8 @@ type: brief
 repo: builders-sodax-mcp-server
 github: 80
 updated: 2026-10-23
-status: Active — draft reviewed
-next: Correct the three review findings, then seek owner review of the proposed epic amendments
+status: Active — in draft PR #90, awaiting review
+next: R0bi7 reviews draft PR #90 (incl. the epic amendments); merge closes #80
 related_issues: [gh-79-agent-executable-swaps]
 ---
 
@@ -12,16 +12,15 @@ related_issues: [gh-79-agent-executable-swaps]
 
 ## State
 
-- The user wrote a 159-line proposed ADR in the MCP repo and linked it from README.
-- The ADR is untracked; README is modified on `feat/agent-executable-swaps`.
-- Review only: neither upstream file was edited, committed or pushed during this review.
+- The ADR (173 lines) and README link are committed as `4ed6726` on `feat/agent-executable-swaps`, in draft PR #90
+  (base `development`, CI green, no reviews yet).
 - All six decisions have context, decision and consequences. The README link resolves.
-- Three corrections remain: prove source execution, preserve valid Sui/NEAR addresses, and qualify cache-loss alert guarantees.
+- The three review findings in `process.md` are fixed in `4ed6726`: EVM receipt plus `connection` log check,
+  Sui/NEAR address exemption, and the `not_submitted_unknown_quote` alert that fires only when `track` is called again.
 
 ## Next action
 
-Use `process.md` to revise the ADR when requested. Keep the in-process cache decision; clarify its observable failure path.
-Issue #80 additionally requires a merge, so local draft coverage does not close it.
+Wait for R0bi7's review on PR #90. Issue #80 closes only on merge.
 
 ## Which file answers what
 

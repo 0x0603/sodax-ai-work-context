@@ -242,6 +242,6 @@ externally, track.
 
 ## Related
 
-- Handoff note seen 2026-10-21: "to be taken over by @0xmatterhorn". That is not a GitHub login.
+- Handoff note seen 2026-10-21: "to be taken over by @0xmatterhorn", the user's Discord handle.
 - The sodax-sdks v3 plan T33 (`gh-519`) anticipated "build-unsigned-tx tools in the Builders MCP".
 - Same lane as sodax-sdks#529 (`useSwapsApiSwapLifecycle`, not built yet).
