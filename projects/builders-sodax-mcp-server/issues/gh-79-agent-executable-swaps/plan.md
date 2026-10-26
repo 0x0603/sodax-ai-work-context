@@ -32,10 +32,10 @@ The epic is done when:
 | 5 | `cancel`: first call checks status (solved → say so), else returns the unsigned cancel tx; second call, with `cancelTxHash`, checks the receipt and relays via `/swaps/intents/submit`. Intent from the hub or quote cache only. | The cancel endpoint only builds the tx. Solana/Bitcoin need relay data cancel never returns; they rely on deadline expiry and the BE canceller. |
 | 6 | Keys and limits: behind HAProxy (R0bi7, Slack 2026-10-23). **Swap tools require an API key** (user's call, 2026-10-26): no `x-api-key` (stdio: `SODAX_API_KEY`) → `?profile=swap` refused with "API key required", `all` serves only the builder tools. MCP checks presence only; BE decides validity. Builder tools stay keyless; a key, when sent, goes on every BE call. Drop the MCP limiter once behind the edge. 429 → `RATE_LIMITED {retryAfterSec}`; 401/403 → "API key required". ADR D2 (edited 2026-10-26, uncommitted). | Every swap attributed to a key; swap traffic stops sharing the MCP's IP budget; keyless `all` connections stay byte-identical. A made-up key passes until BE enforces. |
 | 7 | Partner fee from the connection only: `x-sodax-partner-address` / `x-sodax-partner-fee-bps`, query `partnerAddress` / `partnerFeeBps`, stdio `SODAX_PARTNER_FEE_ADDRESS` / `SODAX_PARTNER_FEE_BPS`. EVM address, 1–100 bps, else HTTP 400 at connect. Same fee on quote and intent, cached with the `quoteId`, shown in the quote. | A prompt can't redirect the fee. Org-level fee in BE later. |
-| 8 | No per-call `rpcUrl`; RPC overrides from env. | SSRF; paid RPC URLs embed keys. |
+| 8 | No per-call `rpcUrl`; RPC from env `SODAX_RPC_URL_<chainId>`, else the SDK's packaged default (2026-10-26; a client RPC was asked for and dropped again). | SSRF; paid RPC URLs embed keys; a client RPC could fake the receipt track checks. |
 | 9 | Profiles `builder` / `swap` / `all` (default `all`) via `?profile=`, `x-sodax-profile`, `--profile`/`MCP_PROFILE`. Unknown → HTTP 400 JSON-RPC `-32602`. Plus a boot-time rollout switch, default off. ADR D4. | Keeps `builder` byte-identical. |
 | 10 | Quote cache in process: TTL = deadline + 30 min, max 10k, never stores the Bound token. A mined swap whose entry is lost → `not_submitted_unknown_quote` + operator alert. | Phase 1 scope. |
-| 11 | Balances from a BE endpoint; NEAR storage and Stellar trustline checked with the SDK before building. ADR D6. | Needs the BE balance route (prerequisite 5). |
+| 11 | Balances read by the server through the SDK, only in `sodax_get_balance`; the quote reads no chain except the NEAR storage / Stellar trustline check (SDK). ADR D6 (`21d9017`). | No BE balance route exists; one tool, one job (2026-10-26). |
 | 12 | Safety rules per the ADR: secret screening (exempt tx hashes, valid addresses/tokens on the chosen chain, the Bound token); bounds rejected, not clamped (slippage 1–500 bps default 100, deadline 5–60 min default 15); USD warn threshold; `SODAX_ENV` at boot only; no addresses in analytics. | ADR §Safety rules. |
 
 ## Constraints the implementation must respect
@@ -115,9 +115,9 @@ profile. Staging turns it on. Production turns it on once #85, #87 and #88 are m
 | 81 | `requestContext` (AsyncLocalStorage) carries the caller's key from `x-api-key` / `SODAX_API_KEY` (stdio only; `sodax_…` only, else dropped). `http.ts` sends it only to `/v1/be/` and `/v1/intent/` on the SODAX origin (checked after `..` resolution) and refuses redirects when keyed. The relay never gets it: the gateway passes `/v1/relay` to ICON's xcall relay unchanged, and the SDK docs say the relayer never carries the key. Relay treats the edge's 429 as an error. SSE falls back to the key sent on `GET /sse`. `server.json` declares the optional secret `x-api-key` header. Invalid `SODAX_ENV` fails in `main()` (fatal-exit path). No 401/403 hint: `/v1/be` and `/v1/intent` never check keys by design (sodax-sdks `api-keys.md`); the "API key required" mapping belongs to the swap tools (#84). `solver.ts`/`relay.ts` stay REST. | Existing tool tests unchanged; key isolation through the MCP SDK transport; `pnpm checkTs lint test build` green |
 | 82 | Profiles, `swap` module, landing card, `/api` profiles, `server.json` keeps the plain URL (a client that doesn't substitute `{profile}` would get a 400); the `x-api-key` header description says swap needs it. Detailed plan: `plan-82-tool-profiles.md`. The swap-tool key requirement (decision 6). The rollout switch. | Selection via query, header and stdio; `builder` snapshot; keyless `all` = `builder` snapshot; keyless `swap` → "API key required"; switch off → no swap tools; unknown profile → 400 |
 | 83 | No new dependency: native tokens from the live chain config (`plan-83-resolve-token.md`). Resolver: address → symbol / `native` → fuzzy (always `ambiguous`) → `not_found` + suggestions. `sodax_resolve_token`. | Fixtures: Sonic WETH / sodaETH, Hyper USDC / USDT0, ICON legacy bnUSD, "WETH on Arbitrum" → ETH, "ETH" ≠ Tether |
-| 86 | `sodax_get_balance` on the BE balance route; EVM allowance toward `assetManager`. | Blocked on prerequisite 5 |
+| 86 | `sodax_get_balance` through the SDK: native + one token, no allowance (`plan-86-get-balance.md`). | Read failures never reported as 0; no RPC URL or address in output or logs |
 | 84 | Add `@sodax/sdk` + `@sodax/types` (exact, overrides), `engines >=22.12.0`, `sodax-deps.yaml` + the hub PR, and strict `units.ts` (all moved from #83); one `Sodax` from env. Quote per decisions 3, 7, 11. Price-only without `fromAddress`. EVM/Sonic sources only. EVM steps batchable (EIP-5792). | Canary contract tests for EVM and Sonic; `AMOUNT_TOO_LOW`, `INSUFFICIENT_FUNDS`, `DESTINATION_NOT_READY`, bad partner fee; `docker build` size recorded |
-| 85 | `track` / `cancel` per decisions 4, 5. MCP states: `awaiting_source_confirmation`, `source_failed`, `queued`, `expired_unsubmitted`, `not_submitted`, `not_submitted_unknown_quote`. | State-machine tests; 5 calls → 1 submit; wrong-contract, failed-inner-call, payload-mismatch; `swap` = 5 tools |
+| 85 | `track` / `cancel` per decisions 4, 5. MCP states: `awaiting_source_confirmation`, `source_failed`, `queued`, `expired_refunding` (MCP relays for refund), `expired_unsubmitted`, `not_submitted`, `not_submitted_unknown_quote`; same key as the quote (`QUOTE_KEY_MISMATCH`); the ready quote returns `afterSend`. | State-machine tests; 5 calls → 1 submit; wrong-contract, failed-inner-call, payload-mismatch; `swap` = 5 tools |
 | 87 | Safety and analytics per decision 12. | One test per rule; a tx hash is not flagged; no addresses in analytics |
 | 88 | `scripts/e2e/swapCanary.ts` (MCP client + viem signer, 5 USDC, alternating) and `e2e-canary.yml` (daily + dispatch, never on PRs, Discord on failure, balance floor). | One green scheduled run + one deliberate red run |
 | 89 | README walkthrough, `server.json` tools, drop the rollout switch. sodax-sdks `docs/builders-mcp.mdx` + skill `packages/skills/skills/sodax-sdk/builders-mcp/SKILL.md` under their own issue. | sodax-sdks docs and skills gates green |
@@ -139,7 +139,7 @@ profile. Staging turns it on. Production turns it on once #85, #87 and #88 are m
 2. R0bi7 reviews PR #90 (amending the epic is allowed, Discord 2026-10-23). No reviewer requested yet.
 3. A test wallet with ~20 USDC and gas on Arbitrum and Base, plus a canary API key.
 4. A gosodax admin adds the E2E secrets and sets `SODAX_ENV=canary` on staging.
-5. A BE wallet-balance route (blocks #86 and the quote's balance check). No owner yet.
+5. ~~A BE wallet-balance route~~ Not needed: #86 reads through the SDK (2026-10-26).
 6. Go-ahead to create the sodax-sdks issue for #89.
 
 ## Follow-ups for other owners
@@ -161,4 +161,7 @@ status and the MCP's interim deposit check goes; 2026-10-26).
 - **Keyless builder traffic:** still shares the MCP's IP budget until the edge tells clients apart.
 - **Unvalidated keys:** the MCP checks presence only; a made-up key swaps until BE enforces keys.
 - **Dependency weight:** the full SDK grows the image; `ws` stays on an unfixed advisory.
-- **BE dependencies:** #86 and the quote's balance check wait on the balance route.
+- **Dead default RPCs:** Polygon's SDK default is dead and Ethereum's flaky; staging and production set
+  `SODAX_RPC_URL_137` / `_1` before the switch turns on.
+- **Missed track:** an agent that never calls `sodax_swap_track` strands the deposit until the BE watches deposits
+  itself (§Follow-ups, BE).

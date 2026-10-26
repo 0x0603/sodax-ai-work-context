@@ -3,7 +3,7 @@ type: brief
 repo: builders-sodax-mcp-server
 github: 79
 status: Active — #81 in PR #91, #82 in draft PR #92, #83 in draft PR #93, #84 in draft PR #94
-next: #85 per plan-85-swap-track.md (SDK reads); open the hub PR from `docs/builders-mcp-swap-sdk` once #94 merges
+next: fewer-calls commit on PR #94, then #85 per plan-85-swap-track.md; review plan-87; hub PR from `docs/builders-mcp-swap-sdk` once #94 merges
 updated: 2026-10-26
 ---
 
@@ -49,8 +49,8 @@ updated: 2026-10-26
 On another machine: in the hub submodule `git fetch` and check out `feat/84-swap-quote`, then `pnpm install --frozen-lockfile` (the SDK came in with #84). First the fewer-calls commit on PR #94 (`plan-84-swap-quote.md` §Follow-up commit), then branch #85 off it. #85 per `plan-85-swap-track.md` (receipts through the SDK). Open the hub PR from `docs/builders-mcp-swap-sdk` once #94
 merges. Reviews of PR #90–#94 are still open (no reviewer requested). Follow-up PR: pnpm 10 + `minimumReleaseAge`
 instead of the hand pins — spec in `plan-84-swap-quote.md` §Follow-up PR. ADR on PR #90: D5 needs "env, else the
-SDK default" on its RPC line, and D6 must drop "the quote's balance check" (#86 cut); not done, push only on the
-user's go-ahead.
+SDK default" on its RPC line, and D6 and §Quote must drop "the quote's balance check" / "checks the balance" (#86 cut); not done, push only on
+the user's go-ahead. `plan-87-safety-analytics.md` is drafted and waits for the user's review (open: keep the USD warning, its default level).
 
 Workflow the user asked for on each sub-issue: plan (agent) → review the plan → implement → `/simplify` →
 `/code-review` → fix → wait for an explicit "commit push" → draft PR. Live probes and contract tests use
@@ -98,6 +98,7 @@ Workflow the user asked for on each sub-issue: plan (agent) → review the plan 
 | #84 implementation plan (reviewed): quote build path, partner fee, REST over `SwapsApiService`, errors, cache, SDK commit after the cooldown; §After implementation | `plan-84-swap-quote.md` | 4.5k |
 | #85 implementation plan (reviewed): track state machine, deposit check from the `connection` Message log, RPC env, alerts, cancel flow, relay-for-refund on expired deposits, same-key rule (`QUOTE_KEY_MISMATCH`), 1 open question (backend asks, for the PR thread) | `plan-85-swap-track.md` | 9k |
 | #86 implementation plan (reviewed, cut 2026-10-26): `sodax_get_balance` reads balances through the SDK (`getWalletBalance`), no allowance, quote reads no chain; error wrapping, SDK follow-ups | `plan-86-get-balance.md` | 3.5k |
+| #87 implementation plan (draft, not reviewed): secret screening, USD value + warning, analytics outcomes, Discord on unexpected errors, a test per ADR rule; 2 open questions (USD warning, its default), 2 deferred | `plan-87-safety-analytics.md` | 4k |
 | Discussion log: balance in BE, custom RPC, full SDK vs light, rate limit, API key, cancel, partner fee | `process.md` | 2k |
 | Candidate changes from before the ADR revision, not re-mapped | `improvement-ideas.md` | 1.9k |
 
