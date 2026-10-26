@@ -186,3 +186,50 @@ Departures from the design above, all verified live:
   the sender and says nothing may be sent yet and balances aren't checked. Contract tests send `SODAX_API_KEY`.
 - Left for commit 6 (SDK): non-hex recipient encodings (base58, names), EIP-55. Left as is: shared catalog load
   under one caller's key (public data), the full-cache sweep (~0.04 ms per quote measured).
+
+### Third review (2026-10-26, on `a802484`, fixed in the working tree)
+
+- **The signed swap is decoded by ABI position, not searched for substrings** (`swap/calldata.ts`, no
+  dependency). The substring check passed when the recipient equalled the sender (its bytes sit in `srcAddress`)
+  and never bounded the outer transfer. Now: `transfer(token, to, amount, data)` must move the source token and
+  the gross amount to `intent.creator` (= `relayData.address`) with `data` = `relayData.payload`; that call list
+  must be hub-asset approves for exactly the gross amount to the `createIntent` target, then `createIntent` whose
+  14 fields equal the intent JSON. Verified on live Arbitrum USDC (with fee) and native ETH builds: decoded intent
+  = JSON on every field; the hub approve is the gross amount. A test encoder reproduces a recorded live tx byte for
+  byte, so stubs sign what the API signs; each check has a test that names it (mutation-checked).
+- The cached intent is now exactly the 14 `createIntent` fields (what #85 submits; the backend refuses extras).
+- Mismatch → new code `SWAP_MISMATCH` (not the transient `UPSTREAM_UNAVAILABLE`); the log adds the dst chain,
+  `tx.to` and a SHA-256 of the calldata. An EVM recipient compares exactly (not as a number).
+- Sonic: price-only works; a ready quote is refused by an explicit hub check (`HUB_CHAIN_KEY`). A spoke without a
+  swap contract in config is `UPSTREAM_UNAVAILABLE` on the ready path only. Zero asset managers are ignored.
+- Deadline: within ±300 s of now + offset and at least 120 s left to send. `Retry-After`: an unparseable date is
+  ignored, at least 1 s. Burn recipients (all-zero hex, base58 all ones) refused. Upstream `code` logged only when
+  short. The defaulted-recipient warning shows only across chains.
+- Still open for commit 6 (SDK): pin the hub intents contract (`createIntent` target) and the spoke asset managers
+  from packaged config instead of the live config; Hedera native `msg.value` scaling (the SDK scales by 10^10; the
+  backend's pinned SDK doesn't yet).
+
+### Commit 6 — the SDK (2026-10-26, `c639939`; third-review fixes in `1eba6c1`)
+
+- `@sodax/sdk` / `@sodax/types` `2.2.0` exact, loaded only when the switch is on (`src/services/sodax.ts`,
+  `initSodax()` in `main()`); `engines` `>=22.12.0`; `--ignore-scripts` on every install (Dockerfile, nixpacks, CI,
+  drift-check). The SDK's logger is replaced: only its message reaches pino (viem errors carry RPC URLs and bodies).
+- Committed at 10:50 UTC, 26 min before the `@sodax/*` 14-day mark (user's call: "cứ commit đi"). Every third-party
+  package in the new tree is ≥ 14 days old: 10 younger ones were pinned back with `pnpm.overrides` (`viem@2.57.11` →
+  2.57.4, `follow-redirects@1.16.2` → 1.16.1, `@mysten/bcs`, `@mysten/utils`, `bitcoinjs-lib`, `core-js`,
+  `core-js-pure`, `parse-asn1`, `@0no-co/graphqlsp`). Patched overrides: `axios` → 1.20.0, `ws@8` → 8.21.3, `bn.js`
+  → 5.2.5. Accepted (no same-major fix, not on our paths): `toml` 3.0.0 (fix needs 5.0.1, anchor/stellar-sdk),
+  `uuid` 8/9, `stream-json` 1.9.1, `bigint-buffer` (no fix), `elliptic` (no fix). The repo has no CI dependency
+  scanner (hub standard wants one).
+- Through the SDK: NEAR storage / Stellar trustline checks (live: unregistered account → `false` →
+  `DESTINATION_NOT_READY`); recipients validated and compared with `encodeAddress` (EIP-55 enforced; Solana / Sui /
+  Stellar / NEAR encodings); swap contracts pinned from the packaged config — spoke asset managers (the live config
+  must agree; a contract test checks every EVM spoke) and `solverConfig.intentsContract`, which opens Sonic (its swap
+  tx is `createIntent` on that contract) and pins the `createIntent` target from spokes.
+- Native HBAR is priced only: the SDK doesn't export `scaleNativeMsgValue` (SDK follow-up), and the backend's pinned
+  SDK builds the value unscaled.
+- Docker image 353 MB → 1.49 GB (every chain's client library). SDK follow-up: per-chain entry points.
+- Tests: 348 unit (new modules 100%), 13 contract on both hosts (Sonic, NEAR, Stellar, HBAR, pinned asset managers).
+- Not pushed: PR #94 (`1eba6c1`, `c639939`), ADR amendment `21d9017` on `feat/agent-executable-swaps` (worktree
+  `scratchpad/wt-adr-d6`), hub branch `docs/builders-mcp-swap-sdk` @ `8f319c8` (repos.yaml `depends_on`, card, IF-25;
+  worktree `scratchpad/wt-hub-84`) — hub PR after #94 merges.

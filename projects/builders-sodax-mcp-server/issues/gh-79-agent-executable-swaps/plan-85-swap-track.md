@@ -346,3 +346,21 @@ the SDK sends `relayData: relayData.payload` (`SwapService.ts:858-870`); `forbid
 our own `outcome` enum instead of passing `userMessage` through `PLAIN_REASON` (#84's second review removed upstream
 text from agent output); contract tests use `vitest.contract.config.ts`, not `runIf(SODAX_CONTRACT)`; the branch base
 is the #84 commit with the second-review fixes, not `a5fc108`.
+
+## SDK reads (decision 2026-10-26, supersedes design 2's "no SDK" and design 4's own reader)
+
+The user decided chain reads go through `@sodax/sdk` and SDK bugs get fixed in `sodax-sdks` (same rule as #86,
+`plan-86-get-balance.md`). For #85 that means:
+
+- Receipts and tx lookups use the SDK's viem public client — `sodax.spoke.evm.getPublicClient(chainKey)` for EVM spokes
+  (`EvmSpokeService.ts:70`), `sodax.spoke.sonic.publicClient` for the hub — with `getTransactionReceipt` /
+  `getTransaction`, which don't block (unlike `EvmSolverService.getIntent`). No `swap/evmRpc.ts`.
+- RPC URLs: `SODAX_RPC_URL_<chainId>` (https, validated in `main()`) passed into `initSodax()` as
+  `chains.<key>.rpcUrl`; the catalog `rpcUrl` is no longer needed.
+- Error wrapping: catch everything from the SDK / viem and map to `CHAIN_UNAVAILABLE`; never pass on or log the error
+  — viem messages carry the RPC URL and the request body. Log `{chainKey, op, kind}` only. Bound each read with a
+  race (viem defaults to 10 s × 3 retries; the SDK doesn't expose transport options — SDK follow-up 1 in #86's plan).
+- The `Message` log / RLP decode (design 2) stays in this repo until the SDK ships a `Message` event ABI and a helper
+  (SDK follow-up 2); the deposit check itself is unchanged.
+- Dependency: #85 now needs #84's SDK commit (6) instead of its own reader; commit 3 becomes "decode deposit
+  messages" (`swap/sourceTx.ts` only) plus the SDK client wiring.
