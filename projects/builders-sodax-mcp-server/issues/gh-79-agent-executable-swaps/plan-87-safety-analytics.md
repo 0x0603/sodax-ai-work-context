@@ -9,7 +9,7 @@ updated: 2026-10-26
 
 # #87 — Safety rules and analytics for the swap profile
 
-Status: plan, reviewed (§Review); not started. Written against `feat/84-swap-quote` @ `6339278` plus #85's work in
+Status: shipped in draft PR #97 (`4cb8a02`, 2026-10-27), stacked on #96; plan reviewed (§Review). Open questions 1–2 taken as recommended (keep the warning, $10,000). Written against `feat/84-swap-quote` @ `6339278` plus #85's work in
 progress on `feat/85-swap-track`. Branch `feat/87-safety-analytics` stacked on `feat/85-swap-track` (it extends #85's
 `alerts.ts`); the PR targets `development` and is rebased after #85 merges, so #85's diff doesn't show in it.
 

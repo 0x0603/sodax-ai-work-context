@@ -2,8 +2,8 @@
 type: brief
 repo: builders-sodax-mcp-server
 github: 79
-status: Active — #81 in PR #91, #82–#86 in draft PRs #92–#96 (stacked)
-next: #87 off `feat/86-get-balance` per plan-87, then #88; #85 contract tests (commit 6); hub PR from `docs/builders-mcp-swap-sdk` once #94 merges
+status: Active — #81 in PR #91, #82–#87 in draft PRs #92–#97 (stacked)
+next: #88 off `feat/87-safety-analytics` per plan-88 (blocked on prerequisites 3 and 4 for the live run); #85 contract tests (commit 6); hub PR from `docs/builders-mcp-swap-sdk` once #94 merges
 updated: 2026-10-26
 ---
 
@@ -50,7 +50,7 @@ On another machine: in the hub submodule `git fetch` and check out `feat/84-swap
 merges. Reviews of PR #90–#94 are still open (no reviewer requested). Follow-up PR: pnpm 10 + `minimumReleaseAge`
 instead of the hand pins — spec in `plan-84-swap-quote.md` §Follow-up PR. ADR on PR #90: D5 needs "env, else the
 SDK default" on its RPC line, and D6 and §Quote must drop "the quote's balance check" / "checks the balance" (#86 cut); not done, push only on
-the user's go-ahead. `plan-87-safety-analytics.md` is reviewed (open: keep the USD warning, its default level). #85 is draft PR #95 (`feat/85-swap-track` @ `33cb75a`, stacked on #94): commits 1–5 of plan-85 as one commit, after /simplify and /code-review (high); 435 tests. Contract tests (commit 6) are a follow-up. #85's quote contract test fixed in `9dd78e7` (cache read needs the key; Sonic refused). #86 is draft PR #96 (`feat/86-get-balance` @ `0ba4b59`): balances only, through the SDK; a missing Stellar/NEAR account reads as empty (`accountExists: false`); Bitcoin reads BTC only; 454 tests, 17 live contract tests. `plan-88-canary-e2e.md` is reviewed (blocked on prerequisites 3 and 4).
+the user's go-ahead. `plan-87-safety-analytics.md` is reviewed (open: keep the USD warning, its default level). #85 is draft PR #95 (`feat/85-swap-track` @ `33cb75a`, stacked on #94): commits 1–5 of plan-85 as one commit, after /simplify and /code-review (high); 435 tests. Contract tests (commit 6) are a follow-up. #85's quote contract test fixed in `9dd78e7` (cache read needs the key; Sonic refused). #86 is draft PR #96 (`feat/86-get-balance` @ `0ba4b59`): balances only, through the SDK; a missing Stellar/NEAR account reads as empty (`accountExists: false`); Bitcoin reads BTC only; 454 tests, 17 live contract tests. #87 is draft PR #97 (`feat/87-safety-analytics` @ `4cb8a02`): secret screening (template + 64-hex where the chain is known + an oversized-secret zod message), USD value + warning (default 10000, the open questions' recommendation), analytics outcome + swap whitelist, alerts for INTERNAL/SWAP_MISMATCH, URL-free logger serializer; 522 tests. `plan-88-canary-e2e.md` is reviewed (blocked on prerequisites 3 and 4).
 
 Workflow the user asked for on each sub-issue: plan (agent) → review the plan → implement → `/simplify` →
 `/code-review` → fix → wait for an explicit "commit push" → draft PR. Live probes and contract tests use

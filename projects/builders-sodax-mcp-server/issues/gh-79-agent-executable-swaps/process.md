@@ -104,3 +104,12 @@ updated: 2026-10-26
   "balance" wording and a softer gas note (Stellar returns spendable XLM), Bitcoin reads BTC only, a meaningful
   Hedera contract test (treasury account), README rows. Also found #85's quote contract test broken (tests are
   outside tsc): fixed on #95 in `9dd78e7`. Draft PR #96.
+- #87 built, /simplify (logger-level URL redaction instead of the template, per-kind alert dedupe, a 30 s oracle
+  backoff, shared `bounded`/`sameHex`/`CHAIN_KEY_PATTERN`, simpler analytics and secret shapes, real field names in
+  64-hex refusals), /code-review (high) and a double-check agent with probes. Fixed: the error serializer threw on
+  bigints and cycles (pino calls serializers unguarded; a regression that hid errors and crash alerts), non-Error
+  values kept URLs, uppercase URLs, malformed oracle entries failed the quote, alert dedupe hid a second
+  SWAP_MISMATCH reason, seed phrases in other cases/formats, oversized secrets (zod refuses before the handler; a
+  custom issue now says "treat it as exposed"), "not a token" wording. Kept SWAP_MISMATCH for config drift (the SDK
+  side is packaged; retrying can't help). Live: HBAR had no route for a while on both hosts (upstream), canary's
+  oracle returns 502 (quotes there have no USD value). Draft PR #97.
