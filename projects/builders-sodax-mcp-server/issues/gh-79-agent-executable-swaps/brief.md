@@ -66,7 +66,7 @@ Ask R0bi7 to review PR #90 (ADR) and PR #91 (#81). Then #82 (`plan.md` row 82) o
 | -------- | ---- | ---: |
 | The epic as written (goal, locked decisions, tools, safety rules, AC), what each sub-issue solves | `issue.md` | 3.5k |
 | Decisions, constraints, SDK fit, per-sub-issue work, verification, prerequisites, follow-ups, risks | `plan.md` | 4.5k |
-| #82 implementation plan: profiles, swap key gate (403), rollout switch, snapshot test, 2 open questions | `plan-82-tool-profiles.md` | 4k |
+| #82 implementation plan (reviewed): profiles, swap key gate (403), rollout switch, snapshot test, 1 open question | `plan-82-tool-profiles.md` | 4k |
 | Discussion log: balance in BE, custom RPC, full SDK vs light, rate limit, API key, cancel, partner fee | `process.md` | 2k |
 | Candidate changes from before the ADR revision, not re-mapped | `improvement-ideas.md` | 1.9k |
 

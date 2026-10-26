@@ -10,7 +10,8 @@ updated: 2026-10-26
 # #82 — Tool profiles (`builder` / `swap` / `all`), the swap-tool key gate, the rollout switch
 
 Status: plan, not started. Drafted by a planning agent on 2026-10-26 from `c0f11f1`; adjusted after #81's review
-fixes (`f27de38`). Line references are at `c0f11f1` unless marked.
+fixes (`f27de38`) and reviewed against the code and SDK 1.26.0 the same day (see §Review). Line references are at
+`c0f11f1`; `src/index.ts` has shifted since, so find code by function name.
 
 ## Context
 
@@ -25,8 +26,8 @@ enabled yet" or "API key required"); `?profile=bogus` → HTTP 400.
 - No per-tool profile tag: `registerAppTool` already tags a `module` (toolRegistry.ts:40-53). A new `swap` module is
   the swap profile; every other module is `builder`.
 - The key requirement and the rollout switch aren't in the issue; they come from ADR D2 and `plan.md`.
-- "List profiles in server.json" becomes a `profile` URL variable with `choices` (schema 2025-12-11
-  `RemoteTransport.variables` takes `Input` with `choices` / `default`).
+- "List profiles in server.json" stays out of the URL: no `?profile={profile}` template yet (see design 9). The
+  profiles go in the `x-api-key` header description and the README.
 - "Clear error" becomes HTTP 400 with JSON-RPC `-32602`.
 
 ## Scope
@@ -46,12 +47,13 @@ the switch on in staging (gosodax admin).
    `/sse` one per `GET /sse` (326-339), stdio one per process (155-165). Each resolves toolsets first, then
    `createServer(toolsets, clientId)` runs only the allowed registrars. No post-registration filtering; builder
    registration code unchanged.
-2. **Profile source.** HTTP: `?profile=`, else `x-sodax-profile` (query wins: URL-only clients and the `server.json`
-   template set it). stdio: `--profile` (`node:util` `parseArgs`), else `MCP_PROFILE`. Trim + lowercase; unset or
-   empty → `all`. HTTP ignores `MCP_PROFILE`.
+2. **Profile source.** HTTP: `?profile=`, else `x-sodax-profile` (query wins: URL-only clients can only set the
+   query). stdio: `--profile`, else `MCP_PROFILE`; read with `node:util` `parseArgs({ args, options: { profile: {
+   type: "string" } }, strict: false, allowPositionals: true })` so unrelated argv never stops the server. Trim +
+   lowercase; unset or empty → `all`. HTTP ignores `MCP_PROFILE`.
 3. **`selectToolsets(requested, { hasApiKey, swapToolsEnabled })`, in order:**
    - unknown profile (including a repeated `?profile=`, which Express parses as an array) → 400 / `-32602`,
-     `Unknown profile "x". Use builder, swap or all.`
+     `Unknown profile. Use builder, swap or all.` Don't echo the value back: it is caller input of any size.
    - `swap` with the switch off → 400 / `-32602`, `The swap profile is not enabled on this server yet. Use builder or
      all.` (A McpServer with no tools declares no `tools` capability — sdk `server/mcp.js:56-64,650` — so an empty
      `swap` server would tell the agent nothing.)
@@ -66,7 +68,7 @@ the switch on in staging (gosodax admin).
    consistent, since it isn't forwarded either.
 5. **Refusal per transport.** HTTP: send the JSON-RPC error before building a server. SSE: same on `GET /sse` (SDK
    SSE clients only see `Non-200 status code (403)`; acceptable, swap users connect to `/mcp`). stdio: throw
-   `ProfileError` at the top of `runStdio`, before `warmDocsCache`; `fatalExit` logs and exits 1.
+   `ConnectionError` at the top of `runStdio`, before `warmDocsCache`; `fatalExit` logs and exits 1.
 6. **Rollout switch `SODAX_SWAP_TOOLS_ENABLED`.** `true` → on; unset, empty or `false` → off; anything else stops
    boot (a typo must not flip the gate). Parsed in `main()` so a bad value goes through `fatalExit`, like `SODAX_ENV`.
    Off: swap tools never registered or recorded, landing card hidden, `/api` says "not enabled".
@@ -74,6 +76,10 @@ the switch on in staging (gosodax admin).
    of `api` (today `api` counts everything not `relay`/`sdkDocs`, toolRegistry.ts:114-122).
 8. **No swap tools yet.** `createServer` gets a comment where #83 adds its registrar. Filtering is tested on the pure
    `selectToolsets` and on what `createServer` serves; no placeholder tool in production code.
+9. **`server.json` keeps the plain URL.** The schema allows a `{profile}` URL variable, but a registry client that
+   doesn't substitute it would send the literal `?profile={profile}`, get our "unknown profile" 400, and lose the
+   builder tools too. The default `all` already gives builder tools, plus swap tools with a key, so the plain URL
+   loses nothing. Add the template only once registry clients are known to substitute variables.
 
 ## Changes
 
@@ -81,7 +87,7 @@ the switch on in staging (gosodax admin).
 ```ts
 export const PROFILES = ["builder", "swap", "all"] as const;
 export interface Toolsets { builder: boolean; swap: boolean }
-export class ProfileError extends Error { constructor(readonly httpStatus: 400 | 403, readonly rpcCode: -32602 | -32000, message: string) }
+export class ConnectionError extends Error { constructor(readonly httpStatus: 400 | 403, readonly rpcCode: -32602 | -32000, message: string) }
 export function parseSwapToolsEnabled(value: string | undefined): boolean;                  // throws on junk
 export function selectToolsets(requested: unknown, opts: { hasApiKey: boolean; swapToolsEnabled: boolean }): Toolsets;
 export function profileFromRequest(req: Pick<Request, "query" | "get">): unknown;           // query.profile ?? header
@@ -99,7 +105,7 @@ Why: index.ts calls `main()` on import (index.ts:441), so tests can't import it.
   `runStdio` / `runHTTP`; add to the "running on" log line.
 - `runStdio`: first `selectToolsets(profileFromArgs(process.argv.slice(2), process.env), { hasApiKey: apiKey !== undefined, swapToolsEnabled })`,
   then `createServer(toolsets)`.
-- `runHTTP`: helper `connectionToolsets(req, res)` → `selectToolsets(profileFromRequest(req), …)`; on `ProfileError`
+- `runHTTP`: helper `connectionToolsets(req, res)` → `selectToolsets(profileFromRequest(req), …)`; on `ConnectionError`
   send `res.status(e.httpStatus).json({ jsonrpc: "2.0", error: { code: e.rpcCode, message: e.message }, id: null })`
   and return `undefined`. Call first in `/mcp` and `GET /sse`.
 - `/health`: `tools.swap`, included in `total`. `/api`: `tools.swap`, and `profiles: { default: "all", select:
@@ -116,9 +122,9 @@ wallet signs", `{{SWAP_TOOLS}} tools`, tag "SODAX API"; body: connect to `/mcp?p
 the get-a-key link. `hidden` works (`.tool-module` sets no `display`, index.html:586-590). No literal counts
 (toolRegistry.test.ts:76-81).
 
-**`server.json` `remotes[0]`:** `url` → `https://builders.sodax.com/mcp?profile={profile}`; `variables.profile` →
-`{ description, default: "all", choices: ["builder", "swap", "all"] }`. #81 already added the `x-api-key` header;
-change its description to "optional for builder tools, required for swap tools".
+**`server.json` `remotes[0]`:** `url` unchanged (design 9). #81 already added the `x-api-key` header; change its
+description to "Optional for builder tools, required for swap tools (connect with ?profile=swap, or the default
+all)".
 
 **Docs:** README "Profiles" subsection under Quick Start (table, selection by URL / header / stdio, keyless `all` =
 builder, swap needs a key); "API Key" section says it's required for swap tools; env table `MCP_PROFILE` (stdio),
@@ -126,8 +132,8 @@ builder, swap needs a key); "API Key" section says it's required for swap tools;
 
 ## Tests
 
-Commit 1 moves `createServer` and records the builder snapshot against today's behavior; no later commit may change
-that snapshot file.
+Commit 1 moves `createServer` and records the builder snapshot against today's behavior, with the snapshot file
+committed (vitest in CI fails on a missing snapshot instead of writing it); no later commit may change that file.
 
 - `src/server.test.ts`: `Client` ↔ `createServer` over `InMemoryTransport.createLinkedPair()`
   (`@modelcontextprotocol/sdk/inMemory.js`). `vi.spyOn(globalThis, "fetch").mockRejectedValue(…)` so only the 3
@@ -137,7 +143,7 @@ that snapshot file.
   - keyless `all` (`selectToolsets(undefined, { hasApiKey: false, swapToolsEnabled: true })`) → same file.
   - `{ builder: false, swap: true }` → `getServerCapabilities()?.tools` undefined (no builder tool leaks into swap).
 - `src/services/profiles.test.ts`: `selectToolsets` matrix — profile (unset, `""`, `" Swap "`, `builder`, `swap`,
-  `all`, `bogus`, `["swap","all"]`) × key × switch → toolsets or `ProfileError` status / code / message (403 message
+  `all`, `bogus`, `["swap","all"]`) × key × switch → toolsets or `ConnectionError` status / code / message (403 message
   has "API key required" and the docs URL; switch-off wins over missing key). `profileFromRequest` (query, header,
   both → query, neither). `profileFromArgs` (`--profile swap`, `--profile=builder`, `MCP_PROFILE`, flag beats env).
   `parseSwapToolsEnabled` (unset / `""` / `false` → false; `true` / `" TRUE "` → true; `yes` throws).
@@ -155,8 +161,8 @@ that snapshot file.
    - `SODAX_SWAP_TOOLS_ENABLED=yes` → exits 1 with the message.
 3. stdio: `initialize` + `tools/list` into `TRANSPORT=stdio node dist/index.js --profile builder` → same list;
    `MCP_PROFILE=bogus`, and `--profile swap` with the switch on and no `SODAX_API_KEY` → exit 1, message on stderr.
-4. `jq '.remotes[0] | .url, .variables.profile, .headers' server.json` (shape checked against the schema by reading,
-   not by a validator).
+4. `jq '.remotes[0]' server.json`: plain URL, header description updated.
+5. stdio with an unrelated extra argument (`node dist/index.js --foo`) still starts.
 
 ## Ship
 
@@ -172,11 +178,43 @@ that snapshot file.
 
 ## Open questions
 
-1. **When to publish `server.json` with `swap` in `choices`.** Nothing publishes it automatically (release-please
-   bumps only `$.version`, release-please-config.json:22-28; no `mcp-publisher` in `.github/`). Publish by hand only
-   once production turns swap on, or now, since `swap` returns a clear "not enabled yet" 400?
-2. **Server instructions for `swap`.** `SERVER_INSTRUCTIONS` (index.ts:50-66) names builder tools a `swap` connection
+1. **Server instructions for `swap`.** `SERVER_INSTRUCTIONS` (index.ts:50-66) names builder tools a `swap` connection
    won't have. Proposed: profile-specific instructions with the first swap tool (#83/#84), not in #82.
+
+(Publishing `server.json` is no longer a question: with the plain URL it carries no swap choice. Nothing publishes it
+automatically anyway — release-please bumps only `$.version`, release-please-config.json:22-28.)
+
+## Review (2026-10-26)
+
+Checked against the code at `0930893` and `@modelcontextprotocol/sdk` 1.26.0 in `node_modules`:
+- 401 vs 403: `client/streamableHttp.js` starts an auth flow on 401 when an auth provider is set, and on 403 without
+  `insufficient_scope` throws `Error POSTing to endpoint: <body>`. 403 holds.
+- An McpServer registers the `tools` capability only on its first tool (`server/mcp.js:56-66`, called at `:650`).
+- `createJsonErrorResponse` builds `{ jsonrpc: "2.0", error, id: null }` (`server/webStandardStreamableHttp.js`).
+- `.tool-module` sets no `display` (index.html:586-590), so `hidden` on the card works.
+- `seedToolRegistry` uses a recording fake, not `createServer`, so #82 leaves it alone; `fetchDocsTools` returns
+  `cachedTools || []` on failure, so the snapshot test is stable with `fetch` rejected.
+- Changed in review: no `server.json` URL template (design 9), `parseArgs` with `strict: false`, snapshot file
+  committed in commit 1, find code by function name.
+
+**Security** (what the design already gets right, and what it accepts):
+- Fails closed: switch default off and junk stops boot; unknown profile is an error; no key → no swap tools.
+- Profile, key and (in #84) partner fee are connection settings, never tool input, so a prompt can't switch them.
+- A refused connection does no work: the error is sent before `createServer`, after `mcpLimiter` counted it.
+- The 400 doesn't echo the requested profile (design 3).
+- Accepted (ADR D2): the gate checks presence only, so `sodax_anything` gets swap tools until the backend enforces
+  keys on `/v1/swaps`.
+- Accepted: on SSE, #81 binds the `GET /sse` key to the session, so whoever holds the session id can call with that
+  key. The id is `randomUUID()` (`server/sse.js:20`) and only the connecting client sees it.
+- Never log the key or the raw profile value on a refusal.
+
+**Architecture**:
+- Three layers with one job each: `profiles.ts` decides (pure, env-free), `server.ts` composes the toolsets,
+  `index.ts` wires transports. Keep env reads in `main()` and pass values down.
+- Changed in review: `ProfileError` → `ConnectionError`. #84 validates the partner fee at the same point (HTTP 400
+  on a bad value), so one error type and one refusal path serve every connection setting.
+- The gate sits at connection time on purpose: tools are chosen per connection. The per-call key check #84 adds is
+  for SSE, where calls carry their own key.
 
 ## Notes for later sub-issues
 
