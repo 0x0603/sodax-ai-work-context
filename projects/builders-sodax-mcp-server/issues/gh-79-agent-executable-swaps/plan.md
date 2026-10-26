@@ -57,7 +57,7 @@ The epic is done when:
 - `SolverApiService`: `getQuote`, `postExecution`, `getStatus`. No `/oracle`.
 - `IntentRelayApiService`: `submitTransaction`, `getTransactionPackets`, `getPacket`.
 
-**The SDK does not fit the builder tools** (proposal for #81, awaiting the user's OK):
+**The SDK does not fit the builder tools** (approved for #81, 2026-10-26):
 - `sodax_get_solver_quote` takes hub (Sonic) asset addresses and calls the solver's `/quote` raw. SDK `getQuote`
   takes spoke original-asset addresses, throws an `invariant` for tokens outside its bundled config, and sends only
   the instance-level key.
@@ -112,9 +112,9 @@ profile. Staging turns it on. Production turns it on once #85, #87 and #88 are m
 | # | Work | Done when |
 |---|---|---|
 | 80 | ADR (PR #90). | Merged; README links it |
-| 81 | `requestContext` (AsyncLocalStorage) carries the caller's key from `x-api-key` / `SODAX_API_KEY`; `sodaxApi`, `solver` and `relay` forward it. `SODAX_ENV` (production/canary) bases. Relay host fix. `engines >=22.12.0`. `solver.ts`/`relay.ts` stay REST (pending the user's OK; departs from #81's text, say why in the PR). | Existing tool tests unchanged; key isolation test (two concurrent requests, two keys); `pnpm checkTs lint test build` green |
+| 81 | `requestContext` (AsyncLocalStorage) carries the caller's key from `x-api-key` / `SODAX_API_KEY` (stdio only); `http.ts` and `relay.ts` send it to the SODAX API origin only. 401/403 from it append a fix-it hint with the docs link. `SODAX_ENV` (production/canary) drives all three bases. Relay on `${origin}/v1/relay`. `solver.ts`/`relay.ts` stay REST (departs from #81's text; say why in the PR). Detailed plan: `~/.claude/plans/ethereal-plotting-clarke.md` on the machine that wrote it. | Existing tool tests unchanged; key isolation through the MCP SDK transport; `pnpm checkTs lint test build` green |
 | 82 | Profiles, `swap` module, landing card, `/api` profiles, `server.json` URL template `?profile={profile}` plus secret `x-api-key`. The swap-tool key requirement (decision 6). The rollout switch. | Selection via query, header and stdio; `builder` snapshot; keyless `all` = `builder` snapshot; keyless `swap` → "API key required"; switch off → no swap tools; unknown profile → 400 |
-| 83 | Add `@sodax/types`. Resolver: address → symbol / `native` → fuzzy (always `ambiguous`) → `not_found` + suggestions. Strict `units.ts`. `sodax_resolve_token`. | Fixtures: Sonic WETH / sodaETH, Hyper USDC / USDT0, ICON legacy bnUSD, "WETH on Arbitrum" → ETH, "ETH" ≠ Tether |
+| 83 | Add `@sodax/types` and raise `engines.node` to `>=22.12.0` (it requires it). Resolver: address → symbol / `native` → fuzzy (always `ambiguous`) → `not_found` + suggestions. Strict `units.ts`. `sodax_resolve_token`. | Fixtures: Sonic WETH / sodaETH, Hyper USDC / USDT0, ICON legacy bnUSD, "WETH on Arbitrum" → ETH, "ETH" ≠ Tether |
 | 86 | `sodax_get_balance` on the BE balance route; EVM allowance toward `assetManager`. | Blocked on prerequisite 5 |
 | 84 | Add `@sodax/sdk` + overrides; one `Sodax` from env. Quote per decisions 3, 7, 11. Price-only without `fromAddress`. EVM/Sonic sources only. EVM steps batchable (EIP-5792). | Canary contract tests for EVM and Sonic; `AMOUNT_TOO_LOW`, `INSUFFICIENT_FUNDS`, `DESTINATION_NOT_READY`, bad partner fee; `docker build` size recorded |
 | 85 | `track` / `cancel` per decisions 4, 5. MCP states: `awaiting_source_confirmation`, `source_failed`, `queued`, `expired_unsubmitted`, `not_submitted`, `not_submitted_unknown_quote`. | State-machine tests; 5 calls → 1 submit; wrong-contract, failed-inner-call, payload-mismatch; `swap` = 5 tools |

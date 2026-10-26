@@ -2,8 +2,8 @@
 type: brief
 repo: builders-sodax-mcp-server
 github: 79
-status: Active — ADR in draft PR #90
-next: The user OKs the #81 approach (plan.md §SDK fit); then #81 on its own branch off `development` in the hub submodule. Ask R0bi7 to review PR #90
+status: Active — #81 in PR #91
+next: Get PR #90 and #91 reviewed (no reviewers requested yet); then #82 on its own branch off `development`
 updated: 2026-10-26
 ---
 
@@ -13,10 +13,14 @@ updated: 2026-10-26
 
 ## State
 
-- `plan.md` follows the ADR on PR #90 @ `f59edf0` (synced 2026-10-26). No code exists.
-- ADR (#80) is draft PR #90 (base `development`), branch `feat/agent-executable-swaps` @ `f59edf0` (revised
-  2026-10-23 with the design review decisions). No reviewer requested; its one comment is the user's
-  `@claude do PR review`, which produced no review.
+- `plan.md` follows the ADR on PR #90 (synced 2026-10-26).
+- ADR (#80) is draft PR #90 (base `development`), branch `feat/agent-executable-swaps` @ `3c9b00b` (D2: swap tools
+  require a key, 2026-10-26; design review revision `f59edf0`). No reviewer requested; its one comment is the
+  user's `@claude do PR review`, which produced no review.
+- #81 is PR #91 into `development`, branch `feat/81-forward-api-key` @ `c0f11f1` (off `development` @ `02ba5df`):
+  key forwarding via `requestContext`, `SODAX_ENV`, relay on `api.sodax.com/v1/relay`, 401/403 hint, README and
+  `.env.example`. Checks green locally (105 tests, lint, build, `docker build` 353 MB); smoke-tested against
+  production and canary. No reviewer requested.
 - All of #79–#89 are assigned to the user (`0x0603`) as of 2026-10-26. "@0xmatterhorn" is the user's Discord handle.
 - Discord 2026-10-23 (see `process.md`): R0bi7 says the epic is a core draft and the user may adjust decisions.
   Signing: the agent holds the key, signs and broadcasts, then passes the tx hash to MCP (D1 holds).
@@ -26,19 +30,17 @@ updated: 2026-10-26
 
 ## Blocked on
 
-1. The user's OK on the #81 approach: `solver.ts` / `relay.ts` stay REST because the SDK changes the builder tools'
-   inputs and outputs (`plan.md` §Constraints, "The SDK does not fit the builder tools").
-2. R0bi7's review of PR #90.
-3. A BE wallet-balance route. Blocks #86 and the quote's balance check. No owner yet.
-4. Open with Paul: double counting (inbound + outbound), per-IP write cap and jail on the MCP IP. The HAProxy move
+1. R0bi7's review of PR #90.
+2. A BE wallet-balance route. Blocks #86 and the quote's balance check. No owner yet.
+3. Open with Paul: double counting (inbound + outbound), per-IP write cap and jail on the MCP IP. The HAProxy move
    itself is settled (R0bi7, Slack 2026-10-23).
-5. A funded test wallet and a canary API key.
-6. A gosodax admin for the E2E secrets and the staging `SODAX_ENV=canary` setting.
+4. A funded test wallet and a canary API key.
+5. A gosodax admin for the E2E secrets and the staging `SODAX_ENV=canary` setting.
 
 ## Next action
 
-Get the user's OK on #81, then branch off `development` in the hub submodule and implement `plan.md` row 81, with
-its own PR. Ask R0bi7 to review PR #90 in parallel.
+Ask R0bi7 to review PR #90 (ADR) and PR #91 (#81). Then #82 (`plan.md` row 82) on its own branch off
+`development`, or off `feat/81-forward-api-key` if #91 is still in review.
 
 ## Settled — do not re-litigate
 
@@ -49,8 +51,9 @@ its own PR. Ask R0bi7 to review PR #90 in parallel.
    contract's log carrying the cached relay payload. Matching the tx input is not enough.
 4. Phase 1 sources are EVM and Sonic. No per-call `rpcUrl`; RPC overrides come from env only.
 5. Swap tools require an API key (user's call, 2026-10-26; presence check only, BE decides validity). Builder
-   tools stay keyless; a key, when sent, is forwarded on every BE call. ADR D2 edited for this in the hub
-   submodule's working tree on `feat/agent-executable-swaps`, not yet committed.
+   tools stay keyless; a key, when sent, is forwarded on every BE call. ADR D2 says so (`3c9b00b`).
+8. #81 keeps `solver.ts` / `relay.ts` on REST: the SDK changes the builder tools' inputs and outputs
+   (`plan.md` §Constraints). `@sodax/types` and `engines` land in #83, `@sodax/sdk` in #84.
 6. Partner fee is set by the builder at connection level (header, URL query or stdio env), never as a tool input.
 7. One PR per sub-issue (user's call, 2026-10-26), each on its own branch off `development`, in `plan.md` order;
    #90 is the ADR. A boot-time switch keeps the swap tools off in production until #85, #87 and #88 are in. The
