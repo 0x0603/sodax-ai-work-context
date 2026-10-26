@@ -4,7 +4,7 @@ repo: sodax-sdks
 github: 520
 status: Active
 next: Watch CI and review on PR #523
-updated: 2026-10-15
+updated: 2026-10-21
 ---
 
 # GH-520 useDetailedStatus never stops polling a cancelled intent · brief
@@ -16,7 +16,8 @@ then opens exactly one row from the map below.**
 
 - PR icon-project/sodax-sdks#523 open (2026-10-15): signed `7973e67f` (fix) + `c03aa17e`
   (helper moved into `detailedStatusRouting.ts`) on `fix/520-cancelled-intent-status`
-  (worktree `sodax-sdks-520`). CI was green on `7973e67f`.
+  (worktree `sodax-sdks-520`, now gone). CI was green on `7973e67f`. 2026-10-21: main merged in
+  as `fdb4c7e1`, which also fixes a stale #509 test that made main red (`process.md` § Main catch-up).
 - Root cause confirmed on `origin/main` `77281f0c`: gave-up record → solver; solver `1`/`2` passes
   through; dapp-kit polls `1`/`2` with no cap. Leverage-yield has the same bug.
 - Live: solver now says `-1` for the issue's intent (40 polls per mount, not infinite). The intent
@@ -46,8 +47,8 @@ then opens exactly one row from the map below.**
 
 ## Landmines
 
-- Local `sodax-sdks` checkout sits on `feat/tron-spoke` (#372). Read `origin/main`, work in a
-  separate worktree.
+- Local branch `fix/520-cancelled-intent-status` is stale and registered to the missing
+  `sodax-sdks-520` worktree; work from `origin/fix/520-cancelled-intent-status` (detached is fine).
 - Solver state for the issue's intent changed between filing and planning (`2` → `-1`); the solver-`2`
   path is proven by unit tests only.
 - Docs pages under `docs/developers/` are generated; edit `packages/sdk/docs/*.md` and run

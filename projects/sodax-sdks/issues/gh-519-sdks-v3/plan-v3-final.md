@@ -2,8 +2,8 @@
 type: plan
 repo: sodax-sdks
 github: 519
-status: Final draft — pending the team decisions in §6
-updated: 2026-10-16
+status: Final draft — pending team decisions D1-D19 (research/f-deep/README.md)
+updated: 2026-10-20
 tags: [v3, final-plan, roadmap, packages, waves, decisions]
 related_issues: [gh-302, gh-456, gh-505, gh-507, gh-529, gh-531, gh-532, gh-533]
 ---
@@ -20,6 +20,60 @@ This is the single entry point for the v3 plan. The detail lives in these files:
 | `parent-issues.md` | Paste-ready GitHub drafts |
 | `client-usage.md` | Client code before and after, per issue |
 | `research/*` | The approach for each item, with `path:line` evidence at cc053fef |
+
+## 0. Update (2026-10-20)
+
+This plan predates the deep dive. Where they differ, these files win:
+
+| File | What it settles |
+| --- | --- |
+| `drafts/519-bullets.md` | The 38 #519 bullets, reviewed twice. `drafts/519-bullets-explained.md` adds a Why and a How to each |
+| `research/f-deep/README.md` | Tiers for the 39 deep-dive IDs, 22 fix-now defects, waves 0–4, team decisions D1–D19 |
+| `research/g-chain-auto-tests.md` | Automatic per-chain testing (x-6): layers L0–L5 and phases 0–5 |
+
+Changes to this plan:
+- **Decisions.** D1–D19 in the README replace §6. Seven of them block four IDs each:
+  - D1: chain placement;
+  - D3: where wallet-sdk-core lives;
+  - D4: chain clients for apps without the sdk;
+  - D6: subpaths in 2.x;
+  - D7: the error model;
+  - D10: the docs channel;
+  - D11: 2.x maintenance.
+- **Settled by the user (2026-10-20).** Config and token lists come only from SDK releases (D8's data
+  source), because everything goes through the SDK.
+  - So **sdk-9 is dropped** from the v3 list. Remote config stays an opt-in 2.x feature inside #543,
+    which settles its own version rule and trusted fields.
+  - Nothing turns it on by default in 3.0.
+- **Order** (see "Proposed order" in the README) [judgement]:
+  - sdk-5's 2.x part goes before sdk-1;
+  - wsc-1's Injective split moves to W1;
+  - api-4 moves to W2, because of the live `/be` drift.
+- **Scope:**
+  - sk-4 and sdk-9 are dropped;
+  - dk-7 is polling presets only;
+  - sdk-10 is optional;
+  - wsr-5 waits for the team (D17);
+  - wsr-1 no longer promises lazy-loaded chain providers;
+  - wsc-2 stays neutral on D4;
+  - wsc-3 proposes a slim wallet-sdk-core (D3).
+- **sdk-4 (T5).** Port from verified MIT-licensed implementations, or write the code from the contract
+  specs. Do not vendor from the PancakeSwap dist: its `LICENSE` is GPL-3.0.
+- **sdk-7 (T15).**
+  - `@sodax/libs` keeps its job. Its browser build maps `crypto` to a shim that throws if called,
+    behind a `browser` export condition. The Node build stays as it is.
+  - A probe found 9 of 9 Stacks outputs byte-identical between the two builds (`research/f-deep/deps.md`
+    § Follow-up).
+- **New x-6: automatic per-chain testing.** It was not scored with the rubric.
+  - **Into W1:**
+    - phase 0: e2e nightly on main, fix Stellar HBAR, replace the Polygon RPC, fix the 4 token reads;
+    - phase 1: chain-health checks;
+    - phase 2: golden vectors, and a required check on main.
+  - **Into W2:** phase 3, per-chain simulation.
+  - **Into W3:** phase 4, backend per-chain alerts (cross-repo).
+  - **Waits for a team decision:** phase 5, funded canaries.
+- **Fix now.** The README's 22 defects, plus the live e2e suite, which has been red behind a green check
+  since 2026-08-20.
 
 ## 1. Outcome
 
@@ -276,8 +330,8 @@ These are for the user to raise; agents do not post on other people's PRs.
 
 ## 10. Next steps
 
-1. **Share the decisions.** The user posts `ideas.md` §1 on #519 and brings §6 decisions 1–4 to the
-   team.
+1. **Share the plan.** The user posts `drafts/519-bullets.md` on #519 and brings D1, D3, D4, D6, D7, D10
+   and D11 (README) to the team.
 2. **Start W1 now.** These are conflict-free, or trivially so:
    - T11.1 → T11.2 (the measurement gates come first);
    - A1.2, T9.1, T25.1, T23.4, T14.1, T2.3, T8.3, T5.1, T21.1, T26.2, T24.1;
@@ -285,5 +339,11 @@ These are for the user to raise; agents do not post on other people's PRs.
    - trial `tsc` for T7.0.
 3. **Merge the user's #509, #511, #512 and #523.** That opens W2.
 4. **Ask gcranju about #534's timing and the cutoff.** That opens W3.
-5. **File the issues when the team agrees** (`parent-issues.md`). #525 already requires every PR to
-   link an issue.
+5. **File the issues when the team agrees.** #525 already requires every PR to link an issue.
+   Since 2026-10-18 (#537, #542) issues follow `.github/issue-workflow.md`:
+   - parents become epics (Goal / Non-goals / Exit criteria, native sub-issues, no checklist);
+   - sub-issues become outcome-only specs with acceptance criteria;
+   - the mechanism goes in a `<!-- sodax:plan -->` comment, and a human applies `plan-approved`.
+
+   The `parent-issues.md` bodies predate this. Convert them before filing. File the epics and the
+   W1 specs first, and later-wave specs as their gate opens.

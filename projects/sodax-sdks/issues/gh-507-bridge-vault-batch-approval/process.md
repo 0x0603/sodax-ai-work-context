@@ -116,6 +116,24 @@ build:packages + checkTs + test 21/21 by hand), pushed. claude[bot] check (issue
 4 partial, 5/6/7 open. Finding 5 turned out to be ours (`6ed8448e`, plan decision #5 / B3 chose "mirror"); filed #533.
 Posted one reply on #512 (issuecomment-6208901374): 1-3 fixed, 4 → #531/#532, 5 → #533, 6 and 7 left with reasons.
 
+### 2026-10-20 — #511 squash-merged, #512 conflict fixed
+
+#511 squash-merged as `14a1740a` (parent `0181a053`). PR #512 (base already `main`, head `4aa18fc8` = R0bi7's
+"Update branch" merge of `0181a053`) went `CONFLICTING`: a direct merge of main hit 7 files (`approvalBatch.ts`,
+`SwapService.ts`, `shared/index.ts`, `WALLET_PROVIDERS.md`, `wallet_providers.md`, `error-codes.md`, `public-api.md`)
+because the squash erased #511's commits that the branch still carried. #511's final head `79b8b538` was already in
+the branch.
+
+Fix (intermediate-merge trick, no rebase): `merge-tree --write-tree 0181a053 79b8b538` equals `14a1740a^{tree}`
+(`ed0590b2`), so signed intermediate `2137ff37` = `commit-tree 14a1740a^{tree} -p 14a1740a -p 79b8b538`, then signed
+merge `c36904c6` = `commit-tree 4aa18fc8^{tree} -p 4aa18fc8 -p 2137ff37` (0 conflicts, tree unchanged, no hooks
+needed). Pushed `4aa18fc8..c36904c6`; PR now `MERGEABLE`, 86 → 61 files.
+
+No-code-loss checks: all 39 #511 files on main are byte-identical to `79b8b538` (no overlap with main-side changes);
+the 61 PR files equal exactly the files touched by #512's 9 own non-merge commits; every (file, removed line) in
+`main..c36904c6` is removed by one of those commits in the same file; `SwapService.ts` removals are the intended
+`confirmApproval` / `relayTxAndWaitPacket` / `intentDepositSpender` extractions with logic preserved.
+
 ## Findings
 
 ## Changes During Work

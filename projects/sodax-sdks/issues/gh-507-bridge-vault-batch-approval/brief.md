@@ -2,9 +2,9 @@
 type: brief
 repo: sodax-sdks
 github: 507
-status: Draft — PR #512, head 407add8e (review 5539657046 fixed: b7bf1fd3; #511 merged in); replied on the PR
+status: Draft — PR #512, head c36904c6 (#511 squash-merged as 14a1740a; conflict fixed via intermediate merge, MERGEABLE)
 next: user runs the four mainnet rows on the demo preview (MetaMask, Base); tick them in the PR body
-updated: 2026-10-16
+updated: 2026-10-21
 tags: [eip-5792, atomic-batch, bridge, leverage-yield, dapp-kit, demo]
 related_issues: [gh-505, gh-302, gh-506, gh-531, gh-532, gh-533]
 ---
@@ -12,6 +12,11 @@ related_issues: [gh-505, gh-302, gh-506, gh-531, gh-532, gh-533]
 # GH-507 Bridge + vault batch approval · brief
 
 **Entry point. Read this, then open exactly one row from the map.**
+
+> **Stale, found by the 2026-10-21 review (V01).** #511 merged on 2026-10-20 at 10:46Z and #512 at
+> 13:14Z (both checked with `gh`). This brief still describes #512 as an open draft. It points at a
+> deleted worktree instead of commit `b7bf1fd3`, and lists finished steps as next. Details:
+> `../gh-519-sdks-v3/review-2026-10-21.md` § A.
 
 ## State in five lines
 
@@ -23,6 +28,8 @@ bridge dialog + LY deposit on one button with an unconfirmed-batch hold. Docs + 
 
 ## Blocked on
 
+- 2026-10-20: #511 squash-merged (`14a1740a`); #512 was CONFLICTING (7 files). Fixed by signed intermediate
+  `2137ff37` + merge `c36904c6` (tree unchanged, 0 conflicts), pushed; 61 files vs main. Detail: process.md § 2026-10-20.
 0. 2026-10-16: R0bi7 review 5539657046 (no P-labels, "nothing fund-unsafe") fixed, uncommitted in
    `../sodax-sdks-512`. Items 4 (hook) / 5 / 6 / 7 not changed; 4 became issues #531/#532. Detail: process.md § 2026-10-16.
 

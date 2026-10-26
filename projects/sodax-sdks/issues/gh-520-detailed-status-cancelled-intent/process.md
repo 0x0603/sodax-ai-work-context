@@ -2,7 +2,7 @@
 type: process
 repo: sodax-sdks
 github: 520
-updated: 2026-10-15
+updated: 2026-10-21
 ---
 
 # Process
@@ -15,6 +15,8 @@ updated: 2026-10-15
 
 - 2026-10-15 — Investigation only, no code. Read the status path on sodax-sdks `origin/main`
   `77281f0c` (local checkout was on `feat/tron-spoke`). Live reads below. Plan in `plan.md`.
+- 2026-10-21 — Merged `origin/main` `d02515c8` into #523 as signed `fdb4c7e1` (merge, no rebase).
+  See § Main catch-up merge.
 
 ## Findings
 
@@ -104,3 +106,23 @@ upstream unset. Committed as `7973e67f` (signed), pushed, PR #523.
   home for pieces every detailed-status router shares. `shared/utils` holds generic helpers and
   never imports `backendApi`; this reads `IntentResponse`, its schema and `isFillEvent`. Pushed to
   #523 as `c03aa17e` (refactor commit; PR squash-merges).
+
+## Main catch-up merge (2026-10-21)
+
+- One conflict: import list in `LeverageYieldService.test.ts` (#520 added `IntentResponse`, #512
+  added the batch types). Kept both.
+- Line audit: every +/- line from both sides survives (`git diff` line sets, base `77281f0c`), except
+  three stale mocks replaced on purpose (below).
+- `main` itself was red at `d02515c8`: #509's test "keeps the hub tx on a postExecution failure"
+  mocked `submitTransaction` / `waitUntilIntentExecuted`, but the resume path from #511 relays
+  directly (`relayTxAndWaitPacket`), so `packet` was undefined → `UNKNOWN`. Code was right, the test
+  was stale after the squash merges. Fixed in the merge commit by mocking the relay (+1/-3),
+  because the pre-commit hook and #523's CI would fail otherwise. main's CI stays red until #523 or
+  a separate fix lands.
+- #504's `useSwapLifecycle` polls `getDetailedStatus`, so a journal cancel now ends it as
+  `kind: 'failed'` (via `detailedStatus.ts` solver `FAILED` → `failed`). #511's API lane
+  (`useSwapsApiStatus` → `sodax.api.swaps.getStatus`) does not go through this fix; whether the
+  backend reports a cancelled intent there is unverified.
+- Gates on `fdb4c7e1`: hook (checkTs, build, test 21/21), `pnpm lint`, `check:ai`,
+  `check:doc-links`, `check:docs-pages`, `check:docs-nav` all green.
+

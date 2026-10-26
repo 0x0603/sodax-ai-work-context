@@ -23,7 +23,7 @@ dropped are gone (reasons in its § Dropped). Lifecycle and batching rows reflec
 issues (#505, #507, #529, #531, #532).
 
 ```markdown
-**0x0603** — lightweight first. Measured on published 2.2.0; the v3 column is a measured what-if for an EVM-only app.
+0x0603: lightweight first. Measured on published 2.2.0; the v3 column is a measured what-if for an EVM-only app.
 
 | | Today | v3 |
 | --- | --- | --- |
@@ -37,42 +37,42 @@ When: **Now** = non-breaking, ship in 2.x · **Must** = 3.0 lightweight core · 
 
 | # | Score | Package | What | When |
 | --: | --: | --- | --- | --- |
-| 1 | 10 | `@sodax/sdk` | Chain plugins: core = hub + EVM; each non-EVM chain is an opt-in `@sodax/chain-<name>`; `@sodax/chains-all` for all-chain apps | Must |
-| 2 | 9 | `@sodax/sdk` | Unbundled ESM built with `tsc`, no import-time side effects (`initEccLib`) → one helper import 832 → 37 KB | Now |
-| 3 | 9 | `@sodax/wallet-sdk-react` | Chain adapters `adapters={[evm(), solana()]}`; no global singletons | Must |
-| 4 | 8 | `@sodax/sdk` | ESM-only; viem / wagmi / react-query as peers with ranges | Must |
-| 5 | 8 | `@sodax/sdk` | Vendor the ~1K LOC of PancakeSwap CL math and drop its SDKs (131 MB, 20 advisories); the `Price` / `Token` type swap waits for 3.0 | Now |
-| 6 | 8 | `@sodax/wallet-sdk-core` | Chain wallet providers move into the chain plugins; private-key / mnemonic signers in a server-only entry | Must |
-| 7 | 8 | `@sodax/wallet-sdk-react` | wagmi v3: wallet SDKs become optional peers (576 → 102 MB) | Must |
-| 8 | 7 | `@sodax/sdk` | Lighter chain libs: ICON reads via a small JSON-RPC client, Stellar `/minimal`, Solana instructions without Anchor (the dependency itself goes in 3.0) | Now |
-| 9 | 7 | `@sodax/wallet-sdk-react` | Reuse the app's QueryClient (today `EvmProvider` wraps its own) | Now |
-| 10 | 7 | Cross-cutting | Stop inlining `@sodax/types` (5 token-list copies in one swap dapp) | Now |
-| 11 | 7 | Cross-cutting | CI gates: bundle size, install size, consumer `npm audit`, attw | Now |
-| 12 | 7 | `@sodax/sdk` | Per-feature entries (`@sodax/sdk/swap`, …) next to the `Sodax` facade, which stays | Must |
-| 13 | 7 | `@sodax/dapp-kit` | Per-feature subpaths; sdk as a peer; no `export *` | Must |
-| 14 | 7 | Cross-cutting | Split `@sodax/types` into light entries (chain keys / configs / token lists) | Now |
-| 15 | 6 | `@sodax/sdk` | Polyfill-free core (no `Buffer`) | Must |
-| 16 | 6 | `@sodax/skills` | Update the content to v3 (the `check:ai` suite gates it) | Must |
-| 17 | 6 | Cross-cutting | Migration: codemods, docs, demo apps | Must |
-| 18 | 6 | `@sodax/sdk` | Lifecycle / progress / resume for every flow (swaps-api, bridge, leverage-yield already in progress in 2.x) | Should |
-| 19 | 6 | `@sodax/sdk` | One error shape for API failures (transport code, retryable); `AbortSignal` + correlation id on API calls and polling | Should |
-| 20 | 5 | `@sodax/sdk` | Remote config by default (token / chain lists out of the bundle) — needs a product call | Should |
-| 21 | 5 | `@sodax/dapp-kit` | `queryOptions` builders + query-key factory for every query (8 of 126 today) | Should |
-| 22 | 5 | `@sodax/dapp-kit` | Wallet from context instead of a `walletProvider` argument; one error style instead of three | Should |
-| 23 | 5 | `@sodax/wallet-sdk-core` | Signer-only interface (RPC reads move into the plugins); dedupe chain defs and ICON shims with the sdk | Should |
-| 24 | 5 | API packages | "API mode" docs: server builds the tx, client only signs | Should |
-| 25 | 4 | API packages | BITCOIN branch in the swaps-api raw-tx schema | Now |
-| 26 | 4 | `@sodax/dapp-kit` | Consistent names (`chainKey` / `address`, `useSwapQuote`); `'use client'` entries; `SodaxProvider` accepts an instance | Should |
-| 27 | 4 | `@sodax/skills` | Generate the hook index and query-key table; pin docs and AI channels to the release branch | Should |
-| 28 | 4 | API packages | One `@sodax/api` (swaps + bridge + the sdk's backend client); old packages as re-export shims | Should |
-| 29 | 4 | Cross-cutting | Runtime matrix in CI (Node, Bun, Deno, Workers, React Native, Vite / Next) | Should |
-| 30 | 3 | `@sodax/wallet-sdk-react` | Typed per-chain account hooks; drop the `X` / `xChainId` naming | Should |
-| 31 | 3 | `@sodax/sdk` | EIP-5792 batching for the remaining features; `testing` entry (fake wallets, API mocks); Solana plugin on `@solana/kit` | Later |
-| 32 | 3 | `@sodax/wallet-sdk-core` | Adapters over standards (EIP-1193, Wallet Standard) | Later |
-| 33 | 3 | `@sodax/skills` | MCP-ready tool schemas from valibot for the existing SODAX MCP servers (no third server) | Later |
-| 34 | 3 | API packages | OpenAPI drift gate against our valibot schemas | Later |
-| 35 | 2 | `@sodax/dapp-kit` | `transport` option on quote / swap / status / allowance / approve; polling presets | Later |
-| 36 | 2 | `@sodax/wallet-sdk-react` | Embedded / social wallets as adapters | Later |
+| 1 | 10 | `@sodax/sdk` | 0x0603: Chain plugins: core = hub + EVM; each non-EVM chain is an opt-in `@sodax/chain-<name>`; `@sodax/chains-all` for all-chain apps | Must |
+| 2 | 9 | `@sodax/sdk` | 0x0603: Unbundled ESM built with `tsc`, no import-time side effects (`initEccLib`) → one helper import 832 → 37 KB | Now |
+| 3 | 9 | `@sodax/wallet-sdk-react` | 0x0603: Chain adapters `adapters={[evm(), solana()]}`; no global singletons | Must |
+| 4 | 8 | `@sodax/sdk` | 0x0603: ESM-only; viem / wagmi / react-query as peers with ranges | Must |
+| 5 | 8 | `@sodax/sdk` | 0x0603: Vendor the ~1K LOC of PancakeSwap CL math and drop its SDKs (131 MB, 20 advisories); the `Price` / `Token` type swap waits for 3.0 | Now |
+| 6 | 8 | `@sodax/wallet-sdk-core` | 0x0603: Chain wallet providers move into the chain plugins; private-key / mnemonic signers in a server-only entry | Must |
+| 7 | 8 | `@sodax/wallet-sdk-react` | 0x0603: wagmi v3: wallet SDKs become optional peers (576 → 102 MB) | Must |
+| 8 | 7 | `@sodax/sdk` | 0x0603: Lighter chain libs: ICON reads via a small JSON-RPC client, Stellar `/minimal`, Solana instructions without Anchor (the dependency itself goes in 3.0) | Now |
+| 9 | 7 | `@sodax/wallet-sdk-react` | 0x0603: Reuse the app's QueryClient (today `EvmProvider` wraps its own) | Now |
+| 10 | 7 | Cross-cutting | 0x0603: Stop inlining `@sodax/types` (5 token-list copies in one swap dapp) | Now |
+| 11 | 7 | Cross-cutting | 0x0603: CI gates: bundle size, install size, consumer `npm audit`, attw | Now |
+| 12 | 7 | `@sodax/sdk` | 0x0603: Per-feature entries (`@sodax/sdk/swap`, …) next to the `Sodax` facade, which stays | Must |
+| 13 | 7 | `@sodax/dapp-kit` | 0x0603: Per-feature subpaths; sdk as a peer; no `export *` | Must |
+| 14 | 7 | Cross-cutting | 0x0603: Split `@sodax/types` into light entries (chain keys / configs / token lists) | Now |
+| 15 | 6 | `@sodax/sdk` | 0x0603: Polyfill-free core (no `Buffer`) | Must |
+| 16 | 6 | `@sodax/skills` | 0x0603: Update the content to v3 (the `check:ai` suite gates it) | Must |
+| 17 | 6 | Cross-cutting | 0x0603: Migration: codemods, docs, demo apps | Must |
+| 18 | 6 | `@sodax/sdk` | 0x0603: Lifecycle / progress / resume for every flow (swaps-api, bridge, leverage-yield already in progress in 2.x) | Should |
+| 19 | 6 | `@sodax/sdk` | 0x0603: One error shape for API failures (transport code, retryable); `AbortSignal` + correlation id on API calls and polling | Should |
+| 20 | 5 | `@sodax/sdk` | 0x0603: Remote config by default (token / chain lists out of the bundle) — needs a product call | Should |
+| 21 | 5 | `@sodax/dapp-kit` | 0x0603: `queryOptions` builders + query-key factory for every query (8 of 126 today) | Should |
+| 22 | 5 | `@sodax/dapp-kit` | 0x0603: Wallet from context instead of a `walletProvider` argument; one error style instead of three | Should |
+| 23 | 5 | `@sodax/wallet-sdk-core` | 0x0603: Signer-only interface (RPC reads move into the plugins); dedupe chain defs and ICON shims with the sdk | Should |
+| 24 | 5 | API packages | 0x0603: "API mode" docs: server builds the tx, client only signs | Should |
+| 25 | 4 | API packages | 0x0603: BITCOIN branch in the swaps-api raw-tx schema | Now |
+| 26 | 4 | `@sodax/dapp-kit` | 0x0603: Consistent names (`chainKey` / `address`, `useSwapQuote`); `'use client'` entries; `SodaxProvider` accepts an instance | Should |
+| 27 | 4 | `@sodax/skills` | 0x0603: Generate the hook index and query-key table; pin docs and AI channels to the release branch | Should |
+| 28 | 4 | API packages | 0x0603: One `@sodax/api` (swaps + bridge + the sdk's backend client); old packages as re-export shims | Should |
+| 29 | 4 | Cross-cutting | 0x0603: Runtime matrix in CI (Node, Bun, Deno, Workers, React Native, Vite / Next) | Should |
+| 30 | 3 | `@sodax/wallet-sdk-react` | 0x0603: Typed per-chain account hooks; drop the `X` / `xChainId` naming | Should |
+| 31 | 3 | `@sodax/sdk` | 0x0603: EIP-5792 batching for the remaining features; `testing` entry (fake wallets, API mocks); Solana plugin on `@solana/kit` | Later |
+| 32 | 3 | `@sodax/wallet-sdk-core` | 0x0603: Adapters over standards (EIP-1193, Wallet Standard) | Later |
+| 33 | 3 | `@sodax/skills` | 0x0603: MCP-ready tool schemas from valibot for the existing SODAX MCP servers (no third server) | Later |
+| 34 | 3 | API packages | 0x0603: OpenAPI drift gate against our valibot schemas | Later |
+| 35 | 2 | `@sodax/dapp-kit` | 0x0603: `transport` option on quote / swap / status / allowance / approve; polling presets | Later |
+| 36 | 2 | `@sodax/wallet-sdk-react` | 0x0603: Embedded / social wallets as adapters | Later |
 ```
 
 ## 2. Evidence behind the bullets
