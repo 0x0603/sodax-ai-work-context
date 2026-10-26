@@ -9,7 +9,7 @@ updated: 2026-10-26
 
 # #82 — Tool profiles (`builder` / `swap` / `all`), the swap-tool key gate, the rollout switch
 
-Status: draft PR #92, `feat/82-tool-profiles` @ `1757a9e` (off `feat/81-forward-api-key` @ `0930893`; merge `development` in once #91 lands). Drafted by a planning agent on 2026-10-26 from `c0f11f1`; adjusted after #81's review
+Status: draft PR #92, `feat/82-tool-profiles` @ `a816105` (off `feat/81-forward-api-key` @ `0930893`; merge `development` in once #91 lands). Drafted by a planning agent on 2026-10-26 from `c0f11f1`; adjusted after #81's review
 fixes (`f27de38`) and reviewed against the code and SDK 1.26.0 the same day (see §Review). Line references are at
 `c0f11f1`; `src/index.ts` has shifted since, so find code by function name.
 
@@ -215,6 +215,14 @@ Checked against the code at `0930893` and `@modelcontextprotocol/sdk` 1.26.0 in 
   on a bad value), so one error type and one refusal path serve every connection setting.
 - The gate sits at connection time on purpose: tools are chosen per connection. The per-call key check #84 adds is
   for SSE, where calls carry their own key.
+
+**After implementation** (code review + `/simplify`, 2026-10-26, `a816105`):
+- `src/server.ts` holds one registrar map used by `createServer` and `seedToolRegistry` (moved from `index.ts`;
+  HTTP seeds `{ builder: true, swap: swapToolsEnabled }`). #83 adds its registrar to the `swap` entry only.
+- `toolGroup(module)` in `toolRegistry.ts` feeds both analytics and `getStaticToolCounts()` (which returns `total`).
+- `resolveConnection(req)` in `index.ts` returns `{ apiKey, toolsets }` once per connection; #84 adds the fee there.
+- A blank `?profile=` / `--profile=` counts as unset. `ConnectionError(status, message)` derives the RPC code.
+- The Swaps card shows only when the registry has swap tools; the `/api` profile text still reads the switch.
 
 ## Notes for later sub-issues
 
