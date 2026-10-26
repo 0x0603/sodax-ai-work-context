@@ -2,8 +2,8 @@
 type: brief
 repo: builders-sodax-mcp-server
 github: 79
-status: Active — #81 in PR #91, #82 in draft PR #92
-next: Get PRs #90 and #91 reviewed (no reviewers requested); when #91 merges, merge `development` into #92 and mark it ready; then #83
+status: Active — #81 in PR #91, #82 in draft PR #92, #83 in draft PR #93
+next: Get PRs #90 and #91 reviewed (no reviewers requested); as each base merges, merge `development` into the next PR (#92, then #93) and mark it ready; then #84
 updated: 2026-10-26
 ---
 
