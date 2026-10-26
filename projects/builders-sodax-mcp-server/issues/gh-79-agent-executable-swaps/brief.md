@@ -26,7 +26,7 @@ updated: 2026-10-26
   `feat/83-resolve-token` @ `2997dd8`), all pushed: `a5fc108` (commits 1–5), `a802484` / `1eba6c1` (reviews),
   `c639939` (SDK), `c045e28` (the SDK rebuilds the swap tx and it must match byte for byte; creator = the user's hub
   wallet; native HBAR open). 347 unit tests, 13 contract tests on both hosts. ADR amendment `21d9017` (balances via
-  the SDK) pushed to PR #90. Hub branch `docs/builders-mcp-swap-sdk` is local (worktree `scratchpad/wt-hub-84`).
+  the SDK) pushed to PR #90. Hub branch `docs/builders-mcp-swap-sdk` @ `eb1f30d` is pushed (no PR yet).
   Details: `plan-84-swap-quote.md` §Commit 6 and §/simplify on the SDK commit.
 - All of #79–#89 are assigned to the user (`0x0603`) as of 2026-10-26. "@0xmatterhorn" is the user's Discord handle.
 - Discord 2026-10-23 (see `process.md`): R0bi7 says the epic is a core draft and the user may adjust decisions.
@@ -46,7 +46,7 @@ updated: 2026-10-26
 
 ## Next action
 
-#85 per `plan-85-swap-track.md` (receipts through the SDK). Open the hub PR from `docs/builders-mcp-swap-sdk` once #94
+On another machine: in the hub submodule `git fetch` and check out `feat/84-swap-quote` (or branch #85 off it), then `pnpm install --frozen-lockfile` (the SDK came in with #84). #85 per `plan-85-swap-track.md` (receipts through the SDK). Open the hub PR from `docs/builders-mcp-swap-sdk` once #94
 merges. Reviews of PR #90–#94 are still open. Follow-up PR: pnpm 10 + `minimumReleaseAge` instead of hand pins.
 
 ## Settled — do not re-litigate
