@@ -113,3 +113,13 @@ updated: 2026-10-26
   custom issue now says "treat it as exposed"), "not a token" wording. Kept SWAP_MISMATCH for config drift (the SDK
   side is packaged; retrying can't help). Live: HBAR had no route for a while on both hosts (upstream), canary's
   oracle returns 502 (quotes there have no USD value). Draft PR #97.
+- #88 built off #87 (`scripts/e2e/swapCanary.ts`, `scripts/tsconfig.json`, `.github/workflows/e2e-canary.yml`, viem
+  2.57.4 exact dev dep, README), then /simplify (2 agents: SDK-config USDC, one wallet client, stage in one place,
+  stage functions, typed tool output, `AfterSend` exported, dry-run dispatch input), /code-review (high) and a
+  double-check agent (viem source + local mock RPC, public RPC lag probe, no tx sent). Fixed: a node refusal of the
+  swap fails at `send` instead of a 20 min false `track`; local nonce; arrival 180 s (`solved` = hub fill); stage
+  written on every change; actions SHA-pinned and no cache in the key job; `RETRYABLE_CODES` imported; clearer
+  failure text. Verified with a local canary server: dry run green, unfunded red at `balance_floor`, missing env at
+  `setup`; 522 tests. commitlint rejected a >100-char body line once (the push still ran and opened the PR on the
+  #87 head; recommitted). Draft PR #98 @ `6775283`.
+

@@ -4,12 +4,12 @@ repo: builders-sodax-mcp-server
 github: 88
 related_issues: [79, 82, 84, 85, 86, 87]
 tags: [mcp, e2e, ci, canary, github-actions, viem, discord]
-updated: 2026-10-26
+updated: 2026-10-27
 ---
 
 # #88 — E2E swap on canary in CI
 
-Status: plan, reviewed (§Review); not started. Written against `feat/84-swap-quote` @ `6339278` plus the #85 work in
+Status: implemented, draft PR #98 (`feat/88-e2e-canary` @ `6775283`, stacked on #97); see §Implementation. Live runs wait on prerequisites 3 and 4. Originally: Written against `feat/84-swap-quote` @ `6339278` plus the #85 work in
 the working tree of `feat/85-swap-track` (complete, uncommitted). Branch `feat/88-e2e-canary` stacked on the #87
 branch, or off `development` once #85 and #87 merge (plan order #85 → #87 → #88). Blocked on prerequisite 3 (a
 funded wallet and a canary key) and prerequisite 4 (an admin for the environment and secrets).
@@ -254,3 +254,32 @@ check on the green run too, `server.log` printed only on failure and with stderr
 nits (health-wait timing, best-effort confirmation transition, no `pnpm start` locally, a 15 s default retry, a
 sanitized top-level catch, one client per call, line refs, lockfile diff, no backend state in the PR, nonce note).
 Not applied: nothing.
+
+## Implementation (2026-10-27)
+
+Where the code differs from §Design, after /simplify (2 agents), /code-review (high) and a double-check agent:
+
+- Stage: a global `stage` set by `enter()`, which also appends `stage=<name>` to `$GITHUB_OUTPUT` (last value wins), so
+  a step timeout or cancel still alerts with the right stage. `Failure` carries only the reason.
+- USDC address and decimals from `@sodax/types` `spokeChainConfig` (config package, not the SDK); RPC override env
+  name built from the chain id. One wallet client per side, extended with `publicActions`.
+- From `src/`: types (`SwapQuote`, `TrackResult`, `ActionErrorCode`, `AfterSend`, now exported from `tools/swap.ts`)
+  and the value `RETRYABLE_CODES` (errors.ts loads only constants.ts), minus `INTERNAL`.
+- Send: the pending nonce is read once and counted locally (a load-balanced public RPC may answer from a node that
+  hasn't seen the approve). A swap send that throws `RpcError` / `RpcRequestError` (the node answered no) fails at
+  `send` with the RPC code; any other error (timeout, HTTP) is tracked, since it may have landed.
+- Track deadline: the quote's `expiresAt` + 5 min. A `failed` result logs outcome and `canCancel`.
+- Arrival: 180 s. `solved` is set from the solver's fill tx, which is the hub fill (SDK `fill_tx_hash`); delivery to
+  the destination is a relay hop the SDK waits up to 120 s for. Step timeout 28 min, job 35.
+- Workflow: `dry_run` dispatch input (checks the environment and key before funding); actions pinned by commit
+  (checkout v4.4.0, pnpm/action-setup v4.3.0, setup-node v4.4.0); no `cache: pnpm` in this job; the script owns the
+  amount default.
+- Kept: a fresh MCP client per call (about 4 requests per call, under the 60/min limiter; a reused one holds an idle
+  stream for 20 min); the curl alert in the workflow; `server.log` on failure (only the RPC URLs are in the server
+  step, and the logger strips URLs).
+- Left: a late delivery from an earlier failed run counted as this run's arrival (needs three failures in a row; the
+  earlier one already alerted).
+- Found for #85: `trackNextStep` at `solved` says the user received at least the minimum; not true until delivery.
+  Needs its own fix.
+- Lockfile: adding viem moved `@scure/bip32`'s `@noble/curves` 1.9.1 → 1.9.7 (both already locked; said in the PR).
+
