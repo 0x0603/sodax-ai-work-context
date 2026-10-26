@@ -36,6 +36,11 @@ it lives at `../sodax-ai-work-context/`.
 - Parallel work in one repo: `git worktree` inside the submodule, not a new clone.
 - Addresses come from the hub registry (`PYTHONPATH=tools .venv/bin/python -m
   onchain find <query>`); cite the command in notes instead of copying addresses.
+- `create-issue` breaks for `sodax-sdks` (now `gosodax/sodax-sdks`): it creates the
+  issue, then fails setting the type because it reads types from `icon-project`.
+  Never re-run the create. Set the type from `gosodax`'s `issueTypes` by name and
+  the parent with `addSubIssue`. sdks issues live on the `gosodax` board #1, not
+  New World #12, so don't add them there.
 
 ## How to use this memory
 
