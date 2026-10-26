@@ -97,3 +97,10 @@ updated: 2026-10-26
   of "not a SODAX deposit"; retry advice no longer claims the deposit is safe; relay rate limits and outages retry
   instead of alerting; a relayed quote is kept 24 h so a later track doesn't page for a refund in progress. Skipped:
   Sonic sources refused (by plan, commit 7), viem decoders (no new dependency), the cancel rebuild (no state).
+- #86 built (stacked on #85; RPC config already there), then /simplify (shared `resolveExactly` and `nativeToken`,
+  no duplicate native holding, no `access` field, table tests, shared `callTool`), /code-review (high) and a
+  double-check agent (live RPC probes). Fixed: unfunded Stellar/NEAR accounts read as empty instead of
+  CHAIN_UNAVAILABLE (SDK error names `NotFoundError` / `AccountDoesNotExistError`), tool-neutral resolve wording,
+  "balance" wording and a softer gas note (Stellar returns spendable XLM), Bitcoin reads BTC only, a meaningful
+  Hedera contract test (treasury account), README rows. Also found #85's quote contract test broken (tests are
+  outside tsc): fixed on #95 in `9dd78e7`. Draft PR #96.

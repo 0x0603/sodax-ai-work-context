@@ -9,7 +9,7 @@ updated: 2026-10-26
 
 # #86 — `sodax_get_balance`
 
-Status: plan, reviewed, then cut down on 2026-10-26 (§Scope cut); not started. Reads balances through `@sodax/sdk`
+Status: shipped in draft PR #96 (`0ba4b59`, 2026-10-26), stacked on #95; plan reviewed, then cut down (§Scope cut). Reads balances through `@sodax/sdk`
 (user's call, 2026-10-26: "depend on the SDK; fix bugs in the SDK"). Depends on #84's SDK commit (6), not on #85.
 Branch `feat/86-get-balance` off the #84 branch once commit 6 is in.
 
