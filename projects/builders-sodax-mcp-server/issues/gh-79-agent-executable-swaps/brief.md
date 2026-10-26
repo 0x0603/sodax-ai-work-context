@@ -46,10 +46,11 @@ updated: 2026-10-26
 
 ## Next action
 
-On another machine: in the hub submodule `git fetch` and check out `feat/84-swap-quote` (or branch #85 off it), then `pnpm install --frozen-lockfile` (the SDK came in with #84). #85 per `plan-85-swap-track.md` (receipts through the SDK). Open the hub PR from `docs/builders-mcp-swap-sdk` once #94
+On another machine: in the hub submodule `git fetch` and check out `feat/84-swap-quote`, then `pnpm install --frozen-lockfile` (the SDK came in with #84). First the fewer-calls commit on PR #94 (`plan-84-swap-quote.md` §Follow-up commit), then branch #85 off it. #85 per `plan-85-swap-track.md` (receipts through the SDK). Open the hub PR from `docs/builders-mcp-swap-sdk` once #94
 merges. Reviews of PR #90–#94 are still open (no reviewer requested). Follow-up PR: pnpm 10 + `minimumReleaseAge`
-instead of the hand pins — spec in `plan-84-swap-quote.md` §Follow-up PR. ADR D5 on PR #90 needs "env, else the
-SDK default" added to its RPC line (not done; push only on the user's go-ahead).
+instead of the hand pins — spec in `plan-84-swap-quote.md` §Follow-up PR. ADR on PR #90: D5 needs "env, else the
+SDK default" on its RPC line, and D6 must drop "the quote's balance check" (#86 cut); not done, push only on the
+user's go-ahead.
 
 Workflow the user asked for on each sub-issue: plan (agent) → review the plan → implement → `/simplify` →
 `/code-review` → fix → wait for an explicit "commit push" → draft PR. Live probes and contract tests use
@@ -80,6 +81,11 @@ Workflow the user asked for on each sub-issue: plan (agent) → review the plan 
    (user, 2026-10-26; `plan-85-swap-track.md` §Relay-for-refund).
 10. #85: quote, track and cancel need the same API key; another key gets `QUOTE_KEY_MISMATCH`, never an alert or a
    "quote not found" (user, 2026-10-26; `plan-85-swap-track.md` design 5).
+11. One job per tool (user, 2026-10-26): `sodax_get_balance` reads balances only (no allowance), the quote reads no
+   chain (`plan-86-get-balance.md` §Scope cut).
+12. Fewer agent calls (user, 2026-10-26): the quote takes names and symbols directly, resolve only on
+   `UNKNOWN_TOKEN`, the address on the first quote (`plan-84-swap-quote.md` §Follow-up commit, on PR #94). A missed
+   track stays an agent risk: the ready quote returns `afterSend`; the fix is a BE deposit watcher (`plan.md`).
 
 ## Which file answers what
 
@@ -91,7 +97,7 @@ Workflow the user asked for on each sub-issue: plan (agent) → review the plan 
 | #83 implementation plan (reviewed): live token list + chain config, resolver rules, action-tool template, restricted-token rule; no new dependency | `plan-83-resolve-token.md` | 4.5k |
 | #84 implementation plan (reviewed): quote build path, partner fee, REST over `SwapsApiService`, errors, cache, SDK commit after the cooldown; §After implementation | `plan-84-swap-quote.md` | 4.5k |
 | #85 implementation plan (reviewed): track state machine, deposit check from the `connection` Message log, RPC env, alerts, cancel flow, relay-for-refund on expired deposits, same-key rule (`QUOTE_KEY_MISMATCH`), 1 open question (backend asks, for the PR thread) | `plan-85-swap-track.md` | 9k |
-| #86 implementation plan (reviewed): `sodax_get_balance` through the SDK (`getWalletBalance`, `Erc20Service.getAllowance`), quote balance + allowance wiring, error wrapping, SDK follow-ups | `plan-86-get-balance.md` | 3.5k |
+| #86 implementation plan (reviewed, cut 2026-10-26): `sodax_get_balance` reads balances through the SDK (`getWalletBalance`), no allowance, quote reads no chain; error wrapping, SDK follow-ups | `plan-86-get-balance.md` | 3.5k |
 | Discussion log: balance in BE, custom RPC, full SDK vs light, rate limit, API key, cancel, partner fee | `process.md` | 2k |
 | Candidate changes from before the ADR revision, not re-mapped | `improvement-ideas.md` | 1.9k |
 

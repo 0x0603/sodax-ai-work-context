@@ -71,3 +71,11 @@ updated: 2026-10-26
 - Key-bound quotes: same key for quote, track and cancel. A mismatch used to read as a missing quote, which alerts
   the operator and can lead the agent to deposit again; it now returns `QUOTE_KEY_MISMATCH` with no alert. Status
   reads need no key, so a submitted swap is readable with any key.
+- #86 gas: no gas estimate, only the zero-native warning; a short-of-gas tx fails at broadcast and the agent sees it.
+  #86 cut to one job per tool: `sodax_get_balance` reads balances only (no allowance: the quote already returns
+  the approve step), and the quote reads no chain (keeps #84's `not_checked` and backend approval). No
+  `INSUFFICIENT_FUNDS`. `plan-86-get-balance.md` §Scope cut; no open questions left.
+- Agent flow review: resolve ran twice (tool + inside the quote) and price-only is rarely needed when the agent holds
+  the key; both cut in a commit on PR #94 (`plan-84-swap-quote.md` §Follow-up commit). A missed `sodax_swap_track`
+  strands the deposit: the ready quote returns `afterSend`, and a BE deposit watcher is the real fix (`plan.md`
+  §Follow-ups). No MCP-side chain watcher.

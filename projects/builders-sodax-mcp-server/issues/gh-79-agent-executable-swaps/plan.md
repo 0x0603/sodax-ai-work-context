@@ -151,7 +151,9 @@ write cap (120/min) and jail (1500/10 s) hit the MCP's IP unless HAProxy trusts 
 
 **BE (swaps-api)**: wallet balance route; `submit-tx` checks the source tx on chain; destination check in
 `/swaps/intents`; `includeTxData` with slippage and deadline; partner fee per org; `submit-tx` from
-`(txHash, srcChainKey)` alone.
+`(txHash, srcChainKey)` alone; watch for the deposit of every intent built through `/swaps/intents` and relay it
+without a `submit-tx`, so an agent that never calls `sodax_swap_track` can't strand funds (then track only reads
+status and the MCP's interim deposit check goes; 2026-10-26).
 
 ## Risks
 

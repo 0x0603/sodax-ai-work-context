@@ -251,6 +251,22 @@ Departures from the design above, all verified live:
 - Deferred: pnpm 10 + `minimumReleaseAge` instead of hand pins (own PR); multi-stage runtime image (775 / 575 MB);
   running the recipient check alongside `/intents`; boot-time overlap of SDK load and docs warm-up.
 
+## Follow-up commit on PR #94: fewer agent calls (decided 2026-10-26, not started)
+
+Today's happy path is resolve × 2, a price-only quote, a ready quote, then track. Two of those calls add nothing:
+
+- **Resolve is done twice.** `quoteSwap` already runs `resolveToken` on both sides (`resolveSide`), so the agent's two
+  `sodax_resolve_token` calls only repeat it. The quote takes what the resolver takes (chain name, ticker or key;
+  symbol, address or `"native"`): the param descriptions stop saying "from sodax_resolve_token", the `UNKNOWN_TOKEN`
+  message names the side and says to call `sodax_resolve_token` for it and ask the user, and `SWAP_INSTRUCTIONS`
+  say to resolve only when the quote can't. Safety is unchanged: the quote still refuses ambiguous and restricted
+  tokens.
+- **Price-only is the exception.** The agent holds the key (D1), so it knows the wallet: `SWAP_INSTRUCTIONS` and the
+  quote description say to pass `fromAddress` on the first call; price-only is for when the wallet isn't known.
+
+Happy path after: quote, sign, track. Tests: a quote with `"arb"` / `"USDC"` resolves; an ambiguous symbol →
+`UNKNOWN_TOKEN` naming the side; the instructions snapshot. #85 branches off the commit that carries this.
+
 ## Follow-up PR: pnpm 10 release-age cooldown (not started)
 
 Replaces the hand pins in `package.json` `pnpm.overrides` (`viem@2.57.11`, `follow-redirects@1.16.2`, `@mysten/bcs`,

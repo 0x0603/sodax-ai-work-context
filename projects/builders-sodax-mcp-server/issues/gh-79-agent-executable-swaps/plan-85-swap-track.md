@@ -242,6 +242,11 @@ commit; design 12, optional commit 7) · non-EVM sources. MCP-side relay-for-ref
       the swap's tx hash: it submits the swap, so call it at least once, and again until solved or failed. Never
       resend a swap the tracker hasn't reported as failed at the source. To cancel a submitted swap, use
       `sodax_swap_cancel`."
+    - Ready quote also returns `afterSend: {tool: "sodax_swap_track", args: {quoteId}, needs: "txHash"}` (decided
+      2026-10-26): nothing submits the deposit unless track is called, and a field is harder for an agent to miss
+      than a sentence. The `nextStep` sentence stays. The real fix is the backend watching for the deposit of an
+      intent it built (`plan.md` §Follow-ups, BE); no MCP-side chain watcher (a background job, log scans for quotes
+      that are mostly never signed, state lost on restart, duplicates across instances).
 
 11. **Errors, rate limits, timeouts.** New codes: `QUOTE_NOT_FOUND` (no `quoteId`/`chain`, or an unknown `quoteId`
     without `chain`; "call again with chain set to the quote's source chain key"), `QUOTE_MISMATCH` (`quoteId` for
@@ -273,7 +278,7 @@ commit; design 12, optional commit 7) · non-EVM sources. MCP-side relay-for-ref
    `findDeposit`, `findCancelMessage`, `decodeSendMessage`); receipt fixtures from facts 4–5 (public chain data);
    README env table + data-sources row; `.env.example`.
 4. `feat: add sodax_swap_track` — `swap/track.ts`, `swap/alerts.ts`, the tool and next steps in `tools/swap.ts`, the
-   `quoteNextStep` and `SWAP_INSTRUCTIONS` changes, landing page entry, the swap tools list test.
+   `quoteNextStep`, `afterSend` and `SWAP_INSTRUCTIONS` changes, landing page entry, the swap tools list test.
 5. `feat: add sodax_swap_cancel` — `swap/cancel.ts`, the tool, landing page entry.
 6. `test: live contract tests for track and cancel` — `src/tools/swapTrack.contract.test.ts`.
 7. *(Optional, after #84's SDK commit)* `feat: open Sonic sources` (design 12).
