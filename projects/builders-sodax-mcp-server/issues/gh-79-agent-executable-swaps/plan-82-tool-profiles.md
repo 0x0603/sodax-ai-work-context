@@ -9,7 +9,7 @@ updated: 2026-10-26
 
 # #82 — Tool profiles (`builder` / `swap` / `all`), the swap-tool key gate, the rollout switch
 
-Status: plan, not started. Drafted by a planning agent on 2026-10-26 from `c0f11f1`; adjusted after #81's review
+Status: draft PR #92, `feat/82-tool-profiles` @ `1757a9e` (off `feat/81-forward-api-key` @ `0930893`; merge `development` in once #91 lands). Drafted by a planning agent on 2026-10-26 from `c0f11f1`; adjusted after #81's review
 fixes (`f27de38`) and reviewed against the code and SDK 1.26.0 the same day (see §Review). Line references are at
 `c0f11f1`; `src/index.ts` has shifted since, so find code by function name.
 

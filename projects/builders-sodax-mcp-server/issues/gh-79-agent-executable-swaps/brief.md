@@ -2,8 +2,8 @@
 type: brief
 repo: builders-sodax-mcp-server
 github: 79
-status: Active — #81 in PR #91
-next: Get PR #90 and #91 reviewed (no reviewers requested yet); #82 per `plan-82-tool-profiles.md`, off `feat/81-forward-api-key`
+status: Active — #81 in PR #91, #82 in draft PR #92
+next: Get PRs #90 and #91 reviewed (no reviewers requested); when #91 merges, merge `development` into #92 and mark it ready; then #83
 updated: 2026-10-26
 ---
 
