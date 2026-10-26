@@ -2,8 +2,8 @@
 type: brief
 repo: builders-sodax-mcp-server
 github: 79
-status: Active — #81 in PR #91, #82 in draft PR #92, #83 in draft PR #93
-next: Get PRs #90 and #91 reviewed (no reviewers requested); as each base merges, merge `development` into the next PR (#92, then #93) and mark it ready; then #84
+status: Active — #81 in PR #91, #82 in draft PR #92, #83 in draft PR #93, #84 in draft PR #94
+next: Fix the #84 second code-review findings on PR #94; add the SDK commit no earlier than 2026-10-26 11:16 UTC; plan #85
 updated: 2026-10-26
 ---
 
@@ -22,6 +22,12 @@ updated: 2026-10-26
   A code review (2026-10-26) found the key reaching the relay and more; 9 fixes pushed as `f27de38`
   (`plan.md` row 81 has the result). On canary the gateway routes the relay to the testnet relay. Checks green locally (105 tests, lint, build, `docker build` 353 MB); smoke-tested against
   production and canary. No reviewer requested.
+- #84 (`sodax_swap_quote`) is draft PR #94 into `development`, branch `feat/84-swap-quote` @ `a5fc108` (off
+  `feat/83-resolve-token` @ `2997dd8`): commits 1–5 of `plan-84-swap-quote.md` squashed into one, no SDK yet. 288
+  unit tests (new modules at 100% coverage) and 9 live contract tests (canary and production) pass; two /simplify
+  and one /code-review round fixed (`plan-84-swap-quote.md` §After implementation); a second /code-review is
+  running. The SDK commit (6) waits for the 14-day cooldown:
+  `@sodax/*@2.2.0` finished publishing 2026-10-12 11:15:18 UTC.
 - All of #79–#89 are assigned to the user (`0x0603`) as of 2026-10-26. "@0xmatterhorn" is the user's Discord handle.
 - Discord 2026-10-23 (see `process.md`): R0bi7 says the epic is a core draft and the user may adjust decisions.
   Signing: the agent holds the key, signs and broadcasts, then passes the tx hash to MCP (D1 holds).
@@ -40,13 +46,15 @@ updated: 2026-10-26
 
 ## Next action
 
-Ask R0bi7 to review PR #90 (ADR) and PR #91 (#81). Then #82 (`plan.md` row 82) on its own branch off
-`development`, or off `feat/81-forward-api-key` if #91 is still in review.
+Triage the second #84 code review and fix on PR #94 (push only when the user asks). After 11:16 UTC on 2026-10-26: re-run `npm view`, add commit 6 (SDK, overrides,
+`engines`, NEAR/Stellar recipient checks, `sodax-deps.yaml`) and the hub PR. Reviews of PR #90–#93 are still open.
 
 ## Settled — do not re-litigate
 
 1. Full SDK (`@sodax/sdk` + `@sodax/types`), chosen 2026-10-23 for later features, with overrides for `axios`,
-   `bigint-buffer`, `toml` (`ws` has no fix). Balance and source-tx checks still go to BE.
+   `toml`, `ws`; `bigint-buffer` is the one with no fix (corrected 2026-10-26, `plan-84-swap-quote.md` §Review).
+   Only the NEAR/Stellar recipient check uses it in #84; the Swaps API stays REST. Balance and source-tx checks
+   still go to BE.
 2. Build the intent with `createIntent` and an explicit minimum output and deadline. Never use `includeTxData`.
 3. Check the EVM source tx on chain before calling `submit-tx`: the receipt succeeded and holds the `connection`
    contract's log carrying the cached relay payload. Matching the tx input is not enough.
@@ -68,6 +76,7 @@ Ask R0bi7 to review PR #90 (ADR) and PR #91 (#81). Then #82 (`plan.md` row 82) o
 | Decisions, constraints, SDK fit, per-sub-issue work, verification, prerequisites, follow-ups, risks | `plan.md` | 4.5k |
 | #82 implementation plan (reviewed): profiles, swap key gate (403), rollout switch, snapshot test, 1 open question | `plan-82-tool-profiles.md` | 4k |
 | #83 implementation plan (reviewed): live token list + chain config, resolver rules, action-tool template, restricted-token rule; no new dependency | `plan-83-resolve-token.md` | 4.5k |
+| #84 implementation plan (reviewed): quote build path, partner fee, REST over `SwapsApiService`, errors, cache, SDK commit after the cooldown; §After implementation | `plan-84-swap-quote.md` | 4.5k |
 | Discussion log: balance in BE, custom RPC, full SDK vs light, rate limit, API key, cancel, partner fee | `process.md` | 2k |
 | Candidate changes from before the ADR revision, not re-mapped | `improvement-ideas.md` | 1.9k |
 
