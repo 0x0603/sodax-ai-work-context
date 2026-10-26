@@ -3,7 +3,7 @@ type: brief
 repo: builders-sodax-mcp-server
 github: 79
 status: Active — #81 in PR #91, #82 in draft PR #92, #83 in draft PR #93, #84 in draft PR #94
-next: fewer-calls commit on PR #94, then #85 per plan-85-swap-track.md; review plan-87; hub PR from `docs/builders-mcp-swap-sdk` once #94 merges
+next: #85 off `6339278` per plan-85-swap-track.md; review plan-87; hub PR from `docs/builders-mcp-swap-sdk` once #94 merges
 updated: 2026-10-26
 ---
 
@@ -22,7 +22,7 @@ updated: 2026-10-26
   A code review (2026-10-26) found the key reaching the relay and more; 9 fixes pushed as `f27de38`
   (`plan.md` row 81 has the result). On canary the gateway routes the relay to the testnet relay. Checks green locally (105 tests, lint, build, `docker build` 353 MB); smoke-tested against
   production and canary. No reviewer requested.
-- #84 (`sodax_swap_quote`) is draft PR #94 into `development`, branch `feat/84-swap-quote` @ `c045e28` (off
+- #84 (`sodax_swap_quote`) is draft PR #94 into `development`, branch `feat/84-swap-quote` @ `6339278` (off
   `feat/83-resolve-token` @ `2997dd8`), all pushed: `a5fc108` (commits 1–5), `a802484` / `1eba6c1` (reviews),
   `c639939` (SDK), `c045e28` (the SDK rebuilds the swap tx and it must match byte for byte; creator = the user's hub
   wallet; native HBAR open). 347 unit tests, 13 contract tests on both hosts. ADR amendment `21d9017` (balances via
@@ -46,7 +46,7 @@ updated: 2026-10-26
 
 ## Next action
 
-On another machine: in the hub submodule `git fetch` and check out `feat/84-swap-quote`, then `pnpm install --frozen-lockfile` (the SDK came in with #84). First the fewer-calls commit on PR #94 (`plan-84-swap-quote.md` §Follow-up commit), then branch #85 off it. #85 per `plan-85-swap-track.md` (receipts through the SDK). Open the hub PR from `docs/builders-mcp-swap-sdk` once #94
+On another machine: in the hub submodule `git fetch` and check out `feat/84-swap-quote`, then `pnpm install --frozen-lockfile` (the SDK came in with #84). First the fewer-calls commit on PR #94 (`plan-84-swap-quote.md` §Follow-up commit) is pushed as `6339278`; branch #85 off it. #85 per `plan-85-swap-track.md` (receipts through the SDK). Open the hub PR from `docs/builders-mcp-swap-sdk` once #94
 merges. Reviews of PR #90–#94 are still open (no reviewer requested). Follow-up PR: pnpm 10 + `minimumReleaseAge`
 instead of the hand pins — spec in `plan-84-swap-quote.md` §Follow-up PR. ADR on PR #90: D5 needs "env, else the
 SDK default" on its RPC line, and D6 and §Quote must drop "the quote's balance check" / "checks the balance" (#86 cut); not done, push only on

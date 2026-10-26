@@ -251,7 +251,14 @@ Departures from the design above, all verified live:
 - Deferred: pnpm 10 + `minimumReleaseAge` instead of hand pins (own PR); multi-stage runtime image (775 / 575 MB);
   running the recipient check alongside `/intents`; boot-time overlap of SDK load and docs warm-up.
 
-## Follow-up commit on PR #94: fewer agent calls (decided 2026-10-26, not started)
+## Follow-up commit on PR #94: fewer agent calls (decided 2026-10-26)
+
+Pushed as `6339278` on `feat/84-swap-quote` (PR #94, 2026-10-26): quote and resolve
+descriptions, `SWAP_INSTRUCTIONS`, the default `UNKNOWN_TOKEN` next step (points at `error.side`), the resolver's
+ambiguous next step (pass the address to the quote), the landing-page line, and the first quote test over names and
+symbols too. checkTs, lint, 348 tests green; /simplify applied; /code-review (low) found nothing. Skipped from
+/simplify: returning the candidates in the quote's `UNKNOWN_TOKEN` (would fold resolve into the quote), `side` on
+`UNSUPPORTED_CHAIN`, a shared chain-description constant.
 
 Today's happy path is resolve × 2, a price-only quote, a ready quote, then track. Two of those calls add nothing:
 
