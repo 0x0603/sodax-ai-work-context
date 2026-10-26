@@ -114,10 +114,10 @@ See `plan-85-swap-track.md` §SDK reads.
 
 ## Open questions (recommendation first)
 
-1. **Dead default RPCs** (Polygon dead, Ethereum flaky): require `SODAX_RPC_URL_137` / `_1` on staging and production
-   before the switch turns on.
-2. **ADR**: edit D6 on PR #90 to say phase-1 balances are read by the server through the SDK (needs your go-ahead to
-   push to that PR).
+1. ~~**Dead default RPCs**~~ Resolved (user, 2026-10-26): env `SODAX_RPC_URL_<chainId>` first, else the SDK default;
+   no client-supplied RPC (security, ADR D5). Polygon's default is dead and Ethereum's flaky, so staging and
+   production set `SODAX_RPC_URL_137` / `_1` before the switch turns on.
+2. ~~**ADR**~~ Done: D6 on PR #90 says phase-1 balances are read through the SDK (`21d9017`, 2026-10-26).
 3. **Gas**: warn at zero native only, no estimate. **Shape**: `INSUFFICIENT_FUNDS` as an error, one token per call.
 
 ## Review (2026-10-26)

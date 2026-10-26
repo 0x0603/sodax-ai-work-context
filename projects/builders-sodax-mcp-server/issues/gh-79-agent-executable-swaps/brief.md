@@ -17,7 +17,7 @@ updated: 2026-10-26
 - ADR (#80) is draft PR #90 (base `development`), branch `feat/agent-executable-swaps` @ `3c9b00b` (D2: swap tools
   require a key, 2026-10-26; design review revision `f59edf0`). No reviewer requested; its one comment is the
   user's `@claude do PR review`, which produced no review.
-- #81 is PR #91 into `development`, branch `feat/81-forward-api-key` @ `f27de38` (off `development` @ `02ba5df`):
+- #81 is PR #91 into `development`, branch `feat/81-forward-api-key` @ `0930893` (refactor on top of `f27de38`; off `development` @ `02ba5df`):
   key forwarding via `requestContext`, `SODAX_ENV`, relay on `api.sodax.com/v1/relay`, README and `.env.example`.
   A code review (2026-10-26) found the key reaching the relay and more; 9 fixes pushed as `f27de38`
   (`plan.md` row 81 has the result). On canary the gateway routes the relay to the testnet relay. Checks green locally (105 tests, lint, build, `docker build` 353 MB); smoke-tested against
@@ -38,7 +38,7 @@ updated: 2026-10-26
 ## Blocked on
 
 1. R0bi7's review of PR #90.
-2. A BE wallet-balance route. Blocks #86 and the quote's balance check. No owner yet.
+2. ~~A BE wallet-balance route~~ No longer blocks: #86 reads balances through the SDK (ADR `21d9017`).
 3. Open with Paul: double counting (inbound + outbound), per-IP write cap and jail on the MCP IP. The HAProxy move
    itself is settled (R0bi7, Slack 2026-10-23).
 4. A funded test wallet and a canary API key.
@@ -48,7 +48,8 @@ updated: 2026-10-26
 
 On another machine: in the hub submodule `git fetch` and check out `feat/84-swap-quote` (or branch #85 off it), then `pnpm install --frozen-lockfile` (the SDK came in with #84). #85 per `plan-85-swap-track.md` (receipts through the SDK). Open the hub PR from `docs/builders-mcp-swap-sdk` once #94
 merges. Reviews of PR #90–#94 are still open (no reviewer requested). Follow-up PR: pnpm 10 + `minimumReleaseAge`
-instead of the hand pins — spec in `plan-84-swap-quote.md` §Follow-up PR.
+instead of the hand pins — spec in `plan-84-swap-quote.md` §Follow-up PR. ADR D5 on PR #90 needs "env, else the
+SDK default" added to its RPC line (not done; push only on the user's go-ahead).
 
 Workflow the user asked for on each sub-issue: plan (agent) → review the plan → implement → `/simplify` →
 `/code-review` → fix → wait for an explicit "commit push" → draft PR. Live probes and contract tests use
@@ -60,11 +61,13 @@ Workflow the user asked for on each sub-issue: plan (agent) → review the plan 
    `toml`, `ws`; `bigint-buffer` is the one with no fix (corrected 2026-10-26, `plan-84-swap-quote.md` §Review).
    Only the NEAR/Stellar recipient check uses it in #84; the Swaps API stays REST. Chain reads (balances #86,
    source-tx receipts #85) go through the SDK from this server; SDK bugs are fixed in `sodax-sdks`, not worked
-   around (user, 2026-10-26). That amends ADR D6 for phase 1; the ADR text on PR #90 still needs the edit.
+   around (user, 2026-10-26). That amends ADR D6 for phase 1; done on PR #90 in `21d9017`.
 2. Build the intent with `createIntent` and an explicit minimum output and deadline. Never use `includeTxData`.
 3. Check the EVM source tx on chain before calling `submit-tx`: the receipt succeeded and holds the `connection`
    contract's log carrying the cached relay payload. Matching the tx input is not enough.
-4. Phase 1 sources are EVM and Sonic. No per-call `rpcUrl`; RPC overrides come from env only.
+4. Phase 1 sources are EVM and Sonic. No per-call `rpcUrl`; RPC defaults come from the SDK's packaged
+   `spokeChainConfig` (user, 2026-10-26), overrides from env only. A client-supplied RPC was asked for and dropped
+   again on 2026-10-26 for security (SSRF; it could fake the receipt #85 checks), so ADR D5 holds.
 5. Swap tools require an API key (user's call, 2026-10-26; presence check only, BE decides validity). Builder
    tools stay keyless; a key, when sent, is forwarded on every BE call. ADR D2 says so (`3c9b00b`).
 8. #81 keeps `solver.ts` / `relay.ts` on REST: the SDK changes the builder tools' inputs and outputs
@@ -73,6 +76,10 @@ Workflow the user asked for on each sub-issue: plan (agent) → review the plan 
 7. One PR per sub-issue (user's call, 2026-10-26), each on its own branch off `development`, in `plan.md` order;
    #90 is the ADR. A boot-time switch keeps the swap tools off in production until #85, #87 and #88 are in. The
    sodax-sdks docs and skill go in a separate PR with its own issue.
+9. #85: an on-time deposit tracked after its deadline is relayed by the MCP so the backend canceller refunds it
+   (user, 2026-10-26; `plan-85-swap-track.md` §Relay-for-refund).
+10. #85: quote, track and cancel need the same API key; another key gets `QUOTE_KEY_MISMATCH`, never an alert or a
+   "quote not found" (user, 2026-10-26; `plan-85-swap-track.md` design 5).
 
 ## Which file answers what
 
@@ -83,7 +90,7 @@ Workflow the user asked for on each sub-issue: plan (agent) → review the plan 
 | #82 implementation plan (reviewed): profiles, swap key gate (403), rollout switch, snapshot test, 1 open question | `plan-82-tool-profiles.md` | 4k |
 | #83 implementation plan (reviewed): live token list + chain config, resolver rules, action-tool template, restricted-token rule; no new dependency | `plan-83-resolve-token.md` | 4.5k |
 | #84 implementation plan (reviewed): quote build path, partner fee, REST over `SwapsApiService`, errors, cache, SDK commit after the cooldown; §After implementation | `plan-84-swap-quote.md` | 4.5k |
-| #85 implementation plan (reviewed): track state machine, deposit check from the `connection` Message log, RPC env, alerts, cancel flow, 4 open questions | `plan-85-swap-track.md` | 9k |
+| #85 implementation plan (reviewed): track state machine, deposit check from the `connection` Message log, RPC env, alerts, cancel flow, relay-for-refund on expired deposits, same-key rule (`QUOTE_KEY_MISMATCH`), 1 open question (backend asks, for the PR thread) | `plan-85-swap-track.md` | 9k |
 | #86 implementation plan (reviewed): `sodax_get_balance` through the SDK (`getWalletBalance`, `Erc20Service.getAllowance`), quote balance + allowance wiring, error wrapping, SDK follow-ups | `plan-86-get-balance.md` | 3.5k |
 | Discussion log: balance in BE, custom RPC, full SDK vs light, rate limit, API key, cancel, partner fee | `process.md` | 2k |
 | Candidate changes from before the ADR revision, not re-mapped | `improvement-ideas.md` | 1.9k |
@@ -91,6 +98,7 @@ Workflow the user asked for on each sub-issue: plan (agent) → review the plan 
 ## Landmines
 
 - Canary runs on mainnet chains, so canary swaps move real funds.
+- The intent canceller was seen disabled on canary (2026-10-20), so #85's relay-for-refund may not refund there.
 - `submit-tx` allows 10 per 60 s per IP for the whole MCP.
 - `/swaps/intents/:txHash` takes the **hub** tx hash.
 - Repo is public (hub `repos.yaml`): keep PR text free of internal detail.

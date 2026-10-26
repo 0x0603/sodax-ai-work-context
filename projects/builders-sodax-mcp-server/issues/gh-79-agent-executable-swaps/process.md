@@ -2,7 +2,7 @@
 type: process
 repo: builders-sodax-mcp-server
 github: 79
-updated: 2026-10-23
+updated: 2026-10-26
 ---
 
 # Process
@@ -57,3 +57,17 @@ updated: 2026-10-23
   EVM only until BE verifies non-EVM; quote partner fee and BE balance; track check moves to BE (MCP interim EVM);
   cancel plus BE auto-cancel; safety rule on partner fee; new open questions. Do not name teammates in the ADR.
   Destination check: MCP via SDK helpers now, BE `/swaps/intents` later.
+
+## 2026-10-26 — #85 / #86 open questions settled
+
+- RPC source: `SODAX_RPC_URL_<chainId>` from env when set, else the SDK's packaged `spokeChainConfig` default.
+- Client-supplied RPC: asked for, then dropped again for security, so ADR D5 ("No `rpcUrl` input") holds. Reasons:
+  SSRF from a public server; a client RPC could fake the source receipt #85 checks before `submit-tx`; paid RPC URLs
+  embed keys; the SDK has no per-call RPC. Revisit only for balance reads, under the 2026-10-23 conditions above.
+- Polygon's SDK default is dead and Ethereum's flaky, so staging and production set `SODAX_RPC_URL_137` / `_1`
+  before the swap switch turns on.
+- Expired on-time deposits: the MCP relays them so the backend canceller refunds (`plan-85-swap-track.md`
+  §Relay-for-refund). Verified the canceller reads the orderbook built from hub events, not swaps-api rows.
+- Key-bound quotes: same key for quote, track and cancel. A mismatch used to read as a missing quote, which alerts
+  the operator and can lead the agent to deposit again; it now returns `QUOTE_KEY_MISMATCH` with no alert. Status
+  reads need no key, so a submitted swap is readable with any key.

@@ -95,12 +95,13 @@ cancel build and relay submit; a strict 14-field intent in the cache; an EVM JSO
 Out (owner): balance check (#86 — the swap profile has 4 tools after #85, 5 after #86; fix `plan.md` row 85) ·
 secret screening, USD warning, analytics outcomes (#87) · funded canary E2E incl. the issue's "tracked to `solved`"
 (#88, prerequisite 3) · `server.json` tools, walkthrough, dropping the switch (#89) · Sonic sources (after #84's SDK
-commit; design 12, optional commit 7) · non-EVM sources · MCP-side relay-for-refund (open question 1).
+commit; design 12, optional commit 7) · non-EVM sources. MCP-side relay-for-refund moved In (§Relay-for-refund).
 
 ## Design
 
 1. **Track = status-first state machine; never blocks or polls.**
-   - Source: `quoteId` → cached quote, bound to the caller's key (design 5; a mismatch = missing); else `chain` via
+   - Source: `quoteId` → cached quote, bound to the caller's key (design 5); a quote made under another key →
+     `QUOTE_KEY_MISMATCH` at once (no status read, RPC call, POST or alert); else `chain` via
      `resolveChainKey` against the catalog keys. Must be EVM and not Sonic (`UNSUPPORTED_SOURCE`). Lowercase `txHash`:
      the backend keys on exact strings, so a second spelling would make a second row.
    - Status read: 200 → report (design 3), never submit. 404 (`fetchJsonOrNull`) → continue. A false 404 costs at
@@ -112,8 +113,8 @@ commit; design 12, optional commit 7) · non-EVM sources · MCP-side relay-for-r
      `0x0` → `source_failed`; success → deposit check (design 2): no `Message` from the chain's `connection` →
      `not_submitted` / `not_a_deposit` (an approve, or a batch whose swap call failed); a non-matching `Message` →
      `not_submitted` / `deposit_mismatch`.
-   - Matching deposit but `now ≥ intent.deadline` → `expired_unsubmitted` + alert, no submit (the backend refuses new
-     expired rows).
+   - Matching deposit but `now ≥ intent.deadline` → no submit-tx (the backend refuses new expired rows); relay for
+     refund instead, see §Relay-for-refund.
    - Submit: `POST /submit-tx` `{txHash, srcChainKey, walletAddress: quote.srcAddress, intent:
      toIntentDto(quote.intent), relayData: quote.relayData.payload}`. `success:false` → `UPSTREAM_UNAVAILABLE`;
      `inserted` / `duplicate` → `markSubmitted`, return `queued` (no second status read; keeps the worst case ~40 s);
@@ -144,7 +145,8 @@ commit; design 12, optional commit 7) · non-EVM sources · MCP-side relay-for-r
    | `source_failed` | receipt `0x0` | – |
    | `not_submitted` | mined, not this quote's deposit | `reason: not_a_deposit \| deposit_mismatch \| quote_used` |
    | `not_submitted_unknown_quote` | no row, no usable quote | `alerted` |
-   | `expired_unsubmitted` | matching deposit, deadline passed, no row | `alerted` |
+   | `expired_refunding` | matching deposit, deadline passed, no row, relayed (§Relay-for-refund) | – |
+   | `expired_unsubmitted` | as above, but the relay failed | `alerted` |
    | `queued` | backend `pending` (also right after submitting) | `retryAfterSec: 15` |
    | `in_progress` | `relaying` … `posted_execution` | `stage`, `hubTxHash?`, `retryAfterSec: 15` |
    | `solved` | `solved` | `hubTxHash`, `fillTxHash?` |
@@ -173,10 +175,12 @@ commit; design 12, optional commit 7) · non-EVM sources · MCP-side relay-for-r
    `solver`: EVM addresses; `srcAddress`, `dstAddress`, `data`: hex; `allowPartialFill`: boolean) and store exactly
    those keys (the backend forbids unknown keys). `CachedQuote` gains `srcChainId`, a catalog-derived `summary`
    (`fromAmount, fromSymbol, toSymbol, toChainName, minimumAmount`), `keyHash` (SHA-256 of the API key, never the
-   key), `submittedTxHash?`. New: `markSubmitted(quoteId, txHash)`; `getCachedQuote(quoteId, keyHash)` → `undefined`
-   on a key mismatch. Why: the cache is shared; only the quote's creator may submit or alert on it.
+   key), `submittedTxHash?`. New: `markSubmitted(quoteId, txHash)`; `getCachedQuote(quoteId, keyHash)` → the quote,
+   `undefined` when missing, or `"key_mismatch"`. Why: the cache is shared; only the quote's creator may submit or
+   alert on it, and a mismatch must not look like a lost quote (false alert, and the agent may deposit again). Same
+   key for quote, track and cancel (user, 2026-10-26; open question 3).
 
-6. **Alerts** (`swap/alerts.ts`): `unknown_quote` (a `quoteId` given but gone, no row, and the receipt has a
+6. **Alerts** (`swap/alerts.ts`): `unknown_quote` (a `quoteId` given but gone, not a key mismatch, no row, and the receipt has a
    `Message` from the connection whose `srcAddress` is the asset manager), `expired_unsubmitted`, `quote_used`. Not
    without a `quoteId` (fact 2) nor for `not_a_deposit` / `deposit_mismatch` (the agent fixes those). `logger.error`
    + `postToDiscord` (`discord.ts`) with kind, chain key, tx hash, quote id, deadline; no addresses. Dedupe per
@@ -241,7 +245,8 @@ commit; design 12, optional commit 7) · non-EVM sources · MCP-side relay-for-r
 
 11. **Errors, rate limits, timeouts.** New codes: `QUOTE_NOT_FOUND` (no `quoteId`/`chain`, or an unknown `quoteId`
     without `chain`; "call again with chain set to the quote's source chain key"), `QUOTE_MISMATCH` (`quoteId` for
-    another chain), `CHAIN_UNAVAILABLE` (RPC failure or no usable RPC). Reused: `UNSUPPORTED_SOURCE`,
+    another chain), `QUOTE_KEY_MISMATCH` (track and cancel; "use the same API key that created the quote", no alert;
+    the tool descriptions say so too), `CHAIN_UNAVAILABLE` (RPC failure or no usable RPC). Reused: `UNSUPPORTED_SOURCE`,
     `API_KEY_REQUIRED`, `SWAP_REJECTED` (400/422), `RATE_LIMITED`, `UPSTREAM_UNAVAILABLE`. In track and cancel the
     transient codes (`RATE_LIMITED`, `UPSTREAM_UNAVAILABLE`, `CHAIN_UNAVAILABLE`) override `nextStep` with "…call this
     tool again in {n} seconds with the same arguments; the deposit is safe and must not be sent again". `Retry-After`
@@ -259,7 +264,7 @@ commit; design 12, optional commit 7) · non-EVM sources · MCP-side relay-for-r
 
 1. `feat: Swaps API calls for submit, status and cancel` — `swapsApi.ts`: `intentSchema` + `toIntentDto`,
    `getSubmitTxStatus` (null on 404), `submitTx`, `getHubIntent`, `buildCancel`, `relaySpokeTx`
-   (`POST /intents/submit`), zod response schemas; `errors.ts`: the three codes.
+   (`POST /intents/submit`), zod response schemas; `errors.ts`: the four codes.
 2. `feat: keep what track needs with each quote` — `tokens.ts`: catalog chains keep `connection` and `rpcUrl`;
    `quoteCache.ts`: design 5 fields, `markSubmitted`, key binding; `quote.ts` fills them and refuses untrackable
    chains; re-record `__fixtures__/chain-configs.json` with `connection`, `rpcUrl`, Sonic's `walletRouter`.
@@ -285,12 +290,13 @@ Unit (fetch stubbed as in `swapQuote.test.ts`; the RPC URL stubbed by host):
   env parsing (https only; invalid → fatal, variable named without its value).
 - `swapsApi`: status 200 / 404 → null / 400 / 429 + `Retry-After`; submit `inserted`, `duplicate`, `success:false`;
   the intent sent has exactly 14 keys; cancel-build and relay schemas.
-- `quoteCache`: new fields, `markSubmitted`, key mismatch → `undefined`.
+- `quoteCache`: new fields, `markSubmitted`, missing → `undefined`, key mismatch → `"key_mismatch"`.
 - Track state machine over the in-process MCP client: every status in design 3 (awaiting seen / unseen,
   `source_failed`, the three `not_submitted` reasons, `not_submitted_unknown_quote` with and without an alert,
   `expired_unsubmitted` with no POST, `queued` inserted / duplicate, each `in_progress` stage, `solved` with and
   without `fillTxHash`, `failed` × each `outcome`); an unknown backend status; `RATE_LIMITED`, `API_KEY_REQUIRED`,
-  `CHAIN_UNAVAILABLE`, `QUOTE_NOT_FOUND`, `QUOTE_MISMATCH`; a mixed-case hash normalized.
+  `CHAIN_UNAVAILABLE`, `QUOTE_NOT_FOUND`, `QUOTE_MISMATCH`, `QUOTE_KEY_MISMATCH` (no status read, RPC call, POST or
+  alert; cancel too); a mixed-case hash normalized.
 - Idempotency: 5 sequential calls → exactly 1 `POST /submit-tx` (the stub's status turns 200 after it); 2 concurrent
   → 1 POST; an alert fires once per tx.
 - Cancel: each `not_cancellable` reason; a built tx with the wrong `to`, selector, `dstAddress` or `from` →
@@ -307,7 +313,7 @@ nothing signed, submitted or relayed):
 - Arbitrum receipt `0xe60cd94d…`: decodes against the live `connection` and asset manager, 5 RLP items, topic
   constant matches; under a fake cached quote with a different payload → `deposit_mismatch`, no POST.
 - Arbitrum `0x05d2b5c0…` (a SODAX non-swap deposit) under a fake quote → `deposit_mismatch`, no POST.
-- Every EVM chain in the live catalog has a `connection` and an https RPC.
+- Every EVM chain in the live catalog has a `connection`, and an https RPC in the SDK's `spokeChainConfig`.
 - Optional: the Sonic `IntentCreated` decode of `0x7170cd5a…` equals `GET /v1/be/intent/0x37686870…`.
 
 Not testable without a funded wallet and a canary key (prerequisite 3, #88): a real `inserted` submit to `solved`;
@@ -325,13 +331,11 @@ internal hosts. After: `plan.md` row 85 (4 tools), the brief.
 
 ## Open questions
 
-1. `expired_unsubmitted`: alert only (default here), or have the MCP relay the deposit through
-   `/swaps/intents/submit` so the backend canceller refunds it (mirrors the backend's relay-for-refund,
-   `submit-swap-txs.task.ts` ~930)? It would create a hub intent outside the backend's bookkeeping, and nothing pages
-   if that relay fails.
-2. RPC defaults: the live config `rpcUrl` (chosen; no dependency) or the packaged `@sodax/types` `spokeChainConfig`
-   once #84's SDK commit lands (pinned; no URL taken from a network response)?
-3. Key-bound quotes: should a builder whose backend and frontend use different keys track across them? Default no.
+1. ~~`expired_unsubmitted`: alert only, or relay for refund?~~ Resolved (user, 2026-10-26): the MCP relays, see
+   §Relay-for-refund.
+2. ~~RPC defaults~~ Resolved (user, 2026-10-26): the SDK's packaged `@sodax/types` `spokeChainConfig`, see §SDK reads.
+3. ~~Key-bound quotes~~ Resolved (user, 2026-10-26): same key for quote, track and cancel; another key gets
+   `QUOTE_KEY_MISMATCH` (design 5, design 11).
 4. For the backend (raise in our PR thread): submit-tx refuses a deposit mined before its deadline but submitted
    after, so a slow agent strands an on-time deposit; submit-tx doesn't check that a duplicate carries the same
    intent; is the inferred post-cancel status (`failed` + `intentCancelled`) right; does the public relay dedupe a
@@ -355,8 +359,11 @@ The user decided chain reads go through `@sodax/sdk` and SDK bugs get fixed in `
 - Receipts and tx lookups use the SDK's viem public client — `sodax.spoke.evm.getPublicClient(chainKey)` for EVM spokes
   (`EvmSpokeService.ts:70`), `sodax.spoke.sonic.publicClient` for the hub — with `getTransactionReceipt` /
   `getTransaction`, which don't block (unlike `EvmSolverService.getIntent`). No `swap/evmRpc.ts`.
-- RPC URLs: `SODAX_RPC_URL_<chainId>` (https, validated in `main()`) passed into `initSodax()` as
-  `chains.<key>.rpcUrl`; the catalog `rpcUrl` is no longer needed.
+- RPC URLs: default is the SDK's packaged `spokeChainConfig[chainKey].rpcUrl` (user, 2026-10-26; open question 2).
+  `@sodax/types` 2.2.0 has an https one for every EVM spoke and Sonic (checked 2026-10-26). `SODAX_RPC_URL_<chainId>`
+  (https, validated in `main()`) overrides it, passed into `initSodax()` as `chains.<key>.rpcUrl`; the catalog
+  `rpcUrl` is no longer needed. No client-supplied RPC (re-confirmed 2026-10-26 for security: a client RPC could fake
+  the receipt this check relies on).
 - Error wrapping: catch everything from the SDK / viem and map to `CHAIN_UNAVAILABLE`; never pass on or log the error
   — viem messages carry the RPC URL and the request body. Log `{chainKey, op, kind}` only. Bound each read with a
   race (viem defaults to 10 s × 3 retries; the SDK doesn't expose transport options — SDK follow-up 1 in #86's plan).
@@ -364,3 +371,33 @@ The user decided chain reads go through `@sodax/sdk` and SDK bugs get fixed in `
   (SDK follow-up 2); the deposit check itself is unchanged.
 - Dependency: #85 now needs #84's SDK commit (6) instead of its own reader; commit 3 becomes "decode deposit
   messages" (`swap/sourceTx.ts` only) plus the SDK client wiring.
+
+## Relay-for-refund (decision 2026-10-26, open question 1; supersedes design 1's expired branch)
+
+The user chose to have the MCP relay an expired deposit itself, the same move as the backend's relay-for-refund
+(`submit-swap-txs.task.ts:759-1010`, `sodax-backend` `development` @ `612f67d`).
+
+Why a row-less relay still refunds (read in code 2026-10-26): relaying past the deadline creates the hub intent, and
+the task-executor's `intent-canceller` takes expired intents from the orderbook (`orderbook-db.service.ts`
+`getExpiredIntents`), which `data-transformator` builds from hub events, not from swaps-api rows
+(`intent-canceller.service.ts:90-127`). It skips only `deadline = 0`; our quotes always carry one (brief, settled 2).
+
+Design:
+
+- Matching deposit, `now ≥ intent.deadline`, no backend row → `POST /intents/submit {chainId: <relay id of
+  srcChain>, txHash}` (no `data` for EVM), the same call as cancel's second step. Success → flag the quote
+  `relayedForRefundAt` in the cache and return a new status `expired_refunding` (no alert, info log).
+- Relay fails → `expired_unsubmitted` + alert `refund_relay_failed` (kind, chain, tx hash, quote id, deadline). A
+  later track call retries while the quote is cached; the operator backstop is `POST /admin/swaps/relay`.
+- Once per quote: the cache flag plus single-flight (design 7) stop a second relay; track on a flagged quote returns
+  `expired_refunding` without a POST. How track reports the refund landing (hub intent `intentCancelled`) is settled
+  during implementation.
+- Alerts (design 6): `expired_unsubmitted` alerts only on a failed relay; `refund_relay_failed` is the kind.
+- Tests: expired + relay ok → `expired_refunding`, one POST, a second call makes none; relay 5xx / timeout →
+  `expired_unsubmitted` + one alert, the next call retries. Contract tests probe `POST /intents/submit` validation
+  only, never a real relay.
+
+Risks: the intent has no swaps-api row, so the backend's status, dashboard and alerter never see it, and nothing in
+the backend pages if the canceller misses it. The canceller was seen disabled on canary and on 4 of 6 prod
+instances (gh-519 `research/g-chain-auto-tests.md`, 2026-10-20), so on canary a relayed deposit may sit until
+someone cancels it by hand.
