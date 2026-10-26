@@ -41,14 +41,15 @@ research/                    ← spikes, comparisons, exploration notes
 cd ~/Documents/GitHub/sodax        # or wherever your workspace folder is
 git clone https://github.com/0x0603/sodax-ai-work-context.git
 ./sodax-ai-work-context/bootstrap.sh
+./sodax-ai-work-context/scripts/setup-hub.sh   # clone + configure sodax-command-center
 ```
 
-Then launch your agent from the workspace root and it auto-loads the shared
-instructions:
+Then launch your agent from the hub root for code work (or the workspace root for
+context-only work); both auto-load the shared instructions:
 
 ```bash
-cd ~/Documents/GitHub/sodax  # or your local workspace path
-claude .                    # or: codex
+cd ~/Documents/GitHub/sodax/sodax-command-center
+claude                      # or: codex
 ```
 
 `bootstrap.sh` also installs a `/sodax-relink` skill. The workspace-root

@@ -9,8 +9,8 @@ repo cards (`docs/repos/`), cross-repo interfaces, the on-chain registry, hygien
 gate workflows, and a self-hosted web UI (`apps/command-center`, see
 `docs/command-center.md`). Its `CLAUDE.md` is the router for code.
 
-Setup: `gh auth setup-git`, clone with `--recurse-submodules --shallow-submodules`,
-then `scripts/bootstrap.sh`. Hub tooling needs Python 3.11+ (`python3.12` here).
+Setup on any machine: `scripts/setup-hub.sh` in this context repo (wraps the hub's
+own `scripts/bootstrap.sh`). Hub tooling needs Python 3.11+; use `.venv/bin/python`.
 
 ## Layout
 

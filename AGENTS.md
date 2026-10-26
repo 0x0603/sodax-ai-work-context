@@ -34,8 +34,8 @@ it lives at `../sodax-ai-work-context/`.
 - `bootstrap.sh` moves clean submodules back to their default branch: check the
   feature branch out again afterwards, and never commit on the default branch.
 - Parallel work in one repo: `git worktree` inside the submodule, not a new clone.
-- Addresses come from the hub registry (`PYTHONPATH=tools python3.12 -m onchain
-  find <query>`); cite the command in notes instead of copying addresses.
+- Addresses come from the hub registry (`PYTHONPATH=tools .venv/bin/python -m
+  onchain find <query>`); cite the command in notes instead of copying addresses.
 
 ## How to use this memory
 
@@ -117,7 +117,12 @@ Where things go:
 - **Session end:** `git status`, then `git commit` + `git push` in
   `sodax-ai-work-context`.
 - New machine: `git clone` the repo, then run `./bootstrap.sh` once to create the
-  workspace-root symlinks.
+  workspace-root symlinks, then `scripts/setup-hub.sh` to clone and configure the
+  hub (skips repos you can't read, hides submodule pointer changes, commit
+  signing, `.venv`, shared Claude memory). Re-run it after being granted access
+  to more repos.
+- Not synced, per machine: the hub clone and its local git config, Claude Code's
+  memory (`~/.claude/projects/*/memory`), and the signing key file.
 - The `sodax/AGENTS.md` and `sodax/CLAUDE.md` symlinks live outside any repo, so
   they are not synced. If they break or change, run the `/sodax-relink` skill (or
   `./bootstrap.sh`) to recreate them.
