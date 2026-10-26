@@ -17,9 +17,10 @@ updated: 2026-10-26
 - ADR (#80) is draft PR #90 (base `development`), branch `feat/agent-executable-swaps` @ `3c9b00b` (D2: swap tools
   require a key, 2026-10-26; design review revision `f59edf0`). No reviewer requested; its one comment is the
   user's `@claude do PR review`, which produced no review.
-- #81 is PR #91 into `development`, branch `feat/81-forward-api-key` @ `c0f11f1` (off `development` @ `02ba5df`):
-  key forwarding via `requestContext`, `SODAX_ENV`, relay on `api.sodax.com/v1/relay`, 401/403 hint, README and
-  `.env.example`. Checks green locally (105 tests, lint, build, `docker build` 353 MB); smoke-tested against
+- #81 is PR #91 into `development`, branch `feat/81-forward-api-key` @ `f27de38` (off `development` @ `02ba5df`):
+  key forwarding via `requestContext`, `SODAX_ENV`, relay on `api.sodax.com/v1/relay`, README and `.env.example`.
+  A code review (2026-10-26) found the key reaching the relay and more; 9 fixes pushed as `f27de38`
+  (`plan.md` row 81 has the result). On canary the gateway routes the relay to the testnet relay. Checks green locally (105 tests, lint, build, `docker build` 353 MB); smoke-tested against
   production and canary. No reviewer requested.
 - All of #79–#89 are assigned to the user (`0x0603`) as of 2026-10-26. "@0xmatterhorn" is the user's Discord handle.
 - Discord 2026-10-23 (see `process.md`): R0bi7 says the epic is a core draft and the user may adjust decisions.
