@@ -166,3 +166,23 @@ Departures from the design above, all verified live:
   the Stellar trustline check needs the quoted amount.
 - Tests: `pnpm test:contract` (own `vitest.contract.config.ts`, kept out of `pnpm test`; canary default,
   `SODAX_ENV=production`), 9 cases including the fee on the ready path and Sui / Solana recipients.
+
+### Second code review (2026-10-26, on `a5fc108`, fixed in `a802484`)
+
+- **The signed tx is tied to the quote**, not just the intent JSON: `tx.to` must be the source chain's asset manager
+  (`addresses.assetManager` from the chain config, kept in the catalog as `swapContract`; approvals must name it as
+  spender); `tx.data` must contain `relayData.payload` (what track submits) and, as ABI words, the input (net),
+  minimum, deadline and hub tokens, plus the raw recipient bytes. Live: all present on Arbitrum and Sonic intents;
+  the recipient is a dynamic `bytes`, so it is matched raw, not as a padded word. Not a full decode: commit 6 can
+  rebuild the calldata with the SDK and compare bytes.
+- **Sonic is refused as a source until commit 6**: its swap goes to the hub intents contract, which no public
+  config endpoint exposes (only the SDK's packaged config).
+- Also checked now: the fee envelope `intent.data` exactly (`0x`, or `0x01` + fee word + receiver word),
+  `allowPartialFill: false`, `solver` zero, `intent.srcAddress`. A hex recipient compares as a number (Sui pads).
+- A mismatch is logged (which check) and tells the agent not to retry. `SWAP_REJECTED` no longer passes upstream
+  text to the agent; refusals are logged with status, code and message instead.
+- Zero address refused as sender or EVM recipient. Deadline at most 60 s early, 300 s late. `Retry-After` only
+  as delta-seconds or IMF-fixdate, capped at an hour. The ready `nextStep` warns when the recipient defaulted to
+  the sender and says nothing may be sent yet and balances aren't checked. Contract tests send `SODAX_API_KEY`.
+- Left for commit 6 (SDK): non-hex recipient encodings (base58, names), EIP-55. Left as is: shared catalog load
+  under one caller's key (public data), the full-cache sweep (~0.04 ms per quote measured).

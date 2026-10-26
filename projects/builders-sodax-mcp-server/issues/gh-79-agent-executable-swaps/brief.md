@@ -3,7 +3,7 @@ type: brief
 repo: builders-sodax-mcp-server
 github: 79
 status: Active — #81 in PR #91, #82 in draft PR #92, #83 in draft PR #93, #84 in draft PR #94
-next: Fix the #84 second code-review findings on PR #94; add the SDK commit no earlier than 2026-10-26 11:16 UTC; plan #85
+next: #84 SDK commit (after 2026-10-26 11:16 UTC, re-run npm view); then #85 per plan-85-swap-track.md
 updated: 2026-10-26
 ---
 
@@ -22,11 +22,10 @@ updated: 2026-10-26
   A code review (2026-10-26) found the key reaching the relay and more; 9 fixes pushed as `f27de38`
   (`plan.md` row 81 has the result). On canary the gateway routes the relay to the testnet relay. Checks green locally (105 tests, lint, build, `docker build` 353 MB); smoke-tested against
   production and canary. No reviewer requested.
-- #84 (`sodax_swap_quote`) is draft PR #94 into `development`, branch `feat/84-swap-quote` @ `a5fc108` (off
-  `feat/83-resolve-token` @ `2997dd8`): commits 1–5 of `plan-84-swap-quote.md` squashed into one, no SDK yet. 288
-  unit tests (new modules at 100% coverage) and 9 live contract tests (canary and production) pass; two /simplify
-  and one /code-review round fixed (`plan-84-swap-quote.md` §After implementation); a second /code-review is
-  running. The SDK commit (6) waits for the 14-day cooldown:
+- #84 (`sodax_swap_quote`) is draft PR #94 into `development`, branch `feat/84-swap-quote` @ `a802484` (off
+  `feat/83-resolve-token` @ `2997dd8`): `a5fc108` (commits 1–5 of `plan-84-swap-quote.md`, no SDK yet) and
+  `a802484` (second code review: the signed tx is checked against the quote; Sonic sources refused until the SDK
+  commit). 304 unit tests and 9 live contract tests (canary and production) pass. The SDK commit (6) waits for the 14-day cooldown:
   `@sodax/*@2.2.0` finished publishing 2026-10-12 11:15:18 UTC.
 - All of #79–#89 are assigned to the user (`0x0603`) as of 2026-10-26. "@0xmatterhorn" is the user's Discord handle.
 - Discord 2026-10-23 (see `process.md`): R0bi7 says the epic is a core draft and the user may adjust decisions.
@@ -46,7 +45,7 @@ updated: 2026-10-26
 
 ## Next action
 
-Triage the second #84 code review and fix on PR #94 (push only when the user asks). After 11:16 UTC on 2026-10-26: re-run `npm view`, add commit 6 (SDK, overrides,
+#84 SDK commit on PR #94. After 11:16 UTC on 2026-10-26: re-run `npm view`, add commit 6 (SDK, overrides,
 `engines`, NEAR/Stellar recipient checks, `sodax-deps.yaml`) and the hub PR. Reviews of PR #90–#93 are still open.
 
 ## Settled — do not re-litigate
@@ -77,6 +76,7 @@ Triage the second #84 code review and fix on PR #94 (push only when the user ask
 | #82 implementation plan (reviewed): profiles, swap key gate (403), rollout switch, snapshot test, 1 open question | `plan-82-tool-profiles.md` | 4k |
 | #83 implementation plan (reviewed): live token list + chain config, resolver rules, action-tool template, restricted-token rule; no new dependency | `plan-83-resolve-token.md` | 4.5k |
 | #84 implementation plan (reviewed): quote build path, partner fee, REST over `SwapsApiService`, errors, cache, SDK commit after the cooldown; §After implementation | `plan-84-swap-quote.md` | 4.5k |
+| #85 implementation plan (reviewed): track state machine, deposit check from the `connection` Message log, RPC env, alerts, cancel flow, 4 open questions | `plan-85-swap-track.md` | 9k |
 | Discussion log: balance in BE, custom RPC, full SDK vs light, rate limit, API key, cancel, partner fee | `process.md` | 2k |
 | Candidate changes from before the ADR revision, not re-mapped | `improvement-ideas.md` | 1.9k |
 
