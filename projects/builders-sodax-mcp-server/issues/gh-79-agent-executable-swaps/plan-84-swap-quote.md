@@ -233,3 +233,20 @@ Departures from the design above, all verified live:
 - Not pushed: PR #94 (`1eba6c1`, `c639939`), ADR amendment `21d9017` on `feat/agent-executable-swaps` (worktree
   `scratchpad/wt-adr-d6`), hub branch `docs/builders-mcp-swap-sdk` @ `8f319c8` (repos.yaml `depends_on`, card, IF-25;
   worktree `scratchpad/wt-hub-84`) — hub PR after #94 merges.
+
+### /simplify on the SDK commit (2026-10-26, working tree on `c639939`)
+
+- **The swap tx is now rebuilt by the SDK and compared byte for byte** instead of decoded here:
+  `EvmSolverService.reconstructCreateIntentData` (relay payload, spoke and hub) and `sodax.spoke.evm.deposit({raw:
+  true})` (spoke tx, Hedera value scaling). Verified offline against three recorded live builds (Arbitrum USDC with
+  fee, Arbitrum ETH, Sonic USDC) and live on both hosts. `calldata.ts` and the test encoder are gone.
+- **New check:** the intent's `creator` must be the user's own hub wallet
+  (`hubProvider.getUserHubWalletAddress`, one hub RPC read, cached by the SDK). Neither the decode nor the rebuild
+  checked it before.
+- **Native HBAR opened:** the backend already builds the scaled value (1000 HBAR → `value` 10^21) and it matches the
+  SDK's rebuild — the earlier review's "unscaled" claim was wrong.
+- All SDK calls go through narrow wrappers in `sodax.ts` that drop SDK error text and time out at 15 s;
+  `@sodax/types` (plain data, ~10 ms) is imported statically, only `@sodax/sdk` loads lazily.
+- Docker: dropping the runtime `chown -R` took the image from 1.49 GB to 858 MB.
+- Deferred: pnpm 10 + `minimumReleaseAge` instead of hand pins (own PR); multi-stage runtime image (775 / 575 MB);
+  running the recipient check alongside `/intents`; boot-time overlap of SDK load and docs warm-up.

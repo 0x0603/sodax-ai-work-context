@@ -3,7 +3,7 @@ type: brief
 repo: builders-sodax-mcp-server
 github: 79
 status: Active — #81 in PR #91, #82 in draft PR #92, #83 in draft PR #93, #84 in draft PR #94
-next: Push PR #94 (+`1eba6c1`, `c639939`), the ADR commit `21d9017` to PR #90 and the hub branch when the user asks; then #85 per plan-85-swap-track.md
+next: #85 per plan-85-swap-track.md (SDK reads); open the hub PR from `docs/builders-mcp-swap-sdk` once #94 merges
 updated: 2026-10-26
 ---
 
@@ -22,11 +22,12 @@ updated: 2026-10-26
   A code review (2026-10-26) found the key reaching the relay and more; 9 fixes pushed as `f27de38`
   (`plan.md` row 81 has the result). On canary the gateway routes the relay to the testnet relay. Checks green locally (105 tests, lint, build, `docker build` 353 MB); smoke-tested against
   production and canary. No reviewer requested.
-- #84 (`sodax_swap_quote`) is draft PR #94 into `development`, branch `feat/84-swap-quote` (off
-  `feat/83-resolve-token` @ `2997dd8`). Pushed: `a5fc108` (commits 1–5), `a802484` (second review). Local, not
-  pushed: `1eba6c1` (third review: ABI decode of the signed swap, `SWAP_MISMATCH`) and `c639939` (SDK commit 6:
-  recipient checks, pinned contracts, Sonic open, HBAR priced only). 348 unit tests, 13 contract tests on both hosts.
-  Details and accepted advisories: `plan-84-swap-quote.md` §Commit 6.
+- #84 (`sodax_swap_quote`) is draft PR #94 into `development`, branch `feat/84-swap-quote` @ `c045e28` (off
+  `feat/83-resolve-token` @ `2997dd8`), all pushed: `a5fc108` (commits 1–5), `a802484` / `1eba6c1` (reviews),
+  `c639939` (SDK), `c045e28` (the SDK rebuilds the swap tx and it must match byte for byte; creator = the user's hub
+  wallet; native HBAR open). 347 unit tests, 13 contract tests on both hosts. ADR amendment `21d9017` (balances via
+  the SDK) pushed to PR #90. Hub branch `docs/builders-mcp-swap-sdk` is local (worktree `scratchpad/wt-hub-84`).
+  Details: `plan-84-swap-quote.md` §Commit 6 and §/simplify on the SDK commit.
 - All of #79–#89 are assigned to the user (`0x0603`) as of 2026-10-26. "@0xmatterhorn" is the user's Discord handle.
 - Discord 2026-10-23 (see `process.md`): R0bi7 says the epic is a core draft and the user may adjust decisions.
   Signing: the agent holds the key, signs and broadcasts, then passes the tx hash to MCP (D1 holds).
@@ -45,9 +46,8 @@ updated: 2026-10-26
 
 ## Next action
 
-Push when the user asks: PR #94 (`1eba6c1` third review, `c639939` SDK), the ADR amendment `21d9017` to PR #90,
-and the hub branch `docs/builders-mcp-swap-sdk` @ `8f319c8` (open the hub PR once #94 merges). Then #85
-(`plan-85-swap-track.md`, SDK reads). Reviews of PR #90–#94 are still open.
+#85 per `plan-85-swap-track.md` (receipts through the SDK). Open the hub PR from `docs/builders-mcp-swap-sdk` once #94
+merges. Reviews of PR #90–#94 are still open. Follow-up PR: pnpm 10 + `minimumReleaseAge` instead of hand pins.
 
 ## Settled — do not re-litigate
 
