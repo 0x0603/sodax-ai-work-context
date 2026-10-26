@@ -250,3 +250,17 @@ Departures from the design above, all verified live:
 - Docker: dropping the runtime `chown -R` took the image from 1.49 GB to 858 MB.
 - Deferred: pnpm 10 + `minimumReleaseAge` instead of hand pins (own PR); multi-stage runtime image (775 / 575 MB);
   running the recipient check alongside `/intents`; boot-time overlap of SDK load and docs warm-up.
+
+## Follow-up PR: pnpm 10 release-age cooldown (not started)
+
+Replaces the hand pins in `package.json` `pnpm.overrides` (`viem@2.57.11`, `follow-redirects@1.16.2`, `@mysten/bcs`,
+`@mysten/utils`, `bitcoinjs-lib`, `core-js`, `core-js-pure`, `parse-asn1`, `@0no-co/graphqlsp`): they record one day's
+check, don't stop the next young release, and keep forcing downgrades until removed by hand.
+- Move to pnpm 10 like sodax-sdks (`packageManager: pnpm@10.32.1`): `packageManager` in `package.json` (CI's
+  `pnpm/action-setup` reads it), `corepack prepare pnpm@…` twice in `Dockerfile` and once in `nixpacks.toml`.
+- Add `pnpm-workspace.yaml` with `minimumReleaseAge: 20160` and `trustPolicy: no-downgrade` (same as
+  `sodax-sdks/pnpm-workspace.yaml`); keep `--ignore-scripts` on installs (pnpm 10 also blocks dependency scripts by
+  default, the repo's own `prepare: husky` still runs).
+- Drop the nine young-version pins; keep the CVE floors (`axios`, `ws@8`, `bn.js` and the older ones). Regenerate
+  the lockfile (same v9 format) and check nothing moves to a version under 14 days.
+- Link it to #84 or the epic in the PR (hub rule: every PR links an issue); no new tracker issue.

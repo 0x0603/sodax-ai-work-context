@@ -47,7 +47,12 @@ updated: 2026-10-26
 ## Next action
 
 On another machine: in the hub submodule `git fetch` and check out `feat/84-swap-quote` (or branch #85 off it), then `pnpm install --frozen-lockfile` (the SDK came in with #84). #85 per `plan-85-swap-track.md` (receipts through the SDK). Open the hub PR from `docs/builders-mcp-swap-sdk` once #94
-merges. Reviews of PR #90–#94 are still open. Follow-up PR: pnpm 10 + `minimumReleaseAge` instead of hand pins.
+merges. Reviews of PR #90–#94 are still open (no reviewer requested). Follow-up PR: pnpm 10 + `minimumReleaseAge`
+instead of the hand pins — spec in `plan-84-swap-quote.md` §Follow-up PR.
+
+Workflow the user asked for on each sub-issue: plan (agent) → review the plan → implement → `/simplify` →
+`/code-review` → fix → wait for an explicit "commit push" → draft PR. Live probes and contract tests use
+`0x…dEaD` and never sign or submit.
 
 ## Settled — do not re-litigate
 
@@ -89,3 +94,6 @@ merges. Reviews of PR #90–#94 are still open. Follow-up PR: pnpm 10 + `minimum
 - `submit-tx` allows 10 per 60 s per IP for the whole MCP.
 - `/swaps/intents/:txHash` takes the **hub** tx hash.
 - Repo is public (hub `repos.yaml`): keep PR text free of internal detail.
+- SDK / viem error text carries RPC URLs (paid ones embed keys) and request bodies: call the SDK only through the
+  wrappers in `src/services/sodax.ts`, never log or return its errors.
+- After pulling #84, run `pnpm install`: the pre-commit hook runs the whole test suite, which needs the SDK.
