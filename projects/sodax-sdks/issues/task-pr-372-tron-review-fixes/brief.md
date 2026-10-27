@@ -26,9 +26,12 @@ then opens exactly one row from the map below.**
 
 ## Next action
 
-The user decides how the #372 fixes get into #534 (ask gcranju to cherry-pick the three commits, or
-re-review after he re-does them). Then route 2.x and 1.4/1.4b per the MPC relay owner's and
-gcranju's answers. Don't post on either PR unless the user asks.
+Findings are posted on #534 (#issuecomment-6432900564), including "port the #372 fixes". The docs
+and skills #534 lacked are pushed onto `feat/tron-mpc-integration` as `f4e3af0e` (process.md, last
+entry); the code findings from that pass are not fixed. #541 still has no plan label. The PR
+conflicts with main (`packages/types/src/swap/swap.ts`), so CI does not run on it until main is
+merged in (merge, not rebase; nobody asked us to). Reserve/memo trust items are not posted; they go
+through AuditMap if the user wants. Don't post again unless asked.
 
 ## Settled — do not re-litigate
 

@@ -56,6 +56,29 @@ updated: 2026-10-27
     package (`check-docs-drift.sh:56-64`); the AI drift job passed with "nothing was audited"
     (`error_max_turns`). Against main (`git merge-tree`) only `packages/types/src/swap/swap.ts`
     conflicts; the doc pages auto-merge.
+  - Posted the code + docs findings on #534 at the user's request (#issuecomment-6432900564). Left
+    out on purpose: the reserve/memo trust items (AuditMap route), relay internals from the hub
+    card, the hardcoded relay endpoint, and the bot's six findings (only noted they hold).
+  - Wrote the missing docs/skills for #534 (user asked) on local branch `docs/tron-mpc-docs`, worktree
+    `sodax/sodax-sdks-pr534-docs`, based on `a9a8736c`; nothing committed. Markdown only, no `src/`:
+    new `sodax-wallet-sdk-core/tron/SKILL.md` + `features/tron.md` (no code blocks), Tron in every
+    all-families list/table (lists made family-agnostic where the sentence held), counts removed,
+    raw Tron deposit -> `sodax.spoke.settle` (it re-notifies), `mainnet.md` note, changeset fixes,
+    `add-chain` §2b MPC relay, `add-wallet-provider` Tron row, AGENTS trees; `docs:sync-pages` run.
+    Gates green: check:docs-pages, doc-links, docs-nav, ai-dev-files, check:ai (after
+    `pnpm build:packages`; unbuilt dist fails ai-imports), mint validate + broken-links.
+    Code findings from it, not in docs: TRX is in `moneyMarketSupportedTokens[TRON]` but `sodaTRX`
+    is not in `moneyMarketHubVaults` (`moneyMarket.ts:8-38`); `TronWalletProvider.getBalance` returns
+    `0n` on any error (`:160-168`); `types.ts` says injected `tronWeb` is read-only but `signer()`
+    falls back to it (`:101-105`); React layer has no Tron `signMessage`. Issue #541 has neither
+    `plan-approved` nor `no-plan`.
+  - Pushed onto the PR branch (gcranju's) at the user's request: one commit
+    `f4e3af0e` (`docs: cover Tron and MPC-relay settlement in docs and skills`), fast-forward from
+    `a9a8736c`. Committed under Node 24, full pre-commit hook passed, SSH-signed. No PR comment.
+    On GitHub only the `pull_request_target` checks ran: Plan check fails as on `a9a8736c` (#541 has
+    no plan comment, no `plan-approved`). CI, Docs Drift, AI Files Drift and Security did not run: the
+    PR now conflicts with main (`packages/types/src/swap/swap.ts`, main `26e45cde`), and GitHub runs no
+    `pull_request` workflow on a conflicting PR. They run once main is merged in.
 
 ## Findings
 
