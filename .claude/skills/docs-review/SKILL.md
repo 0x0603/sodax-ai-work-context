@@ -71,7 +71,7 @@ Docs drift mostly where the diff does not touch.
 
 - Ranked: false after the change, then lists that claim to be complete but are not, then
   restated content, then unchecked code and claims. Each: `file:line`, rule, cheapest fix
-  (delete, link, move to a test, add a check), one or two lines.
+  (delete, link, move to a test, add a check), one or two lines. The `add-docs` skill says how.
 - Keep what the PR introduced apart from what it inherited; inherited drift is a follow-up.
 - Open questions last. Report to the user; post on a PR only when asked. sodax-sdks is public:
   no internal hosts, registry details or AuditMap findings in PR text.
