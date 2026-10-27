@@ -148,3 +148,21 @@ updated: 2026-10-27
 - `create-issue.sh` reads types and board from icon-project, so for this gosodax repo the issue was made with gh +
   GraphQL (`updateIssue` type, `addSubIssue`). It auto-landed on gosodax board #1 as In progress; Stream and Status
   were not set because the gh token lacks the `project` scope.
+
+## 2026-10-27: #89 implemented (uncommitted)
+
+- plan-89 written; MCP part on `feat/89-swap-docs`, sodax-sdks part by a forked agent in `sodax/sodax-sdks-89-docs`.
+  Findings: registry schema has no `tools` field and Glama's only `maintainers`; sodax-sdks already had
+  `docs/builders-mcp.mdx` with hardcoded tool counts.
+- Review agent on Part A: README missed `reset_approve`, the batch's `replaces`, the batch tx hash and `toAddress`;
+  a keyed default connection had lost its `resolveConnection` test; stale "swap tools on" comments; boot risk from
+  always-parsed RPC overrides. All fixed; stdio builder sessions skip the SDK. Details in plan-89 §Implementation.
+
+## 2026-10-27: #89 committed and pushed
+
+- MCP: 4 commits on `feat/89-swap-docs` (`e71ec58` switch, `6b4f3aa` next step, `1b03b6b` README, `33cffde`
+  server.json), each through the hooks; the final tree equals the reviewed diff. Draft PR #102 into `development`.
+- sodax-sdks: issue #576 (Task, sub-issue of builders-sodax-mcp-server#89, auto-added to the Sodax board), commit
+  `50b9587c` under Node 24, draft PR #577. sodax-sdks AGENTS.md says an agent implements only once the issue has
+  `plan-approved` or `no-plan`; the user had been told and said "commit push", so the PR is a draft waiting on the label.
+- Not done: the kill-switch question (`SODAX_SWAP_TOOLS_DISABLED`) is open with the user.

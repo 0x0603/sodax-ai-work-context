@@ -2,8 +2,8 @@
 type: brief
 repo: builders-sodax-mcp-server
 github: 79
-status: Active — #81 in PR #91, #82–#88 in draft PRs #92–#98 (stacked)
-next: merge the SSE hotfix PR #100 (Closes #99, sub-issue of #79), then release it to master; rebase the stack on it. Then #88's live run (blockers 4 and 5), #85 contract tests, hub PR once #94 merges
+status: Active — #81 in PR #91, #82–#89 in draft PRs #92–#98 and #102 (stacked)
+next: #89 is draft PR #102 (`feat/89-swap-docs` @ `33cffde`, on #98, Refs #89); its docs are gosodax/sodax-sdks#576 (sub-issue of #89) / draft PR #577, which needs a maintainer's `plan-approved` or `no-plan` and merges after the production release. Merge the SSE hotfix PR #100 (Closes #99, sub-issue of #79), then release it to master; rebase the stack on it. Then #88's live run (blockers 4 and 5), #85 contract tests, hub PR once #94 merges
 updated: 2026-10-27
 ---
 
@@ -112,6 +112,7 @@ Workflow the user asked for on each sub-issue: plan (agent) → review the plan 
 | #86 implementation plan (reviewed, cut 2026-10-26): `sodax_get_balance` reads balances through the SDK (`getWalletBalance`), no allowance, quote reads no chain; error wrapping, SDK follow-ups | `plan-86-get-balance.md` | 3.5k |
 | #87 implementation plan (reviewed 2026-10-26): secret screening, USD value + warning, analytics outcomes, Discord on unexpected and integrity errors, URL-free error logs, a test per ADR rule; 2 open questions (USD warning, its default), 2 deferred | `plan-87-safety-analytics.md` | 4k |
 | #88 plan (reviewed 2026-10-26) and how the code differs (§Implementation, PR #98): built server in the runner over `/mcp?profile=swap`, viem EOA signer in `scripts/e2e/`, 5 USDC Arbitrum↔Base (richer side sends), `canary-e2e` environment, `curl` Discord alert with the stage, leak check on green and red runs; 4 open questions (reviewer agrees with each) | `plan-88-canary-e2e.md` | 6k |
+| #89 plan (2026-10-27): drop the switch, README walkthrough, `server.json` (no `tools` field in the registry schema; profile header; drift test), Glama has only `maintainers`; sodax-sdks page + skill under their own issue, merging once production serves the swap tools | `plan-89-docs-registry.md` | 1.5k |
 | Stack review 2026-10-27, PR #91–#98: must-fix, mediums per PR, low/nits, out-of-date decisions, what was verified fine | `review-2026-10-27-stack.md` | 4k |
 | Discussion log: balance in BE, custom RPC, full SDK vs light, rate limit, API key, cancel, partner fee | `process.md` | 2k |
 | Candidate changes from before the ADR revision, not re-mapped | `improvement-ideas.md` | 1.9k |
