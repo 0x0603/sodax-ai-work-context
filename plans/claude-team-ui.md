@@ -39,6 +39,17 @@ things while I am out and get an answer I can paste back; plan and create issues
 - This repo: `team-ui/projects.json` now carries `setupCommand` and `testCommand` for all 9 projects (verified against
   each repo's package.json, hooks and CLAUDE.md), Node 22.23.4 for sodax-backend (its `engines`), Node 24 for
   sodax-frontend (its CI), and per-repo rules in `team-ui/prompts/{sodax-sdks,sodax-backend,sodax-frontend}/_rules.md`.
+- Console at `97bfb15` (evening of 2026-10-27, four merges, 240 smoke checks): the **assistant** (item 1 below, done
+  as designed, plus: the chat keeps the scope it was opened with, a model per chat, a draggable button, Summary /
+  Copy / Share on notebook files; tool allowlist narrowed to `gh issue view|list`, `gh pr view|list|diff|checks`,
+  `gh search`, `git log|show`, `rg` after a review found `Bash(gh issue:*)` also allowed `create`); **flow ops +
+  picker** (item 2: chips with assignee / author / label / state / sort, `setupCommand` per project with its log,
+  Risks split from Open questions, quick build by the lead alone, fix-round reviews with `{{SINCE}}`); **chat +
+  digest + away mode**: a Chat tab per cartridge from the lead's transcript with quick replies by state, a
+  fixed-format `plans/summary.md` section per step (`{{SUMMARY}}`) shown as a verdict card with tickable findings
+  and code excerpts, a verdict line on the home ticket, "Decided for you" after `questionTimeoutMin` (15) of
+  waiting, PR comments checked on request (no timer, to save calls). The console runs detached from the terminal
+  now, still with `--lan`.
 
 ## Next
 
@@ -56,11 +67,24 @@ things while I am out and get an answer I can paste back; plan and create issues
 2. **Flow ops + picker** (console branch `feat/flow-ops`, agent B): the findings below, items 1–5; issue/PR picker as
    one row of chips with assignee, author, label, state, sort (PRs: author, review requested, draft, decision),
    remembered per device.
-3. **Switch the console to `--tailscale`** (no token for my own devices, nothing answered outside the tailnet) and add
-   a LaunchAgent so it starts with the Mac. Optional: HTTPS through `tailscale serve`.
-4. **First real run**: a small sodax-sdks issue with the quick flow, then a medium one with standard, then a big one
-   with full. The full flow's 5-agent planning has not run for real yet.
-5. Later: Retro copies spec / plan / review / retro into `projects/<repo>/issues/gh-<n>-*/` here; the assistant may
+3. **E1, in progress (branch `feat/tidy-ops`)**: *Tidy up* (a one-tap Clean button on home and in Settings, a
+   post-eject sheet offering to delete the merged branch / remote branch / archive, `ejected.json` per project so
+   later tidy passes find merged branches, hibernate idle worktrees by dropping `node_modules`/`dist`/`.next` with
+   `setupCommand` restoring them, orphan worktree/research folders, `git worktree prune`, `pnpm store prune`;
+   auto power-off of cartridges idle at a checkpoint for 2 h with `--continue` on Start; a RAM line on home;
+   `projects[].env` such as `TURBO_CONCURRENCY=2`), a **LaunchAgent** so the console starts at login and survives a
+   reboot, and a **cost guard** (per-cartridge budget and a 7-day quota threshold that pause autopilot before the
+   next step). Measured 2026-10-27: one sodax-sdks review worktree = 3.0 GB, 2.9 GB of it `node_modules`; two
+   Claude processes = 1.1 GB RAM; `~/.claude/projects` = 658 MB, mostly my own sessions (Claude's
+   `cleanupPeriodDays`, default 30, not set).
+4. **E2**: assistant chips on an empty chat ("What needs me?", "Draft my weekly report" from `gh` activity,
+   "Summarize PR #…"), issue/PR URL paste recognised in Add and in the assistant, "Post review to PR" at the review
+   gate (user tap, confirm), a "Console unreachable" banner when fetches fail.
+5. **Switch the console to `--tailscale`** (no token for my own devices, nothing answered outside the tailnet).
+   Optional: HTTPS through `tailscale serve`.
+6. **First real run**: a small sodax-sdks issue with the quick flow, then a medium one with standard, then a big one
+   with full. The full flow's 5-agent planning has not run for real yet; neither have the new `{{SUMMARY}}` prompts.
+7. Later: Retro copies spec / plan / review / retro into `projects/<repo>/issues/gh-<n>-*/` here; the assistant may
    scaffold a dossier with `scripts/new-issue.sh` (v2, it is read-only in v1).
 
 ## Team-operation findings (2026-10-27, console `57b617b`)
