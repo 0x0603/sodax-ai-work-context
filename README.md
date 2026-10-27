@@ -23,7 +23,7 @@ INDEX.md                     ← repo map and search recipes
 AGENTS.md                    ← canonical agent instructions
 CLAUDE.md                    ← symlink → AGENTS.md
 bootstrap.sh                 ← run once per machine to link workspace instructions
-.claude/skills/sodax-relink/ ← `/sodax-relink` skill: re-run bootstrap on demand
+.claude/skills/              ← personal skills; bootstrap links each into ~/.claude/skills
 scripts/                     ← small helpers and templates
 projects/sodax-backend/      ← backend repo context
 projects/sodax-frontend/     ← frontend repo context
@@ -52,7 +52,8 @@ cd ~/Documents/GitHub/sodax/sodax-command-center
 claude                      # or: codex
 ```
 
-`bootstrap.sh` also installs a `/sodax-relink` skill. The workspace-root
+`bootstrap.sh` also links every skill in `.claude/skills/` into `~/.claude/skills`, so a
+skill added on one machine needs `git pull` plus one bootstrap run on the other. The workspace-root
 `sodax/AGENTS.md` and `sodax/CLAUDE.md` are machine-local symlinks. The
 workspace folder is not a git repo, so they are not synced by `git pull`. If they
 ever go missing, break, or get changed, run `/sodax-relink` (or `./bootstrap.sh`)

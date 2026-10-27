@@ -13,7 +13,7 @@ instructions:
 - `sodax/AGENTS.md` → `sodax-ai-work-context/AGENTS.md`
 - `sodax/CLAUDE.md` → `sodax-ai-work-context/AGENTS.md`
 - repo-internal `CLAUDE.md` → `AGENTS.md`
-- `~/.claude/skills/sodax-relink` → this skill
+- `~/.claude/skills/<name>` → every skill in this repo's `.claude/skills/`, this one included
 
 These root links live in the plain `sodax/` workspace folder (not a git repo), so
 they are **not** synced by `git pull` — this skill is how you recreate them.

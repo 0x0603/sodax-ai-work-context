@@ -9,7 +9,7 @@ REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 WORKSPACE_DIR="$(cd "$REPO_DIR/.." && pwd -P)"
 REPO_NAME="$(basename "$REPO_DIR")"
 WORKSPACE_TARGET="$REPO_NAME/AGENTS.md"
-SKILL_DIR="$REPO_DIR/.claude/skills/sodax-relink"
+SKILLS_DIR="$REPO_DIR/.claude/skills"
 CFG_DIR="$REPO_DIR/claude-config"
 
 if [[ ! -f "$REPO_DIR/AGENTS.md" ]]; then
@@ -17,8 +17,8 @@ if [[ ! -f "$REPO_DIR/AGENTS.md" ]]; then
   exit 1
 fi
 
-if [[ ! -d "$SKILL_DIR" ]]; then
-  echo "Missing skill directory: $SKILL_DIR" >&2
+if [[ ! -d "$SKILLS_DIR/sodax-relink" ]]; then
+  echo "Missing skill directory: $SKILLS_DIR/sodax-relink" >&2
   exit 1
 fi
 
@@ -65,9 +65,18 @@ link_one AGENTS.md "$REPO_DIR/CLAUDE.md"
 link_one "$WORKSPACE_TARGET" "$WORKSPACE_DIR/AGENTS.md"
 link_one "$WORKSPACE_TARGET" "$WORKSPACE_DIR/CLAUDE.md"
 
-# 3) Install the re-link skill globally so `/sodax-relink` works in any project.
+# 3) Install every skill in .claude/skills/ globally so each works in any project.
 mkdir -p "$HOME/.claude/skills"
-link_one "$SKILL_DIR" "$HOME/.claude/skills/sodax-relink"
+for skill in "$SKILLS_DIR"/*/; do
+  skill="${skill%/}"
+  link_one "$skill" "$HOME/.claude/skills/$(basename "$skill")"
+done
+# Drop links to skills that have since left this repo.
+for link in "$HOME/.claude/skills"/*; do
+  if [[ -L "$link" && ! -e "$link" && "$(readlink "$link")" == "$SKILLS_DIR"/* ]]; then
+    rm "$link"
+  fi
+done
 
 # 4) Personal global Claude config (claude-config/) -> ~/.claude.
 #    Adopts existing real files (one-time backup), making the repo the single
@@ -106,7 +115,7 @@ echo "Linked:"
 echo "  $REPO_DIR/CLAUDE.md -> AGENTS.md"
 echo "  $WORKSPACE_DIR/AGENTS.md -> $WORKSPACE_TARGET"
 echo "  $WORKSPACE_DIR/CLAUDE.md -> $WORKSPACE_TARGET"
-echo "  $HOME/.claude/skills/sodax-relink -> $SKILL_DIR"
+echo "  $HOME/.claude/skills/<name> -> $SKILLS_DIR/<name> (every skill)"
 if [[ -d "$CFG_DIR" ]]; then
   echo "  $HOME/.claude/CLAUDE.md -> $CFG_DIR/CLAUDE.md"
   echo "  $HOME/.claude/hooks/*.sh -> $CFG_DIR/hooks/ (sync-ai-context, git-guard)"

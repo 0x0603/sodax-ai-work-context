@@ -126,6 +126,8 @@ Where things go:
   hub (skips repos you can't read, hides submodule pointer changes, commit
   signing, `.venv`, shared Claude memory). Re-run it after being granted access
   to more repos.
+- Personal skills live in `.claude/skills/`; `bootstrap.sh` links each into
+  `~/.claude/skills`, so a new skill needs one bootstrap run per machine after `git pull`.
 - Not synced, per machine: the hub clone and its local git config, Claude Code's
   memory (`~/.claude/projects/*/memory`), and the signing key file.
 - The `sodax/AGENTS.md` and `sodax/CLAUDE.md` symlinks live outside any repo, so
