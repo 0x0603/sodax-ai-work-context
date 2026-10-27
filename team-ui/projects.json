@@ -1,0 +1,39 @@
+{
+  "projects": [
+    {
+      "path": "sodax-command-center/repos/client/sodax-sdks",
+      "node": "24"
+    },
+    {
+      "path": "sodax-command-center/repos/client/sodax-frontend"
+    },
+    {
+      "path": "sodax-command-center/repos/client/builders-sodax-mcp-server"
+    },
+    {
+      "path": "sodax-command-center/repos/client/partner-portal"
+    },
+    {
+      "path": "sodax-command-center/repos/client/sodax-scan"
+    },
+    {
+      "path": "sodax-command-center/repos/backend/sodax-backend"
+    },
+    {
+      "path": "sodax-command-center/repos/backend/sodax-data-backend"
+    },
+    {
+      "path": "sodax-command-center/repos/backend/sodax-unified-api"
+    },
+    {
+      "path": "intents-whitelabel"
+    }
+  ],
+  "models": {
+    "strong": "opus",
+    "fast": "sonnet"
+  },
+  "scanRoots": [
+    "."
+  ]
+}

@@ -18,3 +18,20 @@ Examples:
 scripts/new-issue.sh sodax-frontend 1234 wallet connect flow
 scripts/new-issue.sh sodax-sdks task refactor signing util
 ```
+
+## `setup-hub.sh`
+
+Clones and configures the `sodax-command-center` hub next to this repo. Run after
+`./bootstrap.sh` on every machine; safe to re-run.
+
+## `setup-team-ui.sh`
+
+Installs or updates Claude Team UI (`github.com/0x0603/claude-team-ui`, the
+agent-team console) in `~/code/claude-team-ui`, installs nvm and the Node versions
+the projects pin, and imports `team-ui/projects.json` into
+`~/.config/claude-team-ui`. Run after `setup-hub.sh`; safe to re-run.
+
+```bash
+scripts/setup-team-ui.sh            # install or update, then import the shared project list
+scripts/setup-team-ui.sh --export   # save this machine's console projects and settings to team-ui/projects.json
+```
