@@ -36,5 +36,6 @@
   },
   "scanRoots": [
     "."
-  ]
+  ],
+  "prFooter": "Opened by Sang assistant. Review before merging."
 }
