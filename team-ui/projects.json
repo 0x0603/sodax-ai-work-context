@@ -3,31 +3,52 @@
     {
       "path": "sodax-command-center/repos/client/sodax-sdks",
       "node": "24",
-      "prompts": "prompts/sodax-sdks"
+      "prompts": "prompts/sodax-sdks",
+      "setupCommand": "pnpm install --frozen-lockfile && pnpm build:packages",
+      "testCommand": "pnpm test"
     },
     {
-      "path": "sodax-command-center/repos/client/sodax-frontend"
+      "path": "sodax-command-center/repos/client/sodax-frontend",
+      "node": "24",
+      "prompts": "prompts/sodax-frontend",
+      "setupCommand": "pnpm install --frozen-lockfile",
+      "testCommand": "pnpm checkTs && pnpm test"
     },
     {
-      "path": "sodax-command-center/repos/client/builders-sodax-mcp-server"
+      "path": "sodax-command-center/repos/client/builders-sodax-mcp-server",
+      "setupCommand": "pnpm install --frozen-lockfile",
+      "testCommand": "pnpm checkTs && pnpm lint && pnpm test"
     },
     {
-      "path": "sodax-command-center/repos/client/partner-portal"
+      "path": "sodax-command-center/repos/client/partner-portal",
+      "setupCommand": "pnpm install --frozen-lockfile",
+      "testCommand": "pnpm checkTs && pnpm lint"
     },
     {
-      "path": "sodax-command-center/repos/client/sodax-scan"
+      "path": "sodax-command-center/repos/client/sodax-scan",
+      "setupCommand": "cd explorer && yarn install --frozen-lockfile",
+      "testCommand": "cd explorer && yarn test"
     },
     {
-      "path": "sodax-command-center/repos/backend/sodax-backend"
+      "path": "sodax-command-center/repos/backend/sodax-backend",
+      "node": "22.23.4",
+      "prompts": "prompts/sodax-backend",
+      "setupCommand": "pnpm install --frozen-lockfile && pnpm build:packages",
+      "testCommand": "pnpm test"
     },
     {
-      "path": "sodax-command-center/repos/backend/sodax-data-backend"
+      "path": "sodax-command-center/repos/backend/sodax-data-backend",
+      "setupCommand": "python3 -m venv .venv && .venv/bin/pip install -e '.[dev]'",
+      "testCommand": ".venv/bin/ruff check src/ tests/ && .venv/bin/pytest"
     },
     {
-      "path": "sodax-command-center/repos/backend/sodax-unified-api"
+      "path": "sodax-command-center/repos/backend/sodax-unified-api",
+      "testCommand": "f=$(mktemp /tmp/haproxy-check.XXXXXX) && sed 's/<PLACEHOLDER_HOST>/apiv1-1-stateful.coolify.iconblockchain.xyz/g' gateway-configs/haproxy/haproxy.cfg > \"$f\" && docker run --rm --user root -v \"$f\":/tmp/haproxy.cfg:ro --entrypoint sh haproxy:2.8 -c 'mkdir -p /etc/haproxy/errors /etc/haproxy/certs /etc/haproxy/ca && for c in 400 403 408 500 502 503 504; do printf \"HTTP/1.0 %s X\\r\\nContent-Type: text/plain\\r\\n\\r\\nX\\n\" \"$c\" > /etc/haproxy/errors/$c.http; done && openssl req -x509 -newkey rsa:2048 -keyout /tmp/k.pem -out /tmp/c.pem -days 1 -nodes -subj \"/CN=api.sodax.com\" 2>/dev/null && cat /tmp/c.pem /tmp/k.pem > /etc/haproxy/certs/api.sodax.com.pem && cp /tmp/c.pem /etc/haproxy/ca/cloudflare_aop_ca.pem && haproxy -c -f /tmp/haproxy.cfg'"
     },
     {
-      "path": "intents-whitelabel"
+      "path": "intents-whitelabel",
+      "setupCommand": "pnpm install --frozen-lockfile",
+      "testCommand": "pnpm checkTs && pnpm lint"
     }
   ],
   "models": {
