@@ -3,7 +3,7 @@ type: brief
 repo: builders-sodax-mcp-server
 github: 79
 status: Active — #81 in PR #91, #82–#88 in draft PRs #92–#98 (stacked)
-next: #88's live run waits on blockers 4 and 5 (wallet, key, admin setup in PR #98's body); #85 contract tests (commit 6); hub PR from `docs/builders-mcp-swap-sdk` once #94 merges
+next: merge the SSE hotfix PR #100 (Closes #99, sub-issue of #79), then release it to master; rebase the stack on it. Then #88's live run (blockers 4 and 5), #85 contract tests, hub PR once #94 merges
 updated: 2026-10-27
 ---
 
@@ -46,6 +46,16 @@ updated: 2026-10-27
 
 ## Next action
 
+Fix round 2026-10-27 done: every finding of `review-2026-10-27-stack.md` fixed, a second review per PR and its fixes,
+stack rebased in order and force-pushed (with lease); PR bodies updated. Tips: #91 `bab68bf`, #92 `5a78943`, #93
+`86a3e52`, #94 `27b86ac`, #95 `d671ce5`, #96 `a2f308c`, #97 `94a2638`, #98 `ee662f7` (764 tests; canary dry run green).
+`fix/sse-start-once` (`66c80da`) is pushed without a PR: it needs an issue to link (public repo, security finding).
+ADR updated on PR #90 (`cd0d643`). History of the round: `restack-notes-2026-10-27.md`.
+Stack review 2026-10-27 (`review-2026-10-27-stack.md`, all fixed): 5 must-fix (pre-existing `GET /sse` crash on
+`master`/`development`; #94 intent chains unchecked; #95 cancel payload not rebuilt; #96 unfunded Stellar reads as
+an outage; #98 send-error classification), mediums per PR, and two settled decisions out of date (4: Sonic source;
+11: the quote reads the hub chain; both updated).
+
 On another machine: in the hub submodule `git fetch` and check out `feat/84-swap-quote`, then `pnpm install --frozen-lockfile` (the SDK came in with #84). First the fewer-calls commit on PR #94 (`plan-84-swap-quote.md` §Follow-up commit) is pushed as `6339278`; branch #85 off it. #85 per `plan-85-swap-track.md` (receipts through the SDK). Open the hub PR from `docs/builders-mcp-swap-sdk` once #94
 merges. Reviews of PR #90–#94 are still open (no reviewer requested). Follow-up PR: pnpm 10 + `minimumReleaseAge`
 instead of the hand pins — spec in `plan-84-swap-quote.md` §Follow-up PR. ADR on PR #90: D5 needs "env, else the
@@ -66,7 +76,8 @@ Workflow the user asked for on each sub-issue: plan (agent) → review the plan 
 2. Build the intent with `createIntent` and an explicit minimum output and deadline. Never use `includeTxData`.
 3. Check the EVM source tx on chain before calling `submit-tx`: the receipt succeeded and holds the `connection`
    contract's log carrying the cached relay payload. Matching the tx input is not enough.
-4. Phase 1 sources are EVM and Sonic. No per-call `rpcUrl`; RPC defaults come from the SDK's packaged
+4. Phase 1 sources are the EVM spoke chains; Sonic (the hub) is refused since #85: no `connection` log proves a
+   deposit there (ADR D5 updated 2026-10-27). No per-call `rpcUrl`; RPC defaults come from the SDK's packaged
    `spokeChainConfig` (user, 2026-10-26), overrides from env only. A client-supplied RPC was asked for and dropped
    again on 2026-10-26 for security (SSRF; it could fake the receipt #85 checks), so ADR D5 holds.
 5. Swap tools require an API key (user's call, 2026-10-26; presence check only, BE decides validity). Builder
@@ -81,8 +92,9 @@ Workflow the user asked for on each sub-issue: plan (agent) → review the plan 
    (user, 2026-10-26; `plan-85-swap-track.md` §Relay-for-refund).
 10. #85: quote, track and cancel need the same API key; another key gets `QUOTE_KEY_MISMATCH`, never an alert or a
    "quote not found" (user, 2026-10-26; `plan-85-swap-track.md` design 5).
-11. One job per tool (user, 2026-10-26): `sodax_get_balance` reads balances only (no allowance), the quote reads no
-   chain (`plan-86-get-balance.md` §Scope cut).
+11. One job per tool (user, 2026-10-26): `sodax_get_balance` reads balances only (no allowance); the quote reads no
+   balance. It does read the user's hub wallet (Sonic) and NEAR/Stellar recipient readiness, and asks the backend's
+   `/allowance/check` (`plan-86-get-balance.md` §Scope cut; ADR D5/D6 updated 2026-10-27).
 12. Fewer agent calls (user, 2026-10-26): the quote takes names and symbols directly, resolve only on
    `UNKNOWN_TOKEN`, the address on the first quote (`plan-84-swap-quote.md` §Follow-up commit, on PR #94). A missed
    track stays an agent risk: the ready quote returns `afterSend`; the fix is a BE deposit watcher (`plan.md`).
@@ -100,6 +112,7 @@ Workflow the user asked for on each sub-issue: plan (agent) → review the plan 
 | #86 implementation plan (reviewed, cut 2026-10-26): `sodax_get_balance` reads balances through the SDK (`getWalletBalance`), no allowance, quote reads no chain; error wrapping, SDK follow-ups | `plan-86-get-balance.md` | 3.5k |
 | #87 implementation plan (reviewed 2026-10-26): secret screening, USD value + warning, analytics outcomes, Discord on unexpected and integrity errors, URL-free error logs, a test per ADR rule; 2 open questions (USD warning, its default), 2 deferred | `plan-87-safety-analytics.md` | 4k |
 | #88 plan (reviewed 2026-10-26) and how the code differs (§Implementation, PR #98): built server in the runner over `/mcp?profile=swap`, viem EOA signer in `scripts/e2e/`, 5 USDC Arbitrum↔Base (richer side sends), `canary-e2e` environment, `curl` Discord alert with the stage, leak check on green and red runs; 4 open questions (reviewer agrees with each) | `plan-88-canary-e2e.md` | 6k |
+| Stack review 2026-10-27, PR #91–#98: must-fix, mediums per PR, low/nits, out-of-date decisions, what was verified fine | `review-2026-10-27-stack.md` | 4k |
 | Discussion log: balance in BE, custom RPC, full SDK vs light, rate limit, API key, cancel, partner fee | `process.md` | 2k |
 | Candidate changes from before the ADR revision, not re-mapped | `improvement-ideas.md` | 1.9k |
 

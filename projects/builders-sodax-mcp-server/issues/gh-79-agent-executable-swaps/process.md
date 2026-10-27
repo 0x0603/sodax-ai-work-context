@@ -2,7 +2,7 @@
 type: process
 repo: builders-sodax-mcp-server
 github: 79
-updated: 2026-10-26
+updated: 2026-10-27
 ---
 
 # Process
@@ -123,3 +123,28 @@ updated: 2026-10-26
   `setup`; 522 tests. commitlint rejected a >100-char body line once (the push still ran and opened the PR on the
   #87 head; recommitted). Draft PR #98 @ `6775283`.
 
+## 2026-10-27 — stack review of PR #91–#98
+
+- One reviewer agent per PR increment plus one agent driving a local canary server as a swap agent (placeholder
+  key, nothing signed). Results in `review-2026-10-27-stack.md`; the five must-fix items re-checked by hand (SDK
+  1.26.0 `connect()` starts the SSE transport; stellar-sdk `NotFoundError.name` is `Error`; viem 2.57.4 maps a
+  non-2xx JSON-RPC body to an RPC error; `getIntentRelayChainId` exists at runtime).
+- `plan-83-resolve-token.md` was found spliced (3 copies): a `$`` in the replacement text of the "After
+  implementation" insert expanded to the preceding text. Rebuilt from the pieces (613 → 235 lines).
+- Fix round (same day): one fix agent per PR in its own worktree, then the stack rebased bottom-up (#92 onto
+  #91 … #98 onto #97), a second review of each PR's fix commits (simplify + correctness + rebase range-diff), its
+  fixes, and a final rebase pass; every commit typechecks, 764 tests at the top, canary dry run green. Second-round
+  changes worth remembering: SSE messages take only their own key; DEADLINE_TOO_SHORT; no alert without a quoteId;
+  track/cancel don't refuse a live chain-id disagreement (quote only); canary tracks unless the node refused.
+  Lesson: never `re.sub` with a backslash replacement string; a take-theirs conflict script dropped one line once
+  (restored), so diff the lower branch's strings after any blanket resolution.
+
+## 2026-10-27: SSE hotfix PR opened
+
+- Opened #100 (`fix/sse-start-once` -> `development`, Closes #99). #99 is a Bug, sub-issue of #79, worded neutrally
+  (stream drops after `endpoint`); the process exit is not mentioned in public text.
+- Verified locally: on `development` one `GET /sse` makes the process exit (`SSEServerTransport already started!`,
+  `unhandledRejection` -> `fatalExit`); with the fix the stream stays open. checkTs, lint, 90 tests, build pass.
+- `create-issue.sh` reads types and board from icon-project, so for this gosodax repo the issue was made with gh +
+  GraphQL (`updateIssue` type, `addSubIssue`). It auto-landed on gosodax board #1 as In progress; Stream and Status
+  were not set because the gh token lacks the `project` scope.
