@@ -3,14 +3,15 @@
 # project list. Run after ./bootstrap.sh and scripts/setup-hub.sh; safe to re-run.
 #
 #   scripts/setup-team-ui.sh            install or update, then import team-ui/projects.json
-#   scripts/setup-team-ui.sh --export   save this machine's projects and settings to team-ui/projects.json
+#   scripts/setup-team-ui.sh --export   save this machine's projects, settings and project prompts to team-ui/
 #
 # Steps:
 #   1. clone github.com/0x0603/claude-team-ui into $TEAM_UI_DIR (default ~/code/claude-team-ui), or pull it
 #   2. sign its commits with $SODAX_SIGNING_KEY, if that key exists
 #   3. install tmux if missing (Homebrew)
 #   4. install nvm and every Node version the manifest pins; shells keep their default Node
-#   5. import team-ui/projects.json (paths relative to the workspace) into ~/.config/claude-team-ui
+#   5. import team-ui/projects.json (paths relative to the workspace) into ~/.config/claude-team-ui, and copy
+#      team-ui/prompts/<project>/ (rules, checks) into each project's .claude/team-ui/prompts (git-excluded there)
 # The console's login token and plan usage stay per machine.
 set -euo pipefail
 
@@ -26,7 +27,7 @@ command -v node >/dev/null || { echo "node is required (brew install node)" >&2;
 
 if [[ "${1:-}" == "--export" ]]; then
   node "$TEAM_UI_DIR/bin/team-ui-config.js" export "$MANIFEST" --root "$WORKSPACE_DIR"
-  echo "Commit team-ui/projects.json in $(basename "$REPO_DIR") to share it."
+  echo "Commit team-ui/ (projects.json and prompts/) in $(basename "$REPO_DIR") to share it."
   exit 0
 fi
 

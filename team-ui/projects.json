@@ -2,7 +2,8 @@
   "projects": [
     {
       "path": "sodax-command-center/repos/client/sodax-sdks",
-      "node": "24"
+      "node": "24",
+      "prompts": "prompts/sodax-sdks"
     },
     {
       "path": "sodax-command-center/repos/client/sodax-frontend"
