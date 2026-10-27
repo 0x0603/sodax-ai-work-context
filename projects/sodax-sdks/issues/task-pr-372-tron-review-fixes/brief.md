@@ -3,8 +3,8 @@ type: brief
 repo: sodax-sdks
 github: 
 status: Active
-next: wait for answers to the open-items comment on the PR (1.4/1.4b, solver check for 1.1, 2.x)
-updated: 2026-10-13
+next: user decides how to get the #372 fixes into #534 (cherry-pick by gcranju, or re-review after)
+updated: 2026-10-27
 ---
 
 # PR 372 Tron review fixes · brief
@@ -14,23 +14,21 @@ then opens exactly one row from the map below.**
 
 ## State in five lines
 
-- Pushed to `gcranju/sodax-sdks:feat/tron-spoke` (all signed): merge `6484af32`, fixes `94bcc241`,
-  `2f40c0b2`, `7b1e9469`. PR head `7b1e9469`. Worktree `sodax-sdks-pr372` is clean.
-- `7b1e9469`: 1.1 + 1.2 (`encodeRecipient` for swap / partner auto-swap `dstAddress`), C1–C4
-  (`code-review-findings.md` § Group C). Leverage yield now settles via `spoke.settle`; Tron vault
-  withdraw + `operatePosition` are refused before signing; Bitcoin relays exactly as before.
-- PR comments: #issuecomment-6137137117, #issuecomment-6138549112 (courtesy), and
-  #issuecomment-6144735748 — open items by severity, posted at the user's request.
-- Open: 1.4 + 1.4b (Tron `srcAddress` / `originAddress` 20 bytes — one question for gcranju), solver
-  check for 1.1, 2.1–2.4, DEX relay bypass, 4.5, one JSDoc. All listed in the PR comment.
-- claude[bot] re-checked the table (#issuecomment-6144955938): citations hold, six claims wrong or
-  overstated (process.md, last Log bullet). No reply posted.
+- #372 closed unmerged 2026-10-16; superseded by #534 (`gosodax:feat/tron-mpc-integration`, head
+  reviewed `a9a8736c`). Our fixes `94bcc241`, `2f40c0b2`, `7b1e9469` (on `gcranju:feat/tron-spoke`) are NOT in it.
+- In #534 the author re-did only 1.1 and the strict address check; 1.2, 1.3, 2.5, Group 3, C1–C4,
+  4.1/4.2/4.6 and the `TronSpokeService` checks are back to pre-fix code (process.md, 2026-10-27 entry).
+- Still open: 1.4/1.4b, 2.1–2.4, DEX relay bypass, 4.5. No author reply to #issuecomment-6144735748.
+- New in #534: reserve warn-only, memo not recomputed, RPC tx bytes signed unchecked (raw key),
+  MPC timeouts mapped to `RELAY_FAILED`/`UNKNOWN`.
+- Bot review on #534 (#issuecomment-6416633757): six findings, all hold against the code. Docs
+  pass: two pages made false, raw Tron deposit recipe wrong, skills/READMEs not updated (process.md).
 
 ## Next action
 
-Wait for replies on the PR comment. Then: if gcranju says `srcAddress` should be the 32-byte word, switch
-`EvmSolverService.ts:133`, `SonicSpokeService.ts:325` and `LeverageYieldService.ts:2498` together; route
-2.x per the MPC relay owner's answers. Don't post more on the PR unless the user asks.
+The user decides how the #372 fixes get into #534 (ask gcranju to cherry-pick the three commits, or
+re-review after he re-does them). Then route 2.x and 1.4/1.4b per the MPC relay owner's and
+gcranju's answers. Don't post on either PR unless the user asks.
 
 ## Settled — do not re-litigate
 

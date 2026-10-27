@@ -2,7 +2,7 @@
 type: process
 repo: sodax-sdks
 github: 
-updated: 2026-10-13
+updated: 2026-10-27
 ---
 
 # Process
@@ -13,6 +13,49 @@ updated: 2026-10-13
   via `gh pr checkout 372`). `git merge --no-commit origin/main` → 7 textual conflicts, all
   "both sides appended an entry": resolved main-first then Tron, so main's pinned registry order is
   a prefix. Merge resolution + adaptations staged; review fixes left unstaged.
+- 2026-10-27 — #372 closed unmerged 2026-10-16T06:47Z; #534 (`gosodax:feat/tron-mpc-integration`)
+  opened 06:57Z and supersedes it. Re-reviewed head `a9a8736c` (worktree in the session scratchpad).
+  GitHub compare `<fix>...a9a8736c` is `diverged`, behind_by 2/3/4 for `94bcc241`/`2f40c0b2`/`7b1e9469`:
+  none of our fixes are in #534. The hub clone is shallow (a big merge shows no parents), so
+  `git merge-base --is-ancestor` there is meaningless; use the compare API.
+  - Re-done by the author: 1.1 (swap `dstAddress` via `encodeRecipient`), strict `tronBase58ToHex`.
+  - Back to pre-fix code (checked file by file against `pr-372`): 1.2 partner `encodeAddress`
+    (`PartnerFeeClaimService.ts:379`) + C1 (`outputToken: Address`, `:56`); 1.3 `apps/node/src/tron.ts:122-123`;
+    C2 dex `AssetService.ts:405`; C3 leverage yield relays directly (`:1795`, `:4130`), no MPC refusal;
+    2.5 no MPC gate on backend submit-tx (`SwapService.ts:1089`, `BridgeService.ts:838`,
+    `LeverageYieldService.ts:1747`); Group 3 `TronXService` loose `tronToHex` + unchecked `balanceOf`,
+    `TronXService.test.ts` deleted; `TronSpokeService` unchecked `getDeposit` (`:348`) and energy
+    (`:404`), sequential `estimateGas`, no `isAddress(dstAddress)` (`:421`); 4.1, 4.2, 4.6, C4.
+  - Still open: 1.4/1.4b, 2.1–2.4 (swap detailed status now reads the MPC deposit record; bridge
+    status `BridgeService.ts:1327` and cancel `SwapService.ts:1881` do not), DEX relay bypass, 4.5.
+  - New this pass: reserve from `/deposit-address` only warned (`TronSpokeService.ts:261`, intentional
+    per the changeset), memo never recomputed, RPC-built `raw_data_hex` signed unchecked on the raw-key
+    path, MPC timeouts map to `RELAY_FAILED`/`UNKNOWN` (`relay-error-mapping.ts:58`). `RelayChainIdMap`'s
+    Tron id is load-bearing (hub wallet derivation `EvmHubProvider.ts:89`), not "only to keep the map
+    total". `ConfigService.initialize()` is a no-op today (config-v2 TODO), so no backend config.
+  - Second pass: Tron message paths run `simulateRecvMessage` on the hub (srcChainId 728126428) before
+    signing (`SpokeService.ts:1100-1111`), so "hub executes while the SDK reports failure" needs that
+    simulation to pass; nothing in the PR exercises it (the harness calls `sodax.spoke.tron.sendMessage`
+    directly, `apps/node/src/tron.ts:126`). Deposit paths skip simulation for Tron, so funds always move.
+    Also unguarded: dex CL `supplyLiquidity`/`increaseLiquidity`/`decreaseLiquidity`/`claimRewards`
+    (`ConcentratedLiquidityService.ts:747`, `:817`, `:887`, `:1111`), staking `unstake`/`cancelUnstake`.
+    Blocked before signing: staking stake/instantUnstake/claim (`getSodaToken`, `StakingService.ts:493`,
+    `:842`, `:1029`), bnUSD migration to Tron (`BnUSDMigrationService.ts:117`).
+  - Docs pass (new `docs-review` skill, head `a9a8736c`). The PR's own doc lines are true; the
+    `estimate_gas` row and the `chain-specifics` row mostly restate the `TronGasEstimate` and
+    `ITronWalletProvider.signMessage` JSDoc (`common.ts:284`, `tron.ts:61-64`). Made false:
+    `docs/developers/deployments/mainnet.md:743` ("no entry in `ChainKeys`"), wallet-sdk-core skill
+    `chain-support.md:43` (22 → 23 keys). Raw Tron deposits return before `/notify`
+    (`TronSpokeService.ts:173-181` vs `:197-206`), but `recipes/raw-tx-flow.md:46-61` says to call
+    `relayTxAndWaitPacket`; per the MPC-relay hub card the relay has no chain watcher. Not updated:
+    every wallet-sdk-core / wallet-sdk-react / dapp-kit skill list, both wallet READMEs,
+    `WALLET_PROVIDERS.md`, `add-chain` (no MPC family). Changeset overstates: `settle` "feature
+    services call" (LY/DEX/CL/staking/cancel relay directly), "partner-fee includes Tron
+    automatically" (`PartnerFeeClaimService.ts:379` uses the identity encoding), `MpcRelayApiService`
+    is a module, not an export. Gates are hollow: Docs Drift counts any mapped sdk doc for every
+    package (`check-docs-drift.sh:56-64`); the AI drift job passed with "nothing was audited"
+    (`error_max_turns`). Against main (`git merge-tree`) only `packages/types/src/swap/swap.ts`
+    conflicts; the doc pages auto-merge.
 
 ## Findings
 
