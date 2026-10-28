@@ -67,7 +67,11 @@ things while I am out and get an answer I can paste back; plan and create issues
 2. **Flow ops + picker** (console branch `feat/flow-ops`, agent B): the findings below, items 1–5; issue/PR picker as
    one row of chips with assignee, author, label, state, sort (PRs: author, review requested, draft, decision),
    remembered per device.
-3. **E1, in progress (branch `feat/tidy-ops`)**: *Tidy up* (a one-tap Clean button on home and in Settings, a
+3. **E1, parked at the weekly limit on 2026-10-28 ~02:00 (resets 06:00)**: uncommitted work in
+   `~/code/claude-team-ui-wt/tidy` (branch `feat/tidy-ops`: `lib/housekeeping.js`, config/cartridges/github/util
+   edits; routes, UI, LaunchAgent, cost guard and tests still to do) and `~/code/claude-team-ui-wt/chips` (branch
+   `feat/assistant-chips`, E2: code edits done, README line, smoke tests and the test run left). Resume by reading
+   each worktree's `git diff`, finish, `npm test`, then merge into main as before. *Tidy up* (a one-tap Clean button on home and in Settings, a
    post-eject sheet offering to delete the merged branch / remote branch / archive, `ejected.json` per project so
    later tidy passes find merged branches, hibernate idle worktrees by dropping `node_modules`/`dist`/`.next` with
    `setupCommand` restoring them, orphan worktree/research folders, `git worktree prune`, `pnpm store prune`;
