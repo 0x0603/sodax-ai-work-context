@@ -71,6 +71,37 @@ built server. Every new test failed on the old code. A separate PR on top of #10
 Stack tip: 792 tests, checkTs, lint, build green, builder snapshot unchanged; new tests caught a revert of C6, C3 and
 `expiresInSec`. Decisions 1–6 above are settled by this round (4 and 5: keep as is).
 
+### D. `/code-review` round (2026-10-28), uncommitted
+
+Stack (`33cffde..0b4da5f`, high, 10 unverified findings), triaged by hand:
+
+| Finding | Verdict | Change | PR |
+|---|---|---|---|
+| Shared catalog load used the first caller's key; a bad key failed every waiter | Real | `refreshCatalog` runs keyless (`runWithRequestContext({}, …)`), only `RATE_LIMITED` passes through; test "loads the shared catalog without the caller's key" (caught a revert) | keyless + its test #93; passthrough + 401 row #95 |
+| Refund answers said "after its quote expired" though a refusal near the deadline relays at once | Wording | `expired_refunding` / `expired_unsubmitted` text | #95 |
+| drift-check comment said "authoritative on push/cron" | Stale comment | comment | #98 |
+| `amountText` doc promised to catch every lost digit | Doc | doc comment | #97 |
+| Chain-id regex in two places; deadline arithmetic repeated; double SDK lookup | Cleanup | `chainIdQuery` in resolver, `deadlineMs` in track, one lookup in `sourceChainFor` | #95 |
+| Full cache refuses all quotes (10 keys × 1,000) | Kept | Trade-off: refusing beats evicting live or claimed quotes; the real bound is backend key validation | — |
+| Any 400 marks `submitRefused` | Kept | BE returns 400 only for the deadline and DTO validation (`swaps.service.ts:229-257`), so a resubmit can't pass | — |
+| Per-key count until `expiresAt`; dropping unclaimed past-deadline quotes under pressure | Kept | Only when the cache is full; a stranded deposit with a named quoteId alerts | — |
+
+Gates at the tip: 792 tests, checkTs, lint, build, snapshot unchanged.
+
+PR #104 (high, 10 unverified findings): 8 verified and fixed in the hardening worktree, uncommitted, 137 tests:
+IPv6 clients keyed per /56 for the SSE cap (`ipKeyGenerator`); errors after headers are sent are logged and alerted;
+no batch counting on `/messages` (the SSE transport refuses arrays); 429 on `/mcp` is a JSON-RPC error; `docs_refresh`
+says when it reused a refresh from the last minute; the `clearDocsCache` comment says tests only; cache keys use the
+trimmed path parameter; `/mcp/` and `/MCP` count as `/mcp` in the error handler. Kept: the global SSE caps (200, 1 h
+idle) and counting a refused batch's hits.
+
+ADR #90 (worktree `sodax/builders-sodax-mcp-server-adr`, branch `feat/agent-executable-swaps`, uncommitted): D5/D6 and the
+quote's balance line were already done in `cd0d643`. Added: SSE key per message (D2), keyless shared lists (D2), phase 2
+profiles (D4), quote shows no solver-fee field (net amount) and has seconds left, chain id on every step, track rules
+(one deposit per tx, other sender / other quote alerts, pinned source chain, refused submit → refund, replaced tx,
+unknown status), cancel checks without a quote, cache eviction policy, unsubmitted deposits aren't lost, safety rule
+on chain ids. +15/−5 lines.
+
 ## Research for groups 2–4 (read from source; intent-relay and solver-v2 not readable: submodules not initialised, 404)
 
 | Item | Facts | Recommendation (owner) |
