@@ -101,6 +101,6 @@ Stack tip: 792 tests, checkTs, lint, build green, builder snapshot unchanged; ne
    15-digit rule.
 6. C1: reword and let the wallet supply the new hash (simple), or scan `connection` logs. Recommendation: reword.
 7. Implement C3, U3, S5, U1 (probe), U4, U5, U6 as above? Each is small and MCP-only.
-8. Q2/Q12: rename `swap` → `actions` now?
+8. ~~Q2/Q12: rename `swap` → `actions`?~~ Settled (user, 2026-10-28): keep `swap`, as R0bi7's epic, #82 and the AC name it. Phase 2 adds its own profile(s); adding one isn't breaking (`all` already has everything).
 9. ~~Ask Paul and the BE about the shared-IP limits~~ Parked: the user asked R0bi7 (2026-10-28); revisit later.
 10. Deploy: `POSTHOG_CLIENT_ID_SECRET`; RPC overrides; `canary-e2e` created by an admin.

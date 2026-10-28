@@ -103,6 +103,7 @@ Workflow the user asked for on each sub-issue: plan (agent) → review the plan 
    `UNKNOWN_TOKEN`, the address on the first quote (`plan-84-swap-quote.md` §Follow-up commit, on PR #94). A missed
    track stays an agent risk: the ready quote returns `afterSend`; the fix is a BE deposit watcher (`plan.md`).
 
+13. The public profile stays `swap` (user, 2026-10-28), as R0bi7's epic, #82 and the AC name it; phase 2 adds its own profile(s), which is additive. Not `actions`.
 ## Which file answers what
 
 | Question | File | ~tok |
