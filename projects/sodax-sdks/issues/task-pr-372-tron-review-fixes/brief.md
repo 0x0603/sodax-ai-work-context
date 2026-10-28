@@ -3,7 +3,7 @@ type: brief
 repo: sodax-sdks
 github: 
 status: Active
-next: user decides how to get the #372 fixes into #534 (cherry-pick by gcranju, or re-review after)
+next: fixes pushed to #534 (e6c3d6a3); wait for owner answers on #issuecomment-6436894146
 updated: 2026-10-27
 ---
 
@@ -28,10 +28,10 @@ then opens exactly one row from the map below.**
 
 Findings are posted on #534 (#issuecomment-6432900564), including "port the #372 fixes". The docs
 and skills #534 lacked are pushed onto `feat/tron-mpc-integration` as `f4e3af0e` (process.md, last
-entry); the code findings from that pass are not fixed. #541 still has no plan label. The PR
-conflicts with main (`packages/types/src/swap/swap.ts`), so CI does not run on it until main is
-merged in (merge, not rebase; nobody asked us to). Reserve/memo trust items are not posted; they go
-through AuditMap if the user wants. Don't post again unless asked.
+entry); main merged in as `c678c649`; the fixes in `plan-pr534-fixes.md` are pushed as `e6c3d6a3`.
+Open owner questions posted (#issuecomment-6436894146): wait for answers before touching 1.4/1.4b,
+2.1/2.2, 4.5. #541 still has no plan label. Reserve/memo trust items go through AuditMap if the user
+wants. Don't post again unless asked.
 
 ## Settled — do not re-litigate
 
@@ -53,6 +53,7 @@ through AuditMap if the user wants. Don't post again unless asked.
 | Final result per commit | `outcome.md` | 0.8k |
 | Original draft questions (superseded by the PR comment) | `author-questions.md` | 0.3k |
 | All findings with evidence: groups 1–4, C, open items, fix order | `code-review-findings.md` | 6k |
+| #534 fix plan: what is fixed how, what waits for an owner | `plan-pr534-fixes.md` | 1.6k |
 
 ## Landmines
 

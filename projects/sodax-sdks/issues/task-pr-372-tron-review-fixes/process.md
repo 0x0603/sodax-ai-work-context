@@ -79,6 +79,39 @@ updated: 2026-10-27
     no plan comment, no `plan-approved`). CI, Docs Drift, AI Files Drift and Security did not run: the
     PR now conflicts with main (`packages/types/src/swap/swap.ts`, main `26e45cde`), and GitHub runs no
     `pull_request` workflow on a conflicting PR. They run once main is merged in.
+  - Merged `origin/main` (`26e45cde`) into the worktree with `--no-commit`, uncommitted. Only conflict:
+    `swap.ts` staging map, resolved as main's `ROBINHOOD_MAINNET: []` + the PR's Tron staging entries
+    (main's #569 moved the other staging tokens to production). checkTs, types (1193) and sdk (3204)
+    tests, check:docs-pages, doc-links, ai-dev-files green.
+  - Checked the R0bi7 agent review (#issuecomment-6433047032, head `a9a8736c`): all five findings hold
+    (DEX withdraw identity bytes `AssetService.ts:405`; intent-relay waits in LY `:4130`/`:1795`, DEX,
+    CL, `cancelIntent`; bridge detailed status `BridgeService.ts:1327`; harness `tron.ts:122-123`;
+    `?? tx`). Wrong: its fix "settle outbound for signed messages" hangs for messages with no Tron
+    release (LY positions, CL), which need a refusal before signing; "branch up to date with main" (4
+    main PRs merged before it). Missed: partner-fee auto-swap recipient (`PartnerFeeClaimService.ts:379`).
+  - Merge committed + pushed (`c678c649`); CI green except the advisory Plan check (#541 label).
+  - Fixes per `plan-pr534-fixes.md`, uncommitted in the worktree (36 files). Verified first: backend
+    `origin/main` 3f838948 has no MPC/Tron code (backend skip stays right); on-chain
+    `getReservesList()` on the hub pool has no sodaTRX (TRX dropped from MM; a types test now pins
+    "every MM token's vault is a reserve"). LY changed from old C3 (refuse exits only) to refuse
+    entry too: deposit/open from Tron would have no SDK exit. Every new test fails on the old code
+    (mutation-checked file by file); sdk 3238, types 1194 pass. Wallet packages (E4–E6) done by a
+    subagent and reviewed; added a `result.message` revert check to both TRC-20 balance reads.
+  - Posted the three owner questions on #534 at the user's request (#issuecomment-6436894146):
+    Tron `srcAddress`/`originAddress` encoding (1.4/1.4b), hub→Tron and Tron→other-chain settlement
+    (2.1/2.2), `/notify` past `pending` (4.5). Cites head `c678c649` lines only, not the unpushed fixes.
+  - Pre-commit review (review-core-sdk + docs-review), all fixed: a new `useTemplate` lint error
+    (CI runs `pnpm lint`); cancel refusal returned `INTENT_CREATION_FAILED`, now `swapInvariant` →
+    `VALIDATION_FAILED`; duplicated constant-call guard → `constantCallFailed`; `txs?.` restored
+    (relay JSON is unvalidated); docs/comments claimed relay behaviour ("settles only on a release"),
+    reworded to what the SDK confirms; checksummed hub-wallet test added; a Biome `--write` reformat
+    of a pre-existing test line reverted. CI gates green locally (circular-deps, knip, check-exports,
+    size, lint, checkTs, docs, check:ai); sdk 3240 tests. Left as-is: `executeWithdraw` with
+    `params.dst` sends from the dst chain (pre-existing, not Tron); strict base58 accepts a leading `1`.
+  - Committed as one commit at the user's request and pushed onto the PR branch: `e6c3d6a3`
+    (fast-forward from `c678c649`, 45 files), Node 24, full pre-commit hook passed, signed. CI on it:
+    CI, Docs Drift, AI Files Drift, Security, Issue Link, Lint PR green; only the advisory Plan check
+    fails (#541 has no plan label).
 
 ## Findings
 
