@@ -58,5 +58,6 @@
   "scanRoots": [
     "."
   ],
-  "prFooter": "Opened by Sang assistant. Review before merging."
+  "prFooter": "Opened by Sang assistant. Review before merging.",
+  "contextDir": "sodax-ai-work-context"
 }
