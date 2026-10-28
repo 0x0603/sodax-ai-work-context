@@ -3,8 +3,8 @@ type: brief
 repo: sodax-sdks
 github: 
 status: Active
-next: fixes pushed to #534 (e6c3d6a3); wait for owner answers on #issuecomment-6436894146
-updated: 2026-10-27
+next: 8a3cabc1 pushed to #534 (cancel reason, changeset, JSDoc); memo fixture + Q2/Q3 wait on gcranju
+updated: 2026-10-28
 ---
 
 # PR 372 Tron review fixes · brief
@@ -23,6 +23,8 @@ then opens exactly one row from the map below.**
   MPC timeouts mapped to `RELAY_FAILED`/`UNKNOWN`.
 - Bot review on #534 (#issuecomment-6416633757): six findings, all hold against the code. Docs
   pass: two pages made false, raw Tron deposit recipe wrong, skills/READMEs not updated (process.md).
+- 2026-10-28 head `bdda76d4`: gcranju fixed Q1 (srcAddress/originAddress → `encodeRecipient`), memo
+  recompute, node-built tx check. That made our cancel-refusal reason false. Q2/Q3 open, reserve warn-only.
 
 ## Next action
 

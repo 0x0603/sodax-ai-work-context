@@ -2,7 +2,7 @@
 type: process
 repo: sodax-sdks
 github: 
-updated: 2026-10-27
+updated: 2026-10-28
 ---
 
 # Process
@@ -112,6 +112,24 @@ updated: 2026-10-27
     (fast-forward from `c678c649`, 45 files), Node 24, full pre-commit hook passed, signed. CI on it:
     CI, Docs Drift, AI Files Drift, Security, Issue Link, Lint PR green; only the advisory Plan check
     fails (#541 has no plan label).
+- 2026-10-28 — re-review of #534 at `bdda76d4`. gcranju added `dd5a2b35` (Tron intent `srcAddress`
+  and LY `originAddress` → `encodeRecipient`; `reverseEncodeAddress` takes both forms), `9e5d026d`
+  (memo recomputed as `keccak256(abi.encode(hubWallet, data))`, raw and signed), `238ad30d`
+  (`assertDepositTransfer` decodes `raw_data_hex` before signing), merged with `e6c3d6a3` cleanly.
+  No reply in the thread; Q1 answered only by code, Q2/Q3 open. Found: our cancel-refusal reason
+  (SwapService.ts:1807, SWAPS.md:967, docs swaps.md:971, changeset:22) is now false, though the
+  refusal still holds (cancel waits on the intent relay, :1889); `computePayloadHash` splits
+  `getDepositAddress` from its JSDoc (MpcRelayApiService.ts:150); memo formula is untested against
+  the relay (test MEMO uses the same formula; the old `0xb07e…` fixture matched neither abi.encode
+  nor packed). Reserve still warn-only (AuditMap item). Staking from Tron is unreachable (no SODA).
+  CI green except "Spec and plan" (workflow permission error). Nothing posted.
+  - Fixed locally on `docs/tron-mpc-docs` (ff to `bdda76d4`), uncommitted: cancel-refusal reason in
+    SwapService.ts, SWAPS.md (+ synced docs page) and the changeset (now: cancel confirms through the
+    intent relay); changeset lists intent `srcAddress` and LY origins among `encodeRecipient` users;
+    `computePayloadHash` moved above the `getDepositAddress` JSDoc. biome, checkTs, docs-pages,
+    doc-links, 351 related tests green. Memo fixture and Q2/Q3 left for gcranju.
+  - Committed and pushed at the user's request as `8a3cabc1` onto `feat/tron-mpc-integration`
+    (Node 24, full pre-commit hook passed, sdk 3262 tests, signed). Nothing posted on the PR.
 
 ## Findings
 
