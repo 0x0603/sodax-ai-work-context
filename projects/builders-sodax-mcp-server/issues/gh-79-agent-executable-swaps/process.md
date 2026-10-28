@@ -178,4 +178,5 @@ updated: 2026-10-27
 - Posted the merge order on #79 for R0bi7 (#issuecomment-6464424485).
 - `/code-review` (high) on the stack fixes and on #104; triage and fixes in `plan-fixes-2026-10-28.md` §D. ADR #90 brought in line (`bcf9d07`). Pushed: #104 `e8a1b36`; stack fix commits on #95 (catalog keyless, refund wording, cleanups), #97 (amount doc), #98 (workflow comment), restacked with `--update-refs` without conflicts, tip tree equal to the reviewed one, every changed branch green, force-pushed with lease.
 - Live test on canary with a blank agent: two real swaps solved (AC met), error cases, partner fee; posted on #79 (#issuecomment-6466086206). Fixes and the pending improvements implemented, split per PR (#94, #95, #96, #97, #102), restacked, force-pushed; ADR `1dc6dfc`; review requested from R0bi7 on #90 (now ready), #100, #104, #91.
+- Live test round 2 after the fixes: two more swaps solved (3 and 4 track calls instead of 9), production contract tests 25/25; posted on #79 (#issuecomment-6467367536). Test wallet: Arbitrum 1.519659 USDC + 0.000414 ETH, Base 0.000458 ETH; container still running.
 
