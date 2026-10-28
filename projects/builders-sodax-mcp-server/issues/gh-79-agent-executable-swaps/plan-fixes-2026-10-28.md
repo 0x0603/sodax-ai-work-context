@@ -102,6 +102,38 @@ profiles (D4), quote shows no solver-fee field (net amount) and has seconds left
 unknown status), cancel checks without a quote, cache eviction policy, unsubmitted deposits aren't lost, safety rule
 on chain ids. +15/−5 lines.
 
+### E. Fixes from the live test (`test-run-2026-10-28.md`), uncommitted
+
+Results posted on #79 (#issuecomment-6466086206). Stack tip: 794 tests, checkTs, lint, build, snapshot unchanged.
+
+| Finding | Change | PR |
+|---|---|---|
+| 1 README config | `"type": "http"` / `"sse"` in the three snippets, plus a `claude mcp add --transport http …` line | #102 |
+| 4 polling | `trackSwapWaiting`: the track tool repeats `trackSwap` every 5 s while awaiting/queued/in progress, until the state changes or 20 s; polling next steps say "call again (it waits up to 20 seconds)"; `trackWait` mutable for tests; 2 tests (caught a revert) | #95 |
+| 5 approve | quote next step: "each mined before the next (a swap sent before its approve is mined fails)" | #102 |
+| 6 logs | `Submitted a swap deposit` at info (tested); oracle fetch failure `warn` instead of `error` (`solver.ts`) | #95; #97 |
+| 7 small | `QUOTE_NOT_FOUND`: "expired, or was lost when this server restarted"; `in_transit` next step points at `sodax_get_balance` | #95 |
+| 2 Ethereum RPC | Not code: production sets `SODAX_RPC_URL_<id>` with a paid key for every EVM source (Ethereum and Polygon first). SDK default `eth.merkle.io` answers 429 / 1015 on every call (publicnode works), but the SDK default stays as is (user, 2026-10-28: the MCP uses a paid RPC) | ops, before #102's release |
+| 3 minimum | Not code: the quote API should return the minimum | BE |
+
+ADR #90: one line on the track wait (worktree, uncommitted).
+
+### F. Pending improvements implemented (user: "làm đi", 2026-10-28), uncommitted
+
+809 tests (+15), checkTs, lint, build, snapshot unchanged; `pnpm test:contract` canary 26/26; live quotes on a
+rebuilt image (USDC→SOL, ETH→USDC, USDC→ETH, USDC→S) all pass the price check at 98–99% out/in.
+
+| Item | Change | PR |
+|---|---|---|
+| S5 | `SODAX_SWAP_ORACLE_BASE_URL` pinned to production; `getSolverOracle(baseUrl)` cache per host (builder tool unchanged); quote refuses `PRICE_OFF_MARKET` (alerted) when out < 90% of in net of partner fee, also on price-only quotes; `usdOut` in the output; unpriced only warns | #97 (+ a README safety line #102) |
+| U1 | `blockNumber` wrapper in `sodax.ts`, `readBlockNumber` in `source.ts`, in the quote's `Promise.all` for ready quotes | #95 (needs `CHAIN_UNAVAILABLE` / `source.ts`) |
+| U3 | cancel with no row and an unhanded cached quote reads the receipt: `not_sent`; `deposit_unsubmitted` (retry at the deadline, don't track); after the deadline relays for refund through track's exported `relayForRefund` (shared `checkQuoteDeposit`) | #95 |
+| U5 | `batch` keeps the envelope and `replaces`, no `calls`; next step says to build calls from the replaced steps | #94 (type), #102 (next step, README) |
+| #85 contract | `swapTrack.contract.test.ts`: solved swaps over 3 calls with exact hashes (canary: today's swaps; production: fixture `0x1b5869f1…`), unknown deposit → `not_submitted_unknown_quote`, live decode + `deposit_mismatch`, every EVM source has a matching `connection` and an https RPC; a fetch spy refuses any Swaps API POST | #95 |
+
+ADR #90 (worktree, uncommitted): D5 chain reads include the quote's block-number probe; Quote: USD in/out, price
+check, production oracle, batch envelope; Cancel: unsubmitted deposits; Safety: off-market quotes refused.
+
 ## Research for groups 2–4 (read from source; intent-relay and solver-v2 not readable: submodules not initialised, 404)
 
 | Item | Facts | Recommendation (owner) |
