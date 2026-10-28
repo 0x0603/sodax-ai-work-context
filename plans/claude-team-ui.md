@@ -39,11 +39,11 @@ things while I am out and get an answer I can paste back; plan and create issues
 - This repo: `team-ui/projects.json` now carries `setupCommand` and `testCommand` for all 9 projects (verified against
   each repo's package.json, hooks and CLAUDE.md), Node 22.23.4 for sodax-backend (its `engines`), Node 24 for
   sodax-frontend (its CI), and per-repo rules in `team-ui/prompts/{sodax-sdks,sodax-backend,sodax-frontend}/_rules.md`.
-- Console at `97bfb15` (evening of 2026-10-27, four merges, 240 smoke checks): the **assistant** (item 1 below, done
-  as designed, plus: the chat keeps the scope it was opened with, a model per chat, a draggable button, Summary /
+- Console at `97bfb15` (evening of 2026-10-27, four merges, 240 smoke checks): the **assistant** (a chat per question with
+  Conclusion, Evidence and a reply draft, plus: the chat keeps the scope it was opened with, a model per chat, a draggable button, Summary /
   Copy / Share on notebook files; tool allowlist narrowed to `gh issue view|list`, `gh pr view|list|diff|checks`,
   `gh search`, `git log|show`, `rg` after a review found `Bash(gh issue:*)` also allowed `create`); **flow ops +
-  picker** (item 2: chips with assignee / author / label / state / sort, `setupCommand` per project with its log,
+  picker** (chips with assignee / author / label / state / sort, `setupCommand` per project with its log,
   Risks split from Open questions, quick build by the lead alone, fix-round reviews with `{{SINCE}}`); **chat +
   digest + away mode**: a Chat tab per cartridge from the lead's transcript with quick replies by state, a
   fixed-format `plans/summary.md` section per step (`{{SUMMARY}}`) shown as a verdict card with tickable findings
@@ -51,36 +51,39 @@ things while I am out and get an answer I can paste back; plan and create issues
   waiting, PR comments checked on request (no timer, to save calls). The console runs detached from the terminal
   now, still with `--lan`.
 
+## Done (2026-10-28)
+
+- E1 + E2 (console `5982b96`, docs `1efb4d3`): Tidy up (sizes, eject finished, hibernate, orphans, post-eject branch
+  clean-up, `ejected.json`), RAM line, idle power-off, dismiss idle agents, `projects[].env`, cost guard (`budgetUSD`,
+  `quotaPausePct`), `scripts/install-launchagent.sh`; assistant chips, pasted issue/PR links, Post review to the PR,
+  unreachable bar. `pnpm store prune` is unticked by default (shared store).
+- Console `44eb0f3` (331 smoke checks): plan usage refreshed from claude.ai's usage endpoint with the login Claude
+  Code saved, no model call (D54, verify V15); the Flow digest shows the report's own summary, scrolled inside, and
+  the Flow tab is compact on phones; the chat shows sending / sent and the lead's activity until it answers; **Push
+  fixes to the PR** for review cartridges (D55, agents still never push); **Save to context** copies notebook files
+  into `projects/<repo>/issues/<folder>/` here, with frontmatter and `brief.md` rows (D56, `contextDir` in
+  `team-ui/projects.json`); Tidy up offers local branches whose commits are all on GitHub and refuses a prune that
+  would drop a commit (D57).
+- Runs at login: LaunchAgent `com.claude-team-ui` with `--tailscale`, logs in `~/Library/Logs/claude-team-ui/`. LAN
+  addresses get 403; my own tailnet devices need no token. It needed two fixes: the Tailscale app's binary acts as the
+  CLI under launchd only with `TAILSCALE_BE_CLI=1` (verify V16), and without the shell profile's
+  `COREPACK_ENABLE_AUTO_PIN=0` corepack's pnpm wrote `packageManager` into package.json, so the server sets it.
+- Workspace branch clean-up: 192 local branches deleted across the clones and hub submodules (every commit on GitHub,
+  on a remote branch or inside a merged PR head) and 18 worktree records pruned whose `/tmp` scratchpad folders macOS
+  had emptied. Restore list on this Mac: `~/.config/claude-team-ui/deleted-branches-2026-10-28.tsv`.
+
 ## Next
 
-1. **Assistant** (console branch `feat/assistant`, agent A): a chat for "someone asked me X", issue planning and
-   issue creation. One `claude -p --resume <session>` call per message, streamed to the browser over SSE; cwd is the
-   workspace root so it reads AGENTS.md, INDEX.md and the dossiers; `--add-dir` for each project; read-only tool
-   allowlist (Read, Grep, Glob, `gh issue/pr/search` reads, `git log`), so no permission prompts. Every answer has a
-   *Conclusion* and *Evidence* (file:line, links) and a **Reply draft in English** with a Copy button; claims tagged
-   verified / derived / judgement. Actions come back as ```action cards (create issue, start a flow, review a PR,
-   send a note to a lead) and run only when tapped, through the existing routes. FAB on every screen → full-height
-   sheet; New chat (fresh session id), chat list with cost, delete, clear all; long-press the FAB for a new chat.
-   `prompts/90-assistant.md`, per-project `_assistant.md` for repo rules (sodax-sdks issue types on `gosodax`). Cost
-   guard: `fast` model, `--max-turns 8`, small overview snapshot, `--setting-sources project` (user hooks such as the
-   Vercel plugin fired on resume in the test and added noise). Fake `claude` in `test/fakes` must learn `-p --resume`.
-2. **Flow ops + picker** (console branch `feat/flow-ops`, agent B): the findings below, items 1–5; issue/PR picker as
-   one row of chips with assignee, author, label, state, sort (PRs: author, review requested, draft, decision),
-   remembered per device.
-3. **E1 + E2 done (console `5982b96`, docs `1efb4d3`, 302 smoke checks, 2026-10-28)**: Tidy up (sizes, eject finished,
-   hibernate, orphans, post-eject branch clean-up, `ejected.json`), RAM line, idle power-off, dismiss idle agents,
-   `projects[].env`, cost guard (`budgetUSD`, `quotaPausePct`), `scripts/install-launchagent.sh`; assistant chips,
-   pasted issue/PR links, Post review to the PR, unreachable bar. `pnpm store prune` is unticked by default (shared
-   store). GitHub-side calls (`gh search`, `gh pr comment`, `pr view --json state,mergedAt`) ran only against fakes.
-4. **LaunchAgent not installed yet**: under launchd, node hangs in `open()` on the macOS privacy question for
-   `~/Documents` (verify.md V14). At the Mac: `cd ~/code/claude-team-ui && ./start.sh --install --lan`, allow the
-   Documents prompt, check `curl localhost:7700/style.css`. Until then the console runs detached from `./start.sh --lan`.
-5. **Switch the console to `--tailscale`** (no token for my own devices, nothing answered outside the tailnet).
-   Optional: HTTPS through `tailscale serve`.
-6. **First real run**: a small sodax-sdks issue with the quick flow, then a medium one with standard, then a big one
-   with full. The full flow's 5-agent planning has not run for real yet; neither have the new `{{SUMMARY}}` prompts.
-7. Later: Retro copies spec / plan / review / retro into `projects/<repo>/issues/gh-<n>-*/` here; the assistant may
-   scaffold a dossier with `scripts/new-issue.sh` (v2, it is read-only in v1).
+1. **First real standard and full runs**: a medium sodax-sdks issue with standard, then a big one with full. The full
+   flow's 5-agent planning has not run for real yet; neither have the `{{SUMMARY}}` prompts outside quick. (A quick
+   flow ran for real on 2026-10-27, a review of PR 578 on 2026-10-28.)
+2. **Legacy clones**: `sodax-sdks/` and `sodax-frontend/` stay only for 7 branches never pushed (`feat/solana-page`
+   65 commits, `feat/leverage-positions` 24, `feat/support-p2sh`, `feat/bridge-api-package`,
+   `fix/swap-speed-tier-vault-lookup`, `test/ci-skip`, `apply-ai-export-improvements`). Back them up on my fork or
+   drop them, then delete both clones. `sodax-backend/` stays for the parked bridge alerter stash.
+3. Optional: HTTPS through `tailscale serve`.
+4. Later: Retro copies spec / plan / review / retro here on its own (Save to context does it by tap now); the
+   assistant may scaffold a dossier with `scripts/new-issue.sh` (v2, it is read-only in v1).
 
 ## Team-operation findings (2026-10-27, console `57b617b`)
 
