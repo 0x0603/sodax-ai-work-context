@@ -1,7 +1,7 @@
 ---
 type: plan
 status: Active
-updated: 2026-10-27
+updated: 2026-10-28
 related_issues: []
 related_decisions: []
 tags: [claude-team-ui, agent-teams, tooling, phone, security, cross-repo]
@@ -67,23 +67,14 @@ things while I am out and get an answer I can paste back; plan and create issues
 2. **Flow ops + picker** (console branch `feat/flow-ops`, agent B): the findings below, items 1–5; issue/PR picker as
    one row of chips with assignee, author, label, state, sort (PRs: author, review requested, draft, decision),
    remembered per device.
-3. **E1, parked at the weekly limit on 2026-10-28 ~02:00 (resets 06:00)**: uncommitted work in
-   `~/code/claude-team-ui-wt/tidy` (branch `feat/tidy-ops`: `lib/housekeeping.js`, config/cartridges/github/util
-   edits; routes, UI, LaunchAgent, cost guard and tests still to do) and `~/code/claude-team-ui-wt/chips` (branch
-   `feat/assistant-chips`, E2: code edits done, README line, smoke tests and the test run left). Resume by reading
-   each worktree's `git diff`, finish, `npm test`, then merge into main as before. *Tidy up* (a one-tap Clean button on home and in Settings, a
-   post-eject sheet offering to delete the merged branch / remote branch / archive, `ejected.json` per project so
-   later tidy passes find merged branches, hibernate idle worktrees by dropping `node_modules`/`dist`/`.next` with
-   `setupCommand` restoring them, orphan worktree/research folders, `git worktree prune`, `pnpm store prune`;
-   auto power-off of cartridges idle at a checkpoint for 2 h with `--continue` on Start; a RAM line on home;
-   `projects[].env` such as `TURBO_CONCURRENCY=2`), a **LaunchAgent** so the console starts at login and survives a
-   reboot, and a **cost guard** (per-cartridge budget and a 7-day quota threshold that pause autopilot before the
-   next step). Measured 2026-10-27: one sodax-sdks review worktree = 3.0 GB, 2.9 GB of it `node_modules`; two
-   Claude processes = 1.1 GB RAM; `~/.claude/projects` = 658 MB, mostly my own sessions (Claude's
-   `cleanupPeriodDays`, default 30, not set).
-4. **E2**: assistant chips on an empty chat ("What needs me?", "Draft my weekly report" from `gh` activity,
-   "Summarize PR #…"), issue/PR URL paste recognised in Add and in the assistant, "Post review to PR" at the review
-   gate (user tap, confirm), a "Console unreachable" banner when fetches fail.
+3. **E1 + E2 done (console `5982b96`, docs `1efb4d3`, 302 smoke checks, 2026-10-28)**: Tidy up (sizes, eject finished,
+   hibernate, orphans, post-eject branch clean-up, `ejected.json`), RAM line, idle power-off, dismiss idle agents,
+   `projects[].env`, cost guard (`budgetUSD`, `quotaPausePct`), `scripts/install-launchagent.sh`; assistant chips,
+   pasted issue/PR links, Post review to the PR, unreachable bar. `pnpm store prune` is unticked by default (shared
+   store). GitHub-side calls (`gh search`, `gh pr comment`, `pr view --json state,mergedAt`) ran only against fakes.
+4. **LaunchAgent not installed yet**: under launchd, node hangs in `open()` on the macOS privacy question for
+   `~/Documents` (verify.md V14). At the Mac: `cd ~/code/claude-team-ui && ./start.sh --install --lan`, allow the
+   Documents prompt, check `curl localhost:7700/style.css`. Until then the console runs detached from `./start.sh --lan`.
 5. **Switch the console to `--tailscale`** (no token for my own devices, nothing answered outside the tailnet).
    Optional: HTTPS through `tailscale serve`.
 6. **First real run**: a small sodax-sdks issue with the quick flow, then a medium one with standard, then a big one
