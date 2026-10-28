@@ -34,7 +34,7 @@ updated: 2026-10-28
   Signing: the agent holds the key, signs and broadcasts, then passes the tx hash to MCP (D1 holds).
 - Code lives in the hub submodule `sodax-command-center/repos/client/builders-sodax-mcp-server`. The standalone
   clone `sodax/builders-sodax-mcp-server/` (local signing key and noreply identity set) is legacy.
-- PR #101 (`ci/publish-mcp-registry`, by hazy2go, 2026-10-27) publishes `server.json` to the MCP Registry on release; it touches the same file as #102.
+- PR #101 (`ci/publish-mcp-registry`, by hazy2go, 2026-10-27) publishes `server.json` to the MCP Registry on release; it touches the same file as #102, and its `serverJson.test.ts` expects builder tools only, so it goes red once #102's swap tools are in `server.json`. Parked (user, 2026-10-28): whichever merges second merges the two tests; don't raise it before then.
 - `improvement-ideas.md` predates the ADR revision and has not been re-mapped.
 
 ## Blocked on
@@ -48,7 +48,7 @@ updated: 2026-10-28
 
 ## Next action
 
-Review 2026-10-28 (`review-2026-10-28-project.md`): group-1 fixes are done and uncommitted (`plan-fixes-2026-10-28.md`): stack fixes at the tip of `feat/89-swap-docs` in the hub submodule (791 tests, to be split per PR on "commit push"), pre-existing hardening in the worktree `sodax/builders-sodax-mcp-server-hardening` (`fix/server-hardening` off `fix/sse-start-once`, 125 tests; security: issue text neutral, details via AuditMap). Research for groups 2–4 is in the same file; 10 decisions wait for the user. BE `submit-tx` throttles 10/min per IP, shared by all MCP users: the user asked R0bi7, parked (don't raise again until it comes back).
+Review 2026-10-28 (`review-2026-10-28-project.md`): group-1 fixes are committed and pushed (2026-10-28): stack restacked with one fix commit per PR (tips #93 `cf4f806`, #94 `48b307b`, #95 `2ad17f9`, #96 `c209a8b`, #97 `77061fa`, #98 `0c87c4d`, #102 `0b4da5f`; #91/#92 unchanged; final tree = the verified one), and `fix/server-hardening` @ `efaa764`. PR bodies not yet updated; hardening has no issue/PR yet. Earlier wording: (`plan-fixes-2026-10-28.md`): stack fixes at the tip of `feat/89-swap-docs` in the hub submodule (791 tests, to be split per PR on "commit push"), pre-existing hardening in the worktree `sodax/builders-sodax-mcp-server-hardening` (`fix/server-hardening` off `fix/sse-start-once`, 125 tests; security: issue text neutral, details via AuditMap). Research for groups 2–4 is in the same file; 10 decisions wait for the user. BE `submit-tx` throttles 10/min per IP, shared by all MCP users: the user asked R0bi7, parked (don't raise again until it comes back).
 
 Fix round 2026-10-27 done: every finding of `review-2026-10-27-stack.md` fixed, a second review per PR and its fixes,
 stack rebased in order and force-pushed (with lease); PR bodies updated. Tips: #91 `bab68bf`, #92 `5a78943`, #93
