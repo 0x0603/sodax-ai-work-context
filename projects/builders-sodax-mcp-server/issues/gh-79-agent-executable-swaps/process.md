@@ -166,3 +166,11 @@ updated: 2026-10-27
   `50b9587c` under Node 24, draft PR #577. sodax-sdks AGENTS.md says an agent implements only once the issue has
   `plan-approved` or `no-plan`; the user had been told and said "commit push", so the PR is a draft waiting on the label.
 - Not done: the kill-switch question (`SODAX_SWAP_TOOLS_DISABLED`) is open with the user.
+
+## 2026-10-28: project review and GitHub stack
+
+- Whole-project review by four agents at #102's tip: `review-2026-10-28-project.md` (open, waiting for triage).
+- PR bases moved to a GitHub stack (user's call): #92–#98 and #102 each target the branch below; #91 stays on `development`. Bodies: the "Builds on …" line replaced by the stack list and "moves to `development` once #N merges"; #91 got a "First PR of the stack" line. Diffs now: #91 +445, #92 +2243, #93 +1894, #94 +5869 (lockfile), #95 +2727, #96 +797, #97 +1254, #98 +803, #102 +273/-279; all mergeable.
+- Why it was "never a GitHub native stack" isn't recorded; the cost found: CI runs only on PRs into `development`/`master`, and merging an upper PR would land in a feature branch (kept draft).
+- Group-1 fixes by two agents (stack tip + hardening worktree), three research agents for groups 2–4; results and per-PR map in `plan-fixes-2026-10-28.md`. Gates re-run by hand: 791 and 125 tests green, builder snapshot unchanged. intent-relay and solver-v2 hub submodules are not initialised (no access).
+

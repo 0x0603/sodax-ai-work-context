@@ -3,7 +3,7 @@ type: plan
 repo: builders-sodax-mcp-server
 github: 79
 tags: [mcp, swaps-api, agents, non-custodial]
-updated: 2026-10-26
+updated: 2026-10-28
 ---
 
 # GH-79 Builders MCP agent-executable swaps — verdict
@@ -101,7 +101,7 @@ src/tools/{actionTool,swap}.ts
 
 Order: #80 → #81 → #82 → #83 → #86 → #84 → #85 → #87 → #88 → #89. **One PR per sub-issue** (`Closes #N`; user's call,
 2026-10-26), each on its own branch off `development`, squash-merged. Open the next PR once the previous one is
-merged, or base it on the previous branch if review lags (never a GitHub native stack). #90 is the #80 ADR PR. Code
+merged, or base it on the previous branch if review lags. Since 2026-10-28 each PR's GitHub base is the branch below it (user's call), so each shows only its own diff; see `brief.md` for the merge procedure. #90 is the #80 ADR PR. Code
 lives in the hub submodule `sodax-command-center/repos/client/builders-sodax-mcp-server`.
 
 Rollout gate: `development` reaches production on the weekly release, and a quote without `track` lets a user sign a

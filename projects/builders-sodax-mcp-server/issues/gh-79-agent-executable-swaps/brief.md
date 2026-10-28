@@ -28,6 +28,7 @@ updated: 2026-10-28
   wallet; native HBAR open). 347 unit tests, 13 contract tests on both hosts. ADR amendment `21d9017` (balances via
   the SDK) pushed to PR #90. Hub branch `docs/builders-mcp-swap-sdk` @ `eb1f30d` is pushed (no PR yet).
   Details: `plan-84-swap-quote.md` §Commit 6 and §/simplify on the SDK commit.
+- Since 2026-10-28 the stack is a GitHub stack: #91 targets `development`, each later PR targets the branch below it (#92 → `feat/81-forward-api-key` … #102 → `feat/88-e2e-canary`), bodies say so. CI (`ci.yml`, `drift-check.yml`) runs only on PRs into `development`/`master`, so only #91 gets CI until a PR is retargeted. After a PR squash-merges: `git rebase --onto origin/development <old tip of the merged branch> feat/<next>`, force-push with lease, `gh pr edit <next> --base development` (no auto-retarget: branch auto-delete is off). Keep the upper PRs draft so nobody merges into a feature branch.
 - All of #79–#89 are assigned to the user (`0x0603`) as of 2026-10-26. "@0xmatterhorn" is the user's Discord handle.
 - Discord 2026-10-23 (see `process.md`): R0bi7 says the epic is a core draft and the user may adjust decisions.
   Signing: the agent holds the key, signs and broadcasts, then passes the tx hash to MCP (D1 holds).
@@ -46,6 +47,8 @@ updated: 2026-10-28
 5. A gosodax admin for the E2E secrets and the staging `SODAX_ENV=canary` setting.
 
 ## Next action
+
+Review 2026-10-28 (`review-2026-10-28-project.md`): group-1 fixes are done and uncommitted (`plan-fixes-2026-10-28.md`): stack fixes at the tip of `feat/89-swap-docs` in the hub submodule (791 tests, to be split per PR on "commit push"), pre-existing hardening in the worktree `sodax/builders-sodax-mcp-server-hardening` (`fix/server-hardening` off `fix/sse-start-once`, 125 tests; security: issue text neutral, details via AuditMap). Research for groups 2–4 is in the same file; 10 decisions wait for the user. BE `submit-tx` throttles 10/min per IP, shared by all MCP users: the user asked R0bi7, parked (don't raise again until it comes back).
 
 Fix round 2026-10-27 done: every finding of `review-2026-10-27-stack.md` fixed, a second review per PR and its fixes,
 stack rebased in order and force-pushed (with lease); PR bodies updated. Tips: #91 `bab68bf`, #92 `5a78943`, #93
@@ -115,6 +118,8 @@ Workflow the user asked for on each sub-issue: plan (agent) → review the plan 
 | #88 plan (reviewed 2026-10-26) and how the code differs (§Implementation, PR #98): built server in the runner over `/mcp?profile=swap`, viem EOA signer in `scripts/e2e/`, 5 USDC Arbitrum↔Base (richer side sends), `canary-e2e` environment, `curl` Discord alert with the stage, leak check on green and red runs; 4 open questions (reviewer agrees with each) | `plan-88-canary-e2e.md` | 6k |
 | #89 plan (2026-10-27): drop the switch, README walkthrough, `server.json` (no `tools` field in the registry schema; profile header; drift test), Glama has only `maintainers`; sodax-sdks page + skill under their own issue, merging once production serves the swap tools | `plan-89-docs-registry.md` | 1.5k |
 | Hands-on test plan per sub-issue (2026-10-28): levels A–E, smoke checklist per PR tip, the live canary scenarios with their risk, order | `plan-test.md` | 3k |
+| Whole-project review 2026-10-28 (4 agents at #102's tip): funds-safety tier, security / backend exposure (private channel), agent UX, structure and process; open | `review-2026-10-28-project.md` | 5k |
+| Fixes from the 2026-10-28 review: what is fixed where (per-PR map for splitting commits), research for the open items with owners, decisions for the user | `plan-fixes-2026-10-28.md` | 4.5k |
 | Stack review 2026-10-27, PR #91–#98: must-fix, mediums per PR, low/nits, out-of-date decisions, what was verified fine | `review-2026-10-27-stack.md` | 4k |
 | Discussion log: balance in BE, custom RPC, full SDK vs light, rate limit, API key, cancel, partner fee | `process.md` | 2k |
 | Candidate changes from before the ADR revision, not re-mapped | `improvement-ideas.md` | 1.9k |
