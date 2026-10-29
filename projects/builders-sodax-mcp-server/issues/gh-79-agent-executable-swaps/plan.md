@@ -151,9 +151,7 @@ write cap (120/min) and jail (1500/10 s) hit the MCP's IP unless HAProxy trusts 
 
 **BE (swaps-api)**: wallet balance route; `submit-tx` checks the source tx on chain; destination check in
 `/swaps/intents`; `includeTxData` with slippage and deadline; partner fee per org; `submit-tx` from
-`(txHash, srcChainKey)` alone; watch for the deposit of every intent built through `/swaps/intents` and relay it
-without a `submit-tx`, so an agent that never calls `sodax_swap_track` can't strand funds (then track only reads
-status and the MCP's interim deposit check goes; 2026-10-26).
+`(txHash, srcChainKey)` alone. No deposit watcher (dropped 2026-10-29: too heavy across chains).
 
 ## Risks
 
@@ -163,5 +161,5 @@ status and the MCP's interim deposit check goes; 2026-10-26).
 - **Dependency weight:** the full SDK grows the image; `ws` stays on an unfixed advisory.
 - **Dead default RPCs:** Polygon's SDK default is dead and Ethereum's flaky; staging and production set
   `SODAX_RPC_URL_137` / `_1` before the switch turns on.
-- **Missed track:** an agent that never calls `sodax_swap_track` strands the deposit until the BE watches deposits
-  itself (§Follow-ups, BE).
+- **Missed track (accepted):** nothing submits the deposit, so no hub intent exists and the canceller can't refund
+  it. A later `sodax_swap_track` with its hash relays it (refund after the deadline), or an operator relays it.

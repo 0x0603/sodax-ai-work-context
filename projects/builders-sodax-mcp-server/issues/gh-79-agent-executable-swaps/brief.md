@@ -97,7 +97,9 @@ Workflow per sub-issue (user): plan → review → implement → `/simplify` →
    `/allowance/check` (`plan-86-get-balance.md` §Scope cut; ADR D5/D6 updated 2026-10-27).
 12. Fewer agent calls (user, 2026-10-26): the quote takes names and symbols directly, resolve only on
    `UNKNOWN_TOKEN`, the address on the first quote (`plan-84-swap-quote.md` §Follow-up commit, on PR #94). A missed
-   track stays an agent risk: the ready quote returns `afterSend`; the fix is a BE deposit watcher (`plan.md`).
+   track stays an agent risk, accepted (user, 2026-10-29; no BE deposit watcher, too heavy across chains): the
+   deposit doesn't refund itself (the canceller needs a hub intent); a later track with its hash, or an operator
+   relay, rescues it.
 
 14. No change to the SDK's default Ethereum RPC (user, 2026-10-28): production sets `SODAX_RPC_URL_<id>` with a paid key for every EVM source before #102's release; without it Ethereum track/balance fail.
 15. `AMOUNT_TOO_LOW` suggests ≈ $1.5 of the token (user, 2026-10-29); a hint, never an MCP refusal.
