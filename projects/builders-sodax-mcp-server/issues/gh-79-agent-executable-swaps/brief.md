@@ -29,8 +29,13 @@ updated: 2026-10-29
 | sodax-sdks #577 | Docs page + skill pointer (issue #576) | `docs/builders-mcp-swap` | draft |
 
 - GitHub stack: #91 targets `development`, each later PR the branch below it; CI runs only on PRs into
-  `development`/`master`. After a squash-merge: `git rebase --onto origin/development <old tip> feat/<next>`,
-  force-push with lease, `gh pr edit <next> --base development`. Keep the upper PRs draft.
+  `development`/`master`. Keep the upper PRs draft.
+- Sync by merge only, never rebase or force-push (since 2026-10-29): a change on one PR is merged up into each
+  branch above it in order. After a squash-merge, merge `origin/development` into the next branch (through an
+  intermediate branch if the squash makes it conflict), push, `gh pr edit <next> --base development`.
+- Local branches: keep only `development` and the branch in use; `git fetch` then `git switch <branch>` recreates
+  one from origin. Before pushing, check ahead/behind; a branch both ahead and behind is a stale copy, so stop.
+  Stale tips from the 10-27/28 restack are kept under `refs/backup/stale-2026-10-29/` on the machine that cleaned up.
 - Live test on canary 2026-10-28 passed: two real swaps solved (`test-run-2026-10-28.md`).
 - #79–#89 are assigned to the user; "@0xmatterhorn" is the user's Discord handle. R0bi7 (Discord 2026-10-23): the
   epic is a draft and the user may adjust it; the agent signs and broadcasts, the MCP gets the hash (D1).

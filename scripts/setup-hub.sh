@@ -10,7 +10,9 @@
 #   2. skip submodules this GitHub account can't read (else the hub bootstrap aborts)
 #   3. run the hub's scripts/bootstrap.sh (every readable repo on its branch tip)
 #   4. hide submodule pointer changes from the hub's git status (we never commit them)
-#   5. sign commits in every submodule with $SODAX_SIGNING_KEY, if that key exists
+#   5. per submodule: sign commits with $SODAX_SIGNING_KEY (if that key exists), prune branches
+#      deleted upstream on fetch, and refuse a --force-with-lease push from a branch that never
+#      took in the remote tip (a stale copy of a branch rewritten on the other machine)
 #   6. create the hub's .venv for its Python tooling (needs python >= 3.11)
 #   7. share this machine's Claude memory for the workspace with the hub
 set -euo pipefail
@@ -50,6 +52,10 @@ scripts/bootstrap.sh
 while read -r key path; do
   name="${key#submodule.}"; name="${name%.path}"
   git config "submodule.$name.ignore" all
+  if [[ -e "$path/.git" ]]; then
+    git -C "$path" config --local fetch.prune true
+    git -C "$path" config --local push.useForceIfIncludes true
+  fi
   if [[ -f "$SIGNING_KEY" && -e "$path/.git" ]]; then
     git -C "$path" config --local user.signingkey "$SIGNING_KEY"
     git -C "$path" config --local gpg.format ssh
