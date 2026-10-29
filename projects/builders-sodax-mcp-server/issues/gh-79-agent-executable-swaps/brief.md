@@ -2,7 +2,7 @@
 type: brief
 repo: builders-sodax-mcp-server
 github: 79
-status: Active, in review — ADR #90, #91, #100 ready; #92–#98, #102, #104 draft (GitHub stack)
+status: Active, in review — #100 merged; ADR #90, #91, #104 ready; #92–#98, #102 draft (GitHub stack)
 next: wait for R0bi7's review, then merge in the order under Next action
 updated: 2026-10-29
 ---
@@ -24,8 +24,8 @@ updated: 2026-10-29
 | #91 | #81 key forwarding, `SODAX_ENV` | `feat/81-forward-api-key` @ `bab68bf` | ready, R0bi7 requested |
 | #92–#98 | #82–#88 | `feat/82…88-*` @ `5a78943` `cf4f806` `084f8b9` `98c1335` `947f0fe` `11a2e67` `ce952d2` | draft |
 | #102 | #89 docs; drops the rollout switch | `feat/89-swap-docs` @ `02ede6c` | draft |
-| #100 | SSE hotfix (Closes #99) | `fix/sse-start-once` @ `66c80da` | ready, R0bi7 requested |
-| #104 | Hardening (issue #103, incl. markdown tables keeping addresses whole), on #100 | `fix/server-hardening` @ `d93146b` | draft, R0bi7 requested |
+| #100 | SSE hotfix (Closes #99) | squash `98226dd` on `development` | merged 2026-10-29 |
+| #104 | Hardening (issue #103, incl. markdown tables keeping addresses whole) | `fix/server-hardening` @ `538aa29` (merged `development`, same tree as tested `d93146b`), base `development` | ready, R0bi7 requested |
 | sodax-sdks #577 | Docs page + skill pointer (issue #576) | `docs/builders-mcp-swap` | draft |
 
 - GitHub stack: #91 targets `development`, each later PR the branch below it; CI runs only on PRs into
@@ -46,7 +46,7 @@ updated: 2026-10-29
 
 ## Blocked on
 
-1. R0bi7's review of #90, #91, #100, #104.
+1. R0bi7's review of #90, #91, #104.
 2. Edge and BE limits (a key counted twice, per-IP write cap and jail on the MCP's IP, `submit-tx` 10/min per IP):
    asked R0bi7 2026-10-28; parked, don't raise again until it comes back.
 3. E2E (#88): a gosodax admin adds the funded wallet and canary key as `canary-e2e` secrets and sets staging
@@ -54,7 +54,7 @@ updated: 2026-10-29
 
 ## Next action
 
-1. Merge order: #100 → #104 (retarget to `development`) → release to master → #90 any time → #91…#98 in order
+1. Merge order: #100 (done) → #104 → release to master → #90 any time → #91…#98 in order
    (expect `index.ts` conflicts with #104) → first green canary E2E → #102 → release → sodax-sdks #577.
 2. Before #102's release: `SODAX_RPC_URL_<id>` with a paid key for every EVM source, Coolify memory (the SDK adds
    ~230 MB RSS), staging boots.
