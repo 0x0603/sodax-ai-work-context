@@ -282,7 +282,8 @@ check, don't stop the next young release, and keep forcing downgrades until remo
 - Move to pnpm 10 like sodax-sdks (`packageManager: pnpm@10.32.1`): `packageManager` in `package.json` (CI's
   `pnpm/action-setup` reads it), `corepack prepare pnpm@…` twice in `Dockerfile` and once in `nixpacks.toml`.
 - Add `pnpm-workspace.yaml` with `minimumReleaseAge: 20160` and `trustPolicy: no-downgrade` (same as
-  `sodax-sdks/pnpm-workspace.yaml`); keep `--ignore-scripts` on installs (pnpm 10 also blocks dependency scripts by
+  `sodax-sdks/pnpm-workspace.yaml`), plus `minimumReleaseAgeExclude: ["@sodax/*"]` so an SDK hotfix installs at once
+  (user, 2026-10-29; `trustPolicy` still covers them; check pnpm takes the pattern); keep `--ignore-scripts` on installs (pnpm 10 also blocks dependency scripts by
   default, the repo's own `prepare: husky` still runs).
 - Drop the nine young-version pins; keep the CVE floors (`axios`, `ws@8`, `bn.js` and the older ones). Regenerate
   the lockfile (same v9 format) and check nothing moves to a version under 14 days.

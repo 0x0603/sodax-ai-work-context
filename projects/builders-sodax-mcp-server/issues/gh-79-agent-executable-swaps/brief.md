@@ -25,7 +25,7 @@ updated: 2026-10-29
 | #92–#98 | #82–#88 | `feat/82…88-*` @ `5a78943` `cf4f806` `084f8b9` `98c1335` `947f0fe` `11a2e67` `ce952d2` | draft |
 | #102 | #89 docs; drops the rollout switch | `feat/89-swap-docs` @ `02ede6c` | draft |
 | #100 | SSE hotfix (Closes #99) | `fix/sse-start-once` @ `66c80da` | ready, R0bi7 requested |
-| #104 | Hardening (issue #103), on #100 | `fix/server-hardening` @ `e8a1b36` | draft, R0bi7 requested |
+| #104 | Hardening (issue #103, incl. markdown tables keeping addresses whole), on #100 | `fix/server-hardening` @ `d93146b` | draft, R0bi7 requested |
 | sodax-sdks #577 | Docs page + skill pointer (issue #576) | `docs/builders-mcp-swap` | draft |
 
 - GitHub stack: #91 targets `development`, each later PR the branch below it; CI runs only on PRs into
