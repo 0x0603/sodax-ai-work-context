@@ -8,10 +8,17 @@ status: Reviewed
 
 # Review outcome
 
-PR #590 has one confirmed P2 regression at `packages/wallet-sdk-react/src/xchains/stellar/StellarXService.ts:96`.
+Re-reviewed PR #590 at `63abd21eb08f117971c343a8451fb309eac3d437`. No additional actionable code findings.
 
-The missing-trustline shortcut also matches an asset's issuer. Stellar issuers cannot hold a trustline for their own asset, while the SAC's `balance(issuer)` returns `i64::MAX`. For the configured USDC issuer, the old service returns `9223372036854775807n` and the new service returns `0n`, incorrectly blocking issuer swaps through balance checks.
+## Resolved finding
 
-Check the configured `assetIssuer` before returning zero, preserve the SAC issuer semantics, and cover both the issuer and an ordinary account without a trustline in tests. This requires no extra per-token RPC calls.
+The previous P2 at the missing-trustline shortcut is resolved. A config-derived contract-to-issuer map preserves the SAC's `i64::MAX` balance for each asset's issuer and returns zero for other accounts without a trustline. Regression coverage verifies both cases without a simulation. The README and generated page explain the issuer exception.
 
-Existing package tests, type checking, changed-file lint and relevant docs checks pass. The additional issuer regression probe fails on the PR head and passes on the base. The SDK working tree was left unchanged; no review was posted to GitHub.
+## Verification
+
+- Wallet-react tests: 330 passed across 30 files, including the new issuer regression.
+- Package typecheck, changed-file Biome lint, AI dev-file validation, doc links, generated docs and diff whitespace checks passed.
+- Remote Build and Test was still running at review time. E2E, docs and security checks passed.
+- Advisory Plan check still reports approval metadata and GitHub integration permission errors.
+
+No SDK source changes or GitHub review comments were made by the reviewer. Initial failure, base comparison and mainnet reproduction evidence remain in `process.md`.

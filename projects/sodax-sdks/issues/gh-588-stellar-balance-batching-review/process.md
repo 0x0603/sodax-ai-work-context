@@ -21,3 +21,13 @@ updated: 2026-10-30
 - `check:ai-dev-files`, `check:doc-links`, `check:docs-pages`: passed.
 - Remote CI build/test, docs, security and E2E checks succeeded. Advisory Plan check fails because issue #588 lacks `plan-approved`; its plan comment exists now.
 - Rejected speculative findings: generic simulation failures already became zero before this PR; this is retained behavior explicitly requested by the issue, not a new regression.
+
+## 2026-10-30 re-review
+
+- Reviewed updated head `63abd21eb08f117971c343a8451fb309eac3d437`, including its incremental diff from the previously reviewed head and the full runtime diff against the unchanged base.
+- The config-derived contract-to-issuer map returns `2n ** 63n - 1n` for the issuer and zero for other accounts without a trustline. Existing trustline and custom-token paths remain intact.
+- New coverage checks USDC at its issuer alongside an unrelated asset with no trustline, and asserts that neither needs a simulation.
+- Wallet-react tests: 330 passed across 30 files; package typecheck passed.
+- Read-only changed-file Biome lint, AI dev-file validation, doc links and generated docs checks passed. `git diff --check` passed and the SDK working tree remains clean.
+- No additional actionable code findings.
+- Remote CI run `41014205903`: Build and Test still running when inspected; E2E, docs and security checks pass. Advisory Plan run `41014205956` reports missing trusted plan/approval metadata plus `Resource not accessible by integration`; the earlier issue plan comment was visible to authenticated gh.
