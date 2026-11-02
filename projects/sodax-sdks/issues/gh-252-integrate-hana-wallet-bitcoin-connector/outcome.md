@@ -3,7 +3,7 @@ type: outcome
 repo: sodax-sdks
 github: 252
 status: In Review
-updated: 2026-06-29
+updated: 2026-10-30
 ---
 
 # Outcome
@@ -108,3 +108,10 @@ Docs (`packages/skills`, faithfulness per AGENTS.md):
   connector, separately.
 - Note: `biome format` would wrap the long `@sodax/types` import; left identical
   to `XverseXConnector` (repo CI enforces `biome lint`, not `format`).
+- **The store build of Hana still has no Bitcoin provider (checked 2026-10-30).**
+  The Chrome Web Store CRX (5.14.0.0, built 2026-09-16) sets `window.hanaWallet`
+  with ethereum, stellar, sui, solana, near, keplr, freighter and havah, but no
+  `bitcoin` and no `stacks`, and no `window.unisat`. So the connector only works
+  with the dev build. A teammate hit it on the demo, where the Hana icon
+  showed but did nothing. Demo fix: sodax-sdks #587 / PR #589 (sheet lists only
+  `isInstalled` connectors).

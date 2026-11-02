@@ -3,8 +3,8 @@ type: brief
 repo: sodax-sdks
 github: 583
 status: Active
-next: watch CI on PR #584; user applies plan-approved on #583
-updated: 2026-10-29
+next: watch CI on PR #584 and wait for review
+updated: 2026-11-01
 ---
 
 # GH-583 API path for tokens newer than the installed SDK · brief
@@ -21,7 +21,7 @@ updated: 2026-10-29
 
 ## Blocked on
 
-1. `plan-approved` label on #583 (human with write access). The user approved verbally ("tự làm hết đi").
+Nothing. `plan-approved` is on #583 (checked 2026-11-01).
 
 ## Next action
 

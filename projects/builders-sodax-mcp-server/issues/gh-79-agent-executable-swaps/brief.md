@@ -2,9 +2,9 @@
 type: brief
 repo: builders-sodax-mcp-server
 github: 79
-status: Active, in review — #100 merged; ADR #90, #91, #104 ready; #92–#98, #102 draft (GitHub stack)
+status: Active, in review — #100 merged; #90, #91, #104 ready; #92–#98, #102 and sodax-sdks #577 ready since 2026-11-01 (GitHub stack)
 next: wait for R0bi7's review, then merge in the order under Next action
-updated: 2026-10-29
+updated: 2026-11-01
 ---
 
 # GH-79 Agent-executable swaps (Builders MCP) · brief
@@ -22,14 +22,14 @@ updated: 2026-10-29
 |---|---|---|---|
 | #90 | ADR (#80) | `feat/agent-executable-swaps` @ `1dc6dfc` | ready, R0bi7 requested |
 | #91 | #81 key forwarding, `SODAX_ENV` | `feat/81-forward-api-key` @ `bab68bf` | ready, R0bi7 requested |
-| #92–#98 | #82–#88 | `feat/82…88-*` @ `5a78943` `cf4f806` `084f8b9` `98c1335` `947f0fe` `11a2e67` `ce952d2` | draft |
-| #102 | #89 docs; drops the rollout switch | `feat/89-swap-docs` @ `02ede6c` | draft |
+| #92–#98 | #82–#88 | `feat/82…88-*` @ `5a78943` `cf4f806` `084f8b9` `98c1335` `947f0fe` `11a2e67` `ce952d2` | ready 2026-11-01, no reviewer requested |
+| #102 | #89 docs; drops the rollout switch | `feat/89-swap-docs` @ `02ede6c` | ready 2026-11-01, no reviewer requested |
 | #100 | SSE hotfix (Closes #99) | squash `98226dd` on `development` | merged 2026-10-29 |
 | #104 | Hardening (issue #103, incl. markdown tables keeping addresses whole) | `fix/server-hardening` @ `538aa29` (merged `development`, same tree as tested `d93146b`), base `development` | ready, R0bi7 requested |
-| sodax-sdks #577 | Docs page + skill pointer (issue #576) | `docs/builders-mcp-swap` | draft |
+| sodax-sdks #577 | Docs page + skill pointer (issue #576) | `docs/builders-mcp-swap` @ `50b9587` | ready 2026-11-01, no reviewer requested |
 
 - GitHub stack: #91 targets `development`, each later PR the branch below it; CI runs only on PRs into
-  `development`/`master`. Keep the upper PRs draft.
+  `development`/`master`. The user marked the whole stack ready for review on 2026-11-01; it still merges in order.
 - Sync by merge only, never rebase or force-push (since 2026-10-29): a change on one PR is merged up into each
   branch above it in order. After a squash-merge, merge `origin/development` into the next branch (through an
   intermediate branch if the squash makes it conflict), push, `gh pr edit <next> --base development`.
