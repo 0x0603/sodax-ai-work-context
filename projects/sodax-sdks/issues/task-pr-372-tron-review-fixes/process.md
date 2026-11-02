@@ -2,7 +2,7 @@
 type: process
 repo: sodax-sdks
 github: 
-updated: 2026-10-28
+updated: 2026-11-02
 ---
 
 # Process
@@ -217,3 +217,5 @@ updated: 2026-10-28
 
 - Mutation-checked every new test against the unfixed source: 9 MM tests and 11 Tron tests fail
   without the fixes.
+
+- 2026-11-02 — Reviewed uncommitted raw-mode changes at `665a215e` in wt-534. Three raw-contract/lifecycle findings and gate results: [raw-review-2026-11-02.md](raw-review-2026-11-02.md). SDK source unchanged; no SDK commit/push or PR comment.

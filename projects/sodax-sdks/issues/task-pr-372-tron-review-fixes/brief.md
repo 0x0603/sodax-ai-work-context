@@ -3,7 +3,7 @@ type: brief
 repo: sodax-sdks
 github: 
 status: Active
-next: run T2–T5 on the #534 head 665a215e (gcranju's fix 0f6f792d + our row-9 commit); design-comment update waits for the user's OK
+next: address local raw review findings (operation-specific types, browser raw_data contract, deposit expiration), then rerun raw-flow checks
 updated: 2026-11-02
 ---
 
@@ -51,6 +51,10 @@ then opens exactly one row from the map below.**
 
 ## Next action
 
+Latest local review: **three raw-mode contract/lifecycle findings remain**; see
+[`raw-review-2026-11-02.md`](raw-review-2026-11-02.md) for evidence and checks.
+SDK source was not changed by this review.
+
 2026-11-02, end of day (latest): **gcranju's fix landed; run T2–T5 on the current head.**
 - Head = `665a215e` (our row-9 commit) on top of gcranju's `0f6f792d`. On another machine: in the hub,
   `git -C repos/client/sodax-sdks worktree add ../sodax-sdks-wt-534 feat/tron-mpc-integration` (or pull
@@ -96,6 +100,7 @@ wants. Don't post again unless asked.
 
 | Question | File | ~tok |
 | -------- | ---- | ---: |
+| Latest local raw-mode review, findings and gate results | `raw-review-2026-11-02.md` | 0.8k |
 | What the review asked for | `issue.md` | 0.4k |
 | What broke in the merge and why, KATs; C-round log | `process.md` | 1.6k |
 | Final result per commit | `outcome.md` | 0.8k |
