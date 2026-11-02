@@ -219,3 +219,5 @@ updated: 2026-11-02
   without the fixes.
 
 - 2026-11-02 — Reviewed uncommitted raw-mode changes at `665a215e` in wt-534. Three raw-contract/lifecycle findings and gate results: [raw-review-2026-11-02.md](raw-review-2026-11-02.md). SDK source unchanged; no SDK commit/push or PR comment.
+
+- 2026-11-02 — Proposed the remaining Tron contract approach in [plan-remaining-tron-contracts.md](plan-remaining-tron-contracts.md): group rows 7/10/11, separate payout admission/chain encoding, propagate raw inference, and retain LY guard pending lifecycle/resume work. Read-only SDK investigation.

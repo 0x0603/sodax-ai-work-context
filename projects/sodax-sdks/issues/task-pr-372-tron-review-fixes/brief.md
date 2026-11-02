@@ -3,7 +3,7 @@ type: brief
 repo: sodax-sdks
 github: 
 status: Active
-next: address local raw review findings (operation-specific types, browser raw_data contract, deposit expiration), then rerun raw-flow checks
+next: review proposed remaining-contracts approach (rows 4, 7, 8, 10, 11, raw inference and LY); implementation not started
 updated: 2026-11-02
 ---
 
@@ -50,6 +50,10 @@ then opens exactly one row from the map below.**
   (Feature, Backlog, open questions in a comment). Blocker: solver quotes no path to Tron USDT/TRX.
 
 ## Next action
+
+2026-11-02 design proposal: see [`plan-remaining-tron-contracts.md`](plan-remaining-tron-contracts.md).
+Rows 7/10/11 share submission/delivery contracts; row 8 and the payout floor can be fixed separately.
+LY remains blocked by routing/status/resume work. No SDK implementation in this planning pass.
 
 Latest local review: **three raw-mode contract/lifecycle findings remain**; see
 [`raw-review-2026-11-02.md`](raw-review-2026-11-02.md) for evidence and checks.
@@ -100,6 +104,7 @@ wants. Don't post again unless asked.
 
 | Question | File | ~tok |
 | -------- | ---- | ---: |
+| Proposed approach for remaining design rows, raw inference and LY | `plan-remaining-tron-contracts.md` | 1.5k |
 | Latest local raw-mode review, findings and gate results | `raw-review-2026-11-02.md` | 0.8k |
 | What the review asked for | `issue.md` | 0.4k |
 | What broke in the merge and why, KATs; C-round log | `process.md` | 1.6k |
