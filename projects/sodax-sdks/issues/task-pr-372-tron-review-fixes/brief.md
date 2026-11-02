@@ -3,8 +3,8 @@ type: brief
 repo: sodax-sdks
 github: 
 status: Active
-next: 8a3cabc1 pushed to #534 (cancel reason, changeset, JSDoc); memo fixture + Q2/Q3 wait on gcranju
-updated: 2026-10-28
+next: run T2–T5 on the #534 head 665a215e (gcranju's fix 0f6f792d + our row-9 commit); design-comment update waits for the user's OK
+updated: 2026-11-02
 ---
 
 # PR 372 Tron review fixes · brief
@@ -25,8 +25,53 @@ then opens exactly one row from the map below.**
   pass: two pages made false, raw Tron deposit recipe wrong, skills/READMEs not updated (process.md).
 - 2026-10-28 head `bdda76d4`: gcranju fixed Q1 (srcAddress/originAddress → `encodeRecipient`), memo
   recompute, node-built tx check. That made our cancel-refusal reason false. Q2/Q3 open, reserve warn-only.
+- 2026-11-02: no author activity since 10-27. Chain evidence (`chain-evidence-2026-11-02.md`): 2.1/2.2
+  SDK outcomes are certain, 1.4 refund stuck on chain (accepted, unreleased feature), relay fee
+  undocumented → docs note pushed as `2b2ebc6d`.
+- 2026-11-02: design pass at `2b2ebc6d` appended to #issuecomment-6569347015 as rows 6–10, trimmed to the
+  before-merge contract fixes (raw contract, trackingId typed as tx hash, `encodeRecipient` keyed on MPC
+  membership, provider signs txID unchecked) plus 10: shape raw output + a relay-agnostic submit/status
+  seam so the Swaps/Bridge API can add Tron later with no Tron-specific flow (user's ask). The backend
+  (`development`) has no MPC handling yet; both API clients lack a `TRON` raw-tx schema.
+- 2026-11-02: design re-check at `0f6f792d` (not posted). Rows 6–9 untouched. Row 10 half done:
+  `spoke.getHubRelease` is the status read, but the only release trigger is the blocking
+  `settleHubRelease` (the bridge side belongs to #594, below). New: the swap
+  `getSolvedIntentPacket` returns a filler `PacketData`, and the `mpcRelay` status arm holds a deposit or
+  a release record; `AssetService.withdraw`/`SwapService` route the Tron leg outside `settle`. CI red
+  since `a3ef535d` on the sdk size-check (1,106,880 B > 1,102,729 B).
+- 2026-11-02: structure-safe fixes pushed onto `feat/tron-mpc-integration` as `665a215e` (on `0f6f792d`,
+  from worktree `repos/client/sodax-sdks-wt-534-fix`, removable; signed, hook green): row 9
+  (raw-key `signTransaction` signs `sha256(raw_data_hex)`, refuses a mismatched txID; README, docs mirror,
+  skills note), orphaned `missingFarSideHash` JSDoc, `getSolvedIntentPacket` 300 s floor doc. sdk 3302 +
+  wallet-sdk-core 191 tests, checkTs, check:ai, docs gates green. Rows 6–8, 10 and the filler packet left
+  for gcranju (contract/design calls). wt-534 untouched: its demo dev server is running.
+- 2026-11-02: bridge to/from Tron needs the app open until `/notify` (backend submit-tx skipped for MPC
+  chains). gcranju: bridge moves to the solver (same-token swap), so ignore it in #534. Filed #594
+  (Feature, Backlog, open questions in a comment). Blocker: solver quotes no path to Tron USDT/TRX.
 
 ## Next action
+
+2026-11-02, end of day (latest): **gcranju's fix landed; run T2–T5 on the current head.**
+- Head = `665a215e` (our row-9 commit) on top of gcranju's `0f6f792d`. On another machine: in the hub,
+  `git -C repos/client/sodax-sdks worktree add ../sodax-sdks-wt-534 feat/tron-mpc-integration` (or pull
+  an existing one), then `pnpm i && TURBO_CONCURRENCY=2 pnpm build:packages`, demo from `apps/demo`.
+- T2–T5 results are not in #issuecomment-6569638398 yet (last edit 05:23Z); fill them in there.
+- Design comment #issuecomment-6569347015 is still at the `2b2ebc6d` pass. Proposed, not posted (needs
+  the user's OK): row 10 evidence → status read exists (`getHubRelease`), non-blocking submit missing;
+  add row 11 for the filler `PacketData` from `getSolvedIntentPacket`; point bridge at #594; soften row 8
+  (today's throw is fail-closed; relay recipient decoding for XRP/Aptos is unknown); mark 9 fixed.
+- CI red only on the sdk size-check (gcranju's growth; baseline is a maintainer call). Never comment
+  on the PR after pushing; report pushes in chat only (user rule).
+
+Earlier (2026-11-02): **waiting on gcranju's fix, then resume testing.** gcranju confirmed hub → Tron
+goes through the MPC relay, not `get_transaction_packets`. The relay already tracks it at
+`GET /deposit/146-0x<hub tx>-<BridgeRequest logIndex>`: success = `txs.release.hash` present (status
+stays `submitted`); skipped/unknown = `pending` with empty `txs` (no failure signal); id needs the
+`0x`. So the 2.1 fix is SDK-only (settle routes a hub source by destination), no refusal needed.
+Mainnet test plan #issuecomment-6569638398: T1 passed and is filled in; T2–T5 wait for the fix.
+Issues table #issuecomment-6569347015 (reserve warn-only, 2.1, 2.2, below-fee, fee). Demo runs from
+worktree `repos/client/sodax-sdks-wt-534` (branch `feat/tron-mpc-integration`); pull + rebuild
+after gcranju pushes. Earlier state:
 
 Findings are posted on #534 (#issuecomment-6432900564), including "port the #372 fixes". The docs
 and skills #534 lacked are pushed onto `feat/tron-mpc-integration` as `f4e3af0e` (process.md, last
@@ -44,7 +89,8 @@ wants. Don't post again unless asked.
   payload }`, like the backend — it works. Never switch it to the on-demand (`od:`) identity.
 - `settle` outbound on an MPC chain waits for a release; only use it for messages that pay out on Tron.
 - Sonic → Tron releases are hub-triggered (`AssetManager` emits `BridgeRequest`, the backend watches it);
-  no Tron signature is needed. 2.1 is a status/polling gap, not a delivery gap.
+  no Tron signature is needed. Delivery is verified on chain only for solver fills; a user-originated
+  hub → Tron tx has never run, so its delivery is unverified (`chain-evidence-2026-11-02.md`).
 
 ## Which file answers what
 
@@ -56,6 +102,7 @@ wants. Don't post again unless asked.
 | Original draft questions (superseded by the PR comment) | `author-questions.md` | 0.3k |
 | All findings with evidence: groups 1–4, C, open items, fix order | `code-review-findings.md` | 6k |
 | #534 fix plan: what is fixed how, what waits for an owner | `plan-pr534-fixes.md` | 1.6k |
+| What chain data proves about 2.1/2.2/1.4 and the relay fee (2026-11-02) | `chain-evidence-2026-11-02.md` | 0.7k |
 
 ## Landmines
 
