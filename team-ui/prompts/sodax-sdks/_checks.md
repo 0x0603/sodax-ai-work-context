@@ -2,7 +2,8 @@
 Quality checks. Every change is built for, and reviewed against, all five:
 1. Logic: it does what the plan and the acceptance criteria say; edge cases, error handling, no regressions.
 2. Security: input validation, auth and permissions, secrets, injection, risky dependencies.
-3. Tests: new or changed behaviour has tests, edge cases included, and the full test command ({{TEST}}) passes.
+3. Tests: new or changed behaviour has tests, edge cases included, and the full test command ({{TEST}}) passes. Tests go
+   through the public interface and fail when the behaviour breaks (Tests in plans/coding-standards.md).
 4. Docs, under the sodax-sdks doc rules (the add-docs and docs-review skills spell them out):
    - No hand-written code in docs. Code goes in a properly located .ts test or example that is type-checked or run,
      and the page references it, so the claim is tested and cannot drift.
