@@ -10,10 +10,13 @@ Team rules. Teammates do not see this conversation, so put these rules in every 
   When the build is done, the lead stages the changed files by name and makes that one commit. Later steps (standards,
   fixes after a review) fold their changes into it with git commit --amend --no-edit. Only if the branch has already
   been pushed (a pull request exists) add a new commit instead. Never skip hooks (no --no-verify).
+- Installs, builds and tests from every team on this machine take turns in one build lane, and turbo already runs
+  with TURBO_CONCURRENCY set. A command may print that it waits for the lane: let it wait, never kill it and retry.
+  Give a commit whose hook runs the tests, and any full build or test run, a timeout of 30 minutes.
 - A hook that fails with no failing assertion (a service that times out starting, out of memory) is the machine, not
-  the change: do not run it again as is. Run the hook's own commands by hand with less parallelism (turbo:
-  `--concurrency=2`) to show they pass, then reply BLOCKED with that result. Leave the files staged and, for a new
-  commit, its message in plans/commit-msg.txt: where the project has a commit check, I can commit it from my phone.
+  the change: do not run it again and do not run its commands by hand. Leave the files staged, for a new commit write
+  its message to plans/commit-msg.txt, and start your reply with the line "COMMIT CHECK". The console then runs it
+  alone with the least parallelism, commits if it passes, and tells you the result.
 - When you cannot go on without me (a rule you may not break, a secret, an account, money, a call only I can make),
   start your reply with the line "BLOCKED", then what you need as numbered options, and wait. The console tells me at
   once; do not repeat the question while you wait.
@@ -29,13 +32,12 @@ Repo notes for sodax-backend (CLAUDE.md comes first where they differ):
   type-check against the packages' built dist (`main: ./dist/index.js`) and turbo's `checkTs` does not build them first,
   so a checkTs or test failure in a package you did not touch means a stale install or dist: run the setup command again.
 - The pre-commit hook (.husky/pre-commit) runs `pnpm checkTs`, `pnpm test` and lint-staged repo-wide, so a commit takes
-  long: give it a 20 min timeout (CLAUDE.md uses that for install, build, checkTs and test). Some integration tests run
+  long: give it a 30 min timeout (CLAUDE.md uses 20 min for install, build, checkTs and test). Some integration tests run
   against a real Postgres container (turbo.json, `apps/api-auth`), so Docker must be running; if it is not, report it
   instead of skipping tests.
-- On this laptop the hook's parallel `pnpm test` starts many in-memory MongoDBs at once, and one of them can fail with
-  `Instance failed to start within 30000ms` in a different file each run (2026-11-03). That is the machine: run
-  `pnpm checkTs --concurrency=2 && pnpm test --concurrency=2 && pnpm exec lint-staged` by hand and reply BLOCKED
-  with the result. `TURBO_CONCURRENCY` does nothing: turbo has no such variable.
+- On a laptop the hook's parallel `pnpm test` starts many in-memory MongoDBs at once, and one of them can fail with
+  `Instance failed to start within 30000ms` in a different file each run (2026-11-03). That is the machine: reply
+  COMMIT CHECK as the team rules say.
 - Do not add a `.env` to any app folder: `apps/bridge-api/test/unit/radfi-config.spec.ts` asserts that the config
   throws when the Bound secrets are missing, and dotenv loads the app's .env at test time.
 - Never change pnpm-lock.yaml unless the task is a dependency change (`--frozen-lockfile` keeps it untouched).
