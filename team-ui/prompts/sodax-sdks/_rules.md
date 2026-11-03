@@ -10,6 +10,12 @@ Team rules. Teammates do not see this conversation, so put these rules in every 
   When the build is done, the lead stages the changed files by name and makes that one commit. Later steps (standards,
   fixes after a review) fold their changes into it with git commit --amend --no-edit. Only if the branch has already
   been pushed (a pull request exists) add a new commit instead. Never skip hooks (no --no-verify).
+- A hook that fails with no failing assertion (a service that times out starting, out of memory) is the machine, not
+  the change: do not run it again as is. Run the hook's own commands by hand with less parallelism (turbo:
+  `--concurrency=2`) to show they pass, then reply BLOCKED with that result.
+- When you cannot go on without me (a rule you may not break, a secret, an account, money, a call only I can make),
+  start your reply with the line "BLOCKED", then what you need as numbered options, and wait. The console tells me at
+  once; do not repeat the question while you wait.
 - Tests while working: run the tests for what you changed. Run the full test command once, just before the commit,
   unless the pre-commit hook (.husky/, .git/hooks/, lefthook, pre-commit config) already runs it.
 - Never push, never read .env files or other secrets, never commit someone else's work.
@@ -19,9 +25,11 @@ Repo notes for sodax-sdks (AGENTS.md comes first where they differ):
 - Run the setup command before the first commit: `pnpm install --frozen-lockfile && pnpm build:packages`. The pre-commit
   hook (.husky/pre-commit) runs `pnpm checkTs`, `pnpm build` and `pnpm test` for the whole workspace, so a hook failure
   in a package you did not touch means a stale install or dist, not your change: run the setup command again.
-- Because of that hook a commit takes several minutes and the full build is heavy: commit with
-  `TURBO_CONCURRENCY=2 git commit …` and a 600 s timeout, and never re-run the full build when a warm retry will do.
-  `--no-verify` is forbidden (AGENTS.md): fix the gate, do not game it.
+- Because of that hook a commit takes several minutes and the full build is heavy: give the commit a 600 s timeout,
+  and never re-run the full build when a warm retry will do. `TURBO_CONCURRENCY` does nothing (turbo has no such
+  variable); when the hook dies from memory pressure, run `pnpm checkTs --concurrency=2 && pnpm build --concurrency=2
+  && pnpm test --concurrency=2` by hand and reply BLOCKED with the result. `--no-verify` is forbidden (AGENTS.md): fix
+  the gate, do not game it.
 - The hook on main starts with `unset GIT_INDEX_FILE GIT_DIR GIT_WORK_TREE` (since 2026-09-14). If .husky/pre-commit
   in this worktree lacks that line, merge main before committing: without it, a commit from a linked worktree writes
   `core.bare=true` and `commit.gpgsign=false` into the shared .git/config.

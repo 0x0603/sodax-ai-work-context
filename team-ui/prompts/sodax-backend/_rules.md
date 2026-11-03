@@ -10,6 +10,12 @@ Team rules. Teammates do not see this conversation, so put these rules in every 
   When the build is done, the lead stages the changed files by name and makes that one commit. Later steps (standards,
   fixes after a review) fold their changes into it with git commit --amend --no-edit. Only if the branch has already
   been pushed (a pull request exists) add a new commit instead. Never skip hooks (no --no-verify).
+- A hook that fails with no failing assertion (a service that times out starting, out of memory) is the machine, not
+  the change: do not run it again as is. Run the hook's own commands by hand with less parallelism (turbo:
+  `--concurrency=2`) to show they pass, then reply BLOCKED with that result.
+- When you cannot go on without me (a rule you may not break, a secret, an account, money, a call only I can make),
+  start your reply with the line "BLOCKED", then what you need as numbered options, and wait. The console tells me at
+  once; do not repeat the question while you wait.
 - Tests while working: run the tests for what you changed. Run the full test command once, just before the commit,
   unless the pre-commit hook (.husky/, .git/hooks/, lefthook, pre-commit config) already runs it.
 - Never push, never read .env files or other secrets, never commit someone else's work.
@@ -25,6 +31,10 @@ Repo notes for sodax-backend (CLAUDE.md comes first where they differ):
   long: give it a 20 min timeout (CLAUDE.md uses that for install, build, checkTs and test). Some integration tests run
   against a real Postgres container (turbo.json, `apps/api-auth`), so Docker must be running; if it is not, report it
   instead of skipping tests.
+- On this laptop the hook's parallel `pnpm test` starts many in-memory MongoDBs at once, and one of them can fail with
+  `Instance failed to start within 30000ms` in a different file each run (2026-11-03). That is the machine: run
+  `pnpm checkTs --concurrency=2 && pnpm test --concurrency=2 && pnpm exec lint-staged` by hand and reply BLOCKED
+  with the result. `TURBO_CONCURRENCY` does nothing: turbo has no such variable.
 - Do not add a `.env` to any app folder: `apps/bridge-api/test/unit/radfi-config.spec.ts` asserts that the config
   throws when the Bound secrets are missing, and dotenv loads the app's .env at test time.
 - Never change pnpm-lock.yaml unless the task is a dependency change (`--frozen-lockfile` keeps it untouched).
