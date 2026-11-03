@@ -3,7 +3,7 @@ type: brief
 repo: sodax-sdks
 github: 
 status: Active
-next: fix reviewed MM borrow minimum against net payout after partner fee, add regression test, then review/commit remaining design diff; see local-design-review-2026-11-03.md
+next: head 0f902bfd pushed (docs: cancelled Tron-source intent refunded once its release is notified via spoke.settleHubRelease). CI green at 2585aa1d. Open in PR: tell gcranju (auto-swap guard) + ask solver about small/partial Tron payouts; mainnet T1-T5. Backend keeper MPC notify after a Tron-source cancel is the BE team's call (user, 2026-11-03): not ours to file. Outside: sdks issue DEX withdraw dst pays hub-wallet address (inherited, all chains); ProtocolIntents suspicions via AuditMap only; solver repo access
 updated: 2026-11-03
 ---
 
@@ -35,7 +35,7 @@ then opens exactly one row from the map below.**
   (`development`) has no MPC handling yet; both API clients lack a `TRON` raw-tx schema.
 - 2026-11-02: design re-check at `0f6f792d` (not posted). Rows 6–9 untouched. Row 10 half done:
   `spoke.getHubRelease` is the status read, but the only release trigger is the blocking
-  `settleHubRelease` (the bridge side belongs to #594, below). New: the swap
+  `settleHubRelease`. New: the swap
   `getSolvedIntentPacket` returns a filler `PacketData`, and the `mpcRelay` status arm holds a deposit or
   a release record; `AssetService.withdraw`/`SwapService` route the Tron leg outside `settle`. CI red
   since `a3ef535d` on the sdk size-check (1,106,880 B > 1,102,729 B).
@@ -46,8 +46,22 @@ then opens exactly one row from the map below.**
   wallet-sdk-core 191 tests, checkTs, check:ai, docs gates green. Rows 6–8, 10 and the filler packet left
   for gcranju (contract/design calls). wt-534 untouched: its demo dev server is running.
 - 2026-11-02: bridge to/from Tron needs the app open until `/notify` (backend submit-tx skipped for MPC
-  chains). gcranju: bridge moves to the solver (same-token swap), so ignore it in #534. Filed #594
-  (Feature, Backlog, open questions in a comment). Blocker: solver quotes no path to Tron USDT/TRX.
+  chains). gcranju: bridge moves to the solver (same-token swap), so ignore it in #534. Filed #594,
+  which the user closed 2026-11-02; don't reference it on #534.
+- 2026-11-02: relay source now readable (hub `repos/offchain/MPC-relay`). Code confirms: no hub watcher,
+  fee taken in the hub verifier and fee ≥ amount is dropped silently, recipient = payload `to` (32 bytes),
+  Tron deposits never `swept`. Details: `chain-evidence-2026-11-02.md`, last section.
+
+- 2026-11-02: row 6 implemented on `665a215e` in worktree `repos/client/sodax-sdks-wt-534`, uncommitted. Raw deposit
+  returns the checked node-built transfer (`TronRawTransaction` = unsigned tx shape), raw `sendMessage` returns
+  `TronRawWithdraw` { message: `MpcWithdrawMessage`, digest, scheme }, new `spoke.tron.submitSignedWithdraw`,
+  `estimateGas` reads the raw tx. Gates green (checkTs 15/15, sdk 3313, types 1197, wallet-sdk-core 191, check:ai,
+  docs). Then, after a pasted 3-P2 review: per-operation raw types (`TronDepositReturnType`, `TronSendMessageReturnType`,
+  explicit `<true>` like EvmSpokeService tests), required `raw_data` (`TronRawData`), `spoke.tron.extendExpiration`,
+  wallet `signAndSendTransaction` (broadcasthex, all signatures), txID check in `signTransaction` for both modes,
+  digest/scheme check in `submitSignedWithdraw`. Expiry guards were tried and dropped: the node rejects an expired
+  tx, and a local-clock guard could refuse valid deposits. Pushed 2026-11-03 as `8814cb6a` (sdk/types) +
+  `fa8c419a` (wallet-sdk-core + docs), signed, hooks green; no PR comment (user rule).
 
 ## Next action
 
@@ -64,19 +78,18 @@ See `plan-remaining-tron-contracts.md` for the revised sequence and remaining ev
 Rows 7/10/11 share submission/delivery contracts; row 8 and the payout floor can be fixed separately.
 LY remains blocked by routing/status/resume work. No SDK implementation in this planning pass.
 
-Latest local review: **three raw-mode contract/lifecycle findings remain**; see
-[`raw-review-2026-11-02.md`](raw-review-2026-11-02.md) for evidence and checks.
-SDK source was not changed by this review.
+2026-11-03: the three findings in [`raw-review-2026-11-02.md`](raw-review-2026-11-02.md) are addressed and
+pushed as `8814cb6a` + `fa8c419a` (state line above). Not yet run on mainnet: re-run T1 and one raw deposit
+through `signAndSendTransaction` on that head before relying on it.
 
 2026-11-02, end of day (latest): **gcranju's fix landed; run T2–T5 on the current head.**
 - Head = `665a215e` (our row-9 commit) on top of gcranju's `0f6f792d`. On another machine: in the hub,
   `git -C repos/client/sodax-sdks worktree add ../sodax-sdks-wt-534 feat/tron-mpc-integration` (or pull
   an existing one), then `pnpm i && TURBO_CONCURRENCY=2 pnpm build:packages`, demo from `apps/demo`.
 - T2–T5 results are not in #issuecomment-6569638398 yet (last edit 05:23Z); fill them in there.
-- Design comment #issuecomment-6569347015 is still at the `2b2ebc6d` pass. Proposed, not posted (needs
-  the user's OK): row 10 evidence → status read exists (`getHubRelease`), non-blocking submit missing;
-  add row 11 for the filler `PacketData` from `getSolvedIntentPacket`; point bridge at #594; soften row 8
-  (today's throw is fail-closed; relay recipient decoding for XRP/Aptos is unknown); mark 9 fixed.
+- Design comment #issuecomment-6569347015 updated 2026-11-02 13:24Z at `665a215e`: Status column on both
+  tables, row 1 withdrawn, 2/3 fixed pending T2/T4, 4 warn-only (open), 9 fixed, 10 half done, new row 11
+  (filler `PacketData`). Open: 4, 6, 7, 8, 10, 11. The user takes these on (not waiting for gcranju).
 - CI red only on the sdk size-check (gcranju's growth; baseline is a maintainer call). Never comment
   on the PR after pushing; report pushes in chat only (user rule).
 
@@ -122,7 +135,7 @@ wants. Don't post again unless asked.
 | Original draft questions (superseded by the PR comment) | `author-questions.md` | 0.3k |
 | All findings with evidence: groups 1–4, C, open items, fix order | `code-review-findings.md` | 6k |
 | #534 fix plan: what is fixed how, what waits for an owner | `plan-pr534-fixes.md` | 1.6k |
-| What chain data proves about 2.1/2.2/1.4 and the relay fee (2026-11-02) | `chain-evidence-2026-11-02.md` | 0.7k |
+| What chain data and the relay code (MPC-relay `cbc10dd`) prove about deposits, releases, fee, 1.4 | `chain-evidence-2026-11-02.md` | 1.6k |
 
 ## Landmines
 

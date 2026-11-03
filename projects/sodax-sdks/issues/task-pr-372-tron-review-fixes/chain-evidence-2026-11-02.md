@@ -8,8 +8,10 @@ updated: 2026-11-02
 
 # Tron payouts on chain · verdicts (2026-11-02)
 
-MPC-relay source is 404 for this account; these come from chain data, the relay's public GET route,
-SDK code at `8a3cabc1`, and the 2026-08-20 v2 audit quotes. Method: memory `mpc-relay-behaviour-without-source`.
+The verdicts below were made before relay access, from chain data, the relay's public GET route, SDK
+code at `8a3cabc1` and the 2026-08-20 v2 audit quotes. Since later on 2026-11-02 the relay source is
+readable (`icon-project/MPC-relay`, hub submodule `repos/offchain/MPC-relay`; drop its local
+`submodule.*.update none`). Code-level facts are in the last section; prefer them over the inferences.
 
 Data: 34 hub `BridgeRequest` logs to Tron (728126428), 2026-08-05 → 2026-10-26, matched to the Tron
 reserve's 27 outgoing payouts by recipient, token, time and amount minus fee (heuristic, not 1:1 ids).
@@ -59,3 +61,34 @@ Doc, not code; where it disagrees with live behaviour that is noted.
 - 2.2: a Tron-signed message paying elsewhere settles on `/withdrawal` status past `submitted` with `txs.burn`, then carries the hub tx onward. That relay behaviour is unverified until T4.
 - Verified locally: build, 697 tests in the 7 changed suites, sdk checkTs. Read-only `getHubRelease` on real hub txs returns the right ids and release hashes; a hub tx without a Tron `BridgeRequest` returns `undefined`.
 - Not addressed: below-fee payouts (now notified, then a 300 s timeout; `/fees` has no Tron); reserve warn-only (matches the relay doc, so PR row 1 should be withdrawn). Nits: the hub receipt wait has no caller timeout; `notify` sends the hash un-lowercased while the poll id is lowercased; docs don't say how to resume a timed-out hub → Tron (`spoke.settleHubRelease`).
+
+## Relay code check (MPC-relay main `cbc10dd`, 2026-11-02)
+
+Paths under `v2/`. Read by two subagents, the fee drop re-read by hand.
+
+- Deposit: one fixed Tron reserve (path `bridge:reserve:728126428`, `apps/ingest/src/derivers/tron.ts:15`),
+  not per payload. Tron verifier checks success, 32-byte `raw_data.data` memo, ≥19 blocks below head,
+  pays the reserve, amount > 0 (no expected-amount check) (`verifiers/tron/src/verify.ts:119-188`).
+  `data` becomes `0x` unless the owner paid directly (`:221-235`). Id `728126428-<lowercase txid, no 0x>-<index>`;
+  a `0x` or uppercase id reads `pending` forever.
+- Deposit hub tx is `AssetManager.recvMessage(...)` from the hub executor after NEAR
+  `submit_batch_and_request_hub_sign`. Tron sweep is a no-op: a Tron deposit never reaches `swept`.
+  Status: `submitted` = first verifier row, `attested` = NEAR call sent, `minted` = hub tx final. No failed state.
+- Withdraw-auth: ingest verifies scheme 1 and writes the trackingId pointer; the hub executor runs
+  NEAR `submit_withdraw_message` → `Wallet.recvMessage` on the hub. `burned` only means that tx is final.
+  After the burn the coordinator itself notifies the hub verifier (`finalize.ts:267`), so a Tron payback
+  needs no SDK notify. `attested` = ≥1 verifier signature, not quorum. Stuck at `burned`: fee ≥ amount,
+  zero recipient, no BridgeRequest. Stuck at `attested`: destination with no executor queue
+  (`executors/coordinator/src/handlers/aggregator.ts:60-68`).
+- Hub → Tron: no hub watcher anywhere (flow-indexer only mirrors attestations). Hub verifier needs a
+  `0x` hash, lowercases it, ≥12 blocks, AssetManager logs only. Fee is taken in the hub verifier
+  (fee-api quote, pinned; payout re-encoded as amount − fee). Fee ≥ amount → message dropped, nothing
+  written, `GET /deposit` stays `pending` (`verifiers/hub/src/verify.ts:582-586`). This is the below-fee case.
+- Recipient is the payload's `to` (32 bytes: 12 zero bytes ‖ 20-byte address), not `dstAddress`. A 20-byte
+  `to` fails at executor-tron or NEAR → retries → failure + DLQ. So the 1.4 cancel refund could not pay
+  out even if notified; its `pending`-empty record still says it never reached the verifier.
+- Release record via `/deposit/146-0x…-n` stays `submitted` because executor-tron writes no NEAR hash;
+  `GET /withdrawal/` cannot read hub-originated releases. `GET /deposit` never shows `failed`.
+- Doc vs code: `docs/client-api.md` lists Tron as address-mode (code: memo-only); `createdAt` is seconds,
+  not ms. Relay constants name 728126428 `TRON_NILE_CHAIN_ID` (9206 = mainnet placeholder), but one id
+  serves both and mainnet T1 settled under 728126428.
