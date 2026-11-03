@@ -223,3 +223,5 @@ updated: 2026-11-03
 - 2026-11-02 — Proposed the remaining Tron contract approach in [plan-remaining-tron-contracts.md](plan-remaining-tron-contracts.md): group rows 7/10/11, separate payout admission/chain encoding, propagate raw inference, and retain LY guard pending lifecycle/resume work. Read-only SDK investigation.
 
 - 2026-11-03 — Revised remaining-contracts plan from user feedback: explicit raw generics stay; old-chain results remain TxHashPair conditionally; refund investigation is a release gate. Checked fa8c419a: bridge MPC status and DEX Asset MPC routing already exist; 4.5 is redundant-notify optimization. Backend auto-cancel bypasses SDK guard; solver consumers still unverified. No SDK changes.
+
+- 2026-11-03 — Read-only review of remaining-design local diff at fa8c419a: one reproduced P2, MM borrow floor checks gross before partner fee; full evidence/gates in [local-design-review-2026-11-03.md](local-design-review-2026-11-03.md). SDK source unchanged.

@@ -3,7 +3,7 @@ type: brief
 repo: sodax-sdks
 github: 
 status: Active
-next: implement scoped order 8 -> 4 with parallel refund investigation -> 7/10/11 -> operation raw types/schemas -> verified refund/old findings; keep inference and LY outside #534
+next: fix reviewed MM borrow minimum against net payout after partner fee, add regression test, then review/commit remaining design diff; see local-design-review-2026-11-03.md
 updated: 2026-11-03
 ---
 
@@ -50,6 +50,10 @@ then opens exactly one row from the map below.**
   (Feature, Backlog, open questions in a comment). Blocker: solver quotes no path to Tron USDT/TRX.
 
 ## Next action
+
+2026-11-03 latest code review: **one P2 remains** — MM borrow minimum checks gross amount,
+while the payout is net of partner fee. Reproduced 3.1 USDT -> 2.79 USDT accepted against a 3 USDT floor.
+See `local-design-review-2026-11-03.md` for evidence and gates; no SDK edits by this review.
 
 2026-11-03 scope revision: keep explicit raw generics; conditional feature results preserve old-chain
 TxHashPair. Investigate manual/automatic refund and legacy 20-byte intents before merge. Bridge MPC
@@ -109,6 +113,7 @@ wants. Don't post again unless asked.
 
 | Question | File | ~tok |
 | -------- | ---- | ---: |
+| Latest remaining-design code review and reproduced borrow guard bug | `local-design-review-2026-11-03.md` | 0.6k |
 | Proposed approach for remaining design rows, raw inference and LY | `plan-remaining-tron-contracts.md` | 1.5k |
 | Latest local raw-mode review, findings and gate results | `raw-review-2026-11-02.md` | 0.8k |
 | What the review asked for | `issue.md` | 0.4k |
