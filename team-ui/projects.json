@@ -34,7 +34,8 @@
       "node": "22.23.4",
       "prompts": "prompts/sodax-backend",
       "setupCommand": "pnpm install --frozen-lockfile && pnpm build:packages",
-      "testCommand": "pnpm test"
+      "testCommand": "pnpm test",
+      "commitCheck": "pnpm checkTs --concurrency=2 && pnpm test --concurrency=2 && pnpm exec lint-staged"
     },
     {
       "path": "sodax-command-center/repos/backend/sodax-data-backend",
