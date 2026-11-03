@@ -2,7 +2,7 @@
 type: process
 repo: sodax-sdks
 github: 
-updated: 2026-11-02
+updated: 2026-11-03
 ---
 
 # Process
@@ -221,3 +221,5 @@ updated: 2026-11-02
 - 2026-11-02 — Reviewed uncommitted raw-mode changes at `665a215e` in wt-534. Three raw-contract/lifecycle findings and gate results: [raw-review-2026-11-02.md](raw-review-2026-11-02.md). SDK source unchanged; no SDK commit/push or PR comment.
 
 - 2026-11-02 — Proposed the remaining Tron contract approach in [plan-remaining-tron-contracts.md](plan-remaining-tron-contracts.md): group rows 7/10/11, separate payout admission/chain encoding, propagate raw inference, and retain LY guard pending lifecycle/resume work. Read-only SDK investigation.
+
+- 2026-11-03 — Revised remaining-contracts plan from user feedback: explicit raw generics stay; old-chain results remain TxHashPair conditionally; refund investigation is a release gate. Checked fa8c419a: bridge MPC status and DEX Asset MPC routing already exist; 4.5 is redundant-notify optimization. Backend auto-cancel bypasses SDK guard; solver consumers still unverified. No SDK changes.

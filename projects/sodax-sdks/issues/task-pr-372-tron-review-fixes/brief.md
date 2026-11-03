@@ -3,8 +3,8 @@ type: brief
 repo: sodax-sdks
 github: 
 status: Active
-next: review proposed remaining-contracts approach (rows 4, 7, 8, 10, 11, raw inference and LY); implementation not started
-updated: 2026-11-02
+next: implement scoped order 8 -> 4 with parallel refund investigation -> 7/10/11 -> operation raw types/schemas -> verified refund/old findings; keep inference and LY outside #534
+updated: 2026-11-03
 ---
 
 # PR 372 Tron review fixes · brief
@@ -50,6 +50,11 @@ then opens exactly one row from the map below.**
   (Feature, Backlog, open questions in a comment). Blocker: solver quotes no path to Tron USDT/TRX.
 
 ## Next action
+
+2026-11-03 scope revision: keep explicit raw generics; conditional feature results preserve old-chain
+TxHashPair. Investigate manual/automatic refund and legacy 20-byte intents before merge. Bridge MPC
+status and DEX Asset routing already exist at fa8c419a; 4.5 is retry optimization, not missing notify.
+See `plan-remaining-tron-contracts.md` for the revised sequence and remaining evidence gaps.
 
 2026-11-02 design proposal: see [`plan-remaining-tron-contracts.md`](plan-remaining-tron-contracts.md).
 Rows 7/10/11 share submission/delivery contracts; row 8 and the payout floor can be fixed separately.
