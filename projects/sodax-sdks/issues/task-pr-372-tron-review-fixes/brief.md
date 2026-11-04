@@ -3,8 +3,8 @@ type: brief
 repo: sodax-sdks
 github: 
 status: Active
-next: head 0f902bfd pushed (docs: cancelled Tron-source intent refunded once its release is notified via spoke.settleHubRelease). CI green at 2585aa1d. Open in PR: tell gcranju (auto-swap guard) + ask solver about small/partial Tron payouts; mainnet T1-T5. Backend keeper MPC notify after a Tron-source cancel is the BE team's call (user, 2026-11-03): not ours to file. Outside: sdks issue DEX withdraw dst pays hub-wallet address (inherited, all chains); ProtocolIntents suspicions via AuditMap only; solver repo access
-updated: 2026-11-03
+next: PR #534 head 5d2d118a (+ uncommitted submitHubDelivery). Mainnet run complete (T1-T5, T4b, B1-B2, E1-E2, S1-S2, R1-R4), results in PR comment 6604137581. Found+fixed this session: Tron-to-spoke bridge status ended at hub mint (dstChainKey), Tron wallet provider lost on page reload (sign-time eth_requestAccounts), backend 400 on tron status read (backendRelaysBridge). Open: user to test unlock prompt + optional EVM MM smoke; follow-up issue drafts in session scratchpad (server watcher for 2nd leg, BE Tron submit-tx, relay fee quote, solver TRX route, LY from Tron, L2 2-gwei priority fee). Backend keeper/watcher is the BE/relay team's call; discussed on Discord 2026-11-04.
+updated: 2026-11-04
 ---
 
 # PR 372 Tron review fixes · brief
