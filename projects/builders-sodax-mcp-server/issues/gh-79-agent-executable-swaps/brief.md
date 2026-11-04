@@ -2,9 +2,9 @@
 type: brief
 repo: builders-sodax-mcp-server
 github: 79
-status: Active, in review — #100 merged; #90, #91, #104 ready; #92–#98, #102 and sodax-sdks #577 ready since 2026-11-01 (GitHub stack)
-next: wait for R0bi7's review, then merge in the order under Next action
-updated: 2026-11-01
+status: Active, in review — #100 merged; R0bi7's 9-point merge-plan review answered 2026-11-04 (fixes pushed on #104, #95…#102)
+next: wait for R0bi7 (owners for RPC/gateway/alerts, #104 merge); then #101 sync, restack #91 (plan-review-2026-11-02.md steps 3–10)
+updated: 2026-11-04
 ---
 
 # GH-79 Agent-executable swaps (Builders MCP) · brief
@@ -16,16 +16,16 @@ updated: 2026-11-01
 - Code: hub submodule `sodax-command-center/repos/client/builders-sodax-mcp-server` (the standalone clone
   `sodax/builders-sodax-mcp-server/` is legacy). After checking out a branch, run `pnpm install --frozen-lockfile`:
   the pre-commit hook runs every test, and they need the SDK.
-- PRs (tips checked 2026-10-29):
+- PRs (tips checked 2026-11-04):
 
 | PR | What | Branch @ tip | State |
 |---|---|---|---|
 | #90 | ADR (#80) | `feat/agent-executable-swaps` @ `1dc6dfc` | ready, R0bi7 requested |
 | #91 | #81 key forwarding, `SODAX_ENV` | `feat/81-forward-api-key` @ `bab68bf` | ready, R0bi7 requested |
-| #92–#98 | #82–#88 | `feat/82…88-*` @ `5a78943` `cf4f806` `084f8b9` `98c1335` `947f0fe` `11a2e67` `ce952d2` | ready 2026-11-01, no reviewer requested |
-| #102 | #89 docs; drops the rollout switch | `feat/89-swap-docs` @ `02ede6c` | ready 2026-11-01, no reviewer requested |
+| #92–#98 | #82–#88 | `feat/82…88-*` @ `5a78943` `cf4f806` `084f8b9` `47e0cf3` `2241a9f` `67492af` `b708cdc` | ready 2026-11-01, no reviewer requested |
+| #102 | #89 docs; kill switch kept (default true), `/health.swapQuotes`, ops README, release note in its body | `feat/89-swap-docs` @ `676ffeb` | ready 2026-11-01, no reviewer requested |
 | #100 | SSE hotfix (Closes #99) | squash `98226dd` on `development` | merged 2026-10-29 |
-| #104 | Hardening (issue #103, incl. markdown tables keeping addresses whole) | `fix/server-hardening` @ `538aa29` (merged `development`, same tree as tested `d93146b`), base `development` | ready, R0bi7 requested |
+| #104 | Hardening (issue #103, incl. markdown tables keeping addresses whole) + route-level test (`createHttpApp`, `src/index.test.ts`) | `fix/server-hardening` @ `bc03e46`, base `development`, CI green | ready, R0bi7 requested |
 | sodax-sdks #577 | Docs page + skill pointer (issue #576) | `docs/builders-mcp-swap` @ `50b9587` | ready 2026-11-01, no reviewer requested |
 
 - GitHub stack: #91 targets `development`, each later PR the branch below it; CI runs only on PRs into
@@ -46,7 +46,10 @@ updated: 2026-11-01
 
 ## Blocked on
 
-1. R0bi7's review of #90, #91, #104.
+1. R0bi7's review of #90, #91, #104. His 9-point merge-plan review (#79, 2026-11-02) is answered (comment
+   6624748212, 2026-11-04); open asks there: owners for `SODAX_RPC_URL_1/137/295`, the gateway fake-key check,
+   alerts; one replica and `DISCORD_WEBHOOK_URL` confirmed; hard drain wanted or not. No stack branch has #100 yet
+   (#91's sync brings it; the route test guards it).
 2. Edge and BE limits (a key counted twice, per-IP write cap and jail on the MCP's IP, `submit-tx` 10/min per IP):
    asked R0bi7 2026-10-28; parked, don't raise again until it comes back.
 3. E2E (#88): a gosodax admin adds the funded wallet and canary key as `canary-e2e` secrets and sets staging
@@ -54,10 +57,12 @@ updated: 2026-11-01
 
 ## Next action
 
-1. Merge order: #100 (done) → #104 → release to master → #90 any time → #91…#98 in order
-   (expect `index.ts` conflicts with #104) → first green canary E2E → #102 → release → sodax-sdks #577.
-2. Before #102's release: `SODAX_RPC_URL_<id>` with a paid key for every EVM source, Coolify memory (the SDK adds
-   ~230 MB RSS), staging boots.
+1. Merge order: #100 (done) → #104 → #101 (sync it; keep pins + `id: release`) → release to master, then hold
+   master → #90 any time → sync #91 with `development` (port guards by hunk, `plan-review-2026-11-02.md` step 6) →
+   #91…#98 in order → first green canary E2E → #102 (merge the two server.json tests) → real canary run on
+   `development` → release → sodax-sdks #577.
+2. Before #102's release: the checklist in #102's body (RPC 1/137/295, gateway check, one replica, webhook, alert
+   owner, real canary run), Coolify memory (the SDK adds ~230 MB RSS), staging boots.
 3. sodax-sdks #576 is docs-only, so `no-plan` fits (`.github/issue-workflow.md` §no-plan); a maintainer applies it.
    Then add the wallet text and a Claude Code `"type": "http"` hint to the page.
 4. Not run live yet (real funds): cancel, EIP-5792 batch, native source, restart before the first track.
@@ -103,6 +108,8 @@ Workflow per sub-issue (user): plan → review → implement → `/simplify` →
 
 14. No change to the SDK's default Ethereum RPC (user, 2026-10-28): production sets `SODAX_RPC_URL_<id>` with a paid key for every EVM source before #102's release; without it Ethereum track/balance fail.
 15. `AMOUNT_TOO_LOW` suggests ≈ $1.5 of the token (user, 2026-10-29); a hint, never an MCP refusal.
+16. Kill switch `SODAX_SWAP_TOOLS_ENABLED` kept, default `true` (R0bi7 point 4, user 2026-11-04). Master is held
+   after the #100/#104/#101 release until #102 ships the stack in one release (point 3, user 2026-11-04).
 13. The public profile stays `swap` (user, 2026-10-28), as R0bi7's epic, #82 and the AC name it; phase 2 adds its own profile(s), which is additive. Not `actions`.
 ## Which file answers what
 
@@ -123,6 +130,8 @@ Workflow per sub-issue (user): plan → review → implement → `/simplify` →
 | Whole-project review 2026-10-28 (4 agents at #102's tip): funds-safety tier, security / backend exposure (private channel), agent UX, structure and process; open | `review-2026-10-28-project.md` | 5k |
 | Fixes from the 2026-10-28 review: what is fixed where (per-PR map for splitting commits), research for the open items with owners, decisions for the user | `plan-fixes-2026-10-28.md` | 4.5k |
 | Stack review 2026-10-27, PR #91–#98: must-fix, mediums per PR, low/nits, out-of-date decisions, what was verified fine | `review-2026-10-27-stack.md` | 4k |
+| R0bi7's merge-plan review 2026-11-02: each of the 9 points checked against code (restack conflicts, live changes before #102, switch, ops, cancel no-quote gap, #101) | `review-2026-11-02-r0bi7-merge-plan.md` | 1.5k |
+| Plan to handle that review: decisions D-a..D-d, 10-step order with owners, route test cases, cancel fix, restack recipe, #102 changes, pre-release checklist (RPC probe 2026-11-03), reply draft | `plan-review-2026-11-02.md` | 3.5k |
 | Discussion log: balance in BE, custom RPC, full SDK vs light, rate limit, API key, cancel, partner fee | `process.md` | 2k |
 | Candidate changes from before the ADR revision, not re-mapped | `improvement-ideas.md` | 1.9k |
 
