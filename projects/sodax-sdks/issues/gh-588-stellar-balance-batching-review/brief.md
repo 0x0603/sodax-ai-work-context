@@ -3,19 +3,19 @@ type: brief
 repo: sodax-sdks
 github: 588
 status: Reviewed
-next: Observe the remaining CI run and resolve advisory workflow metadata before merge.
-updated: 2026-10-30
+next: Wait for Robi to re-check e181f0b9 on PR #590, then merge.
+updated: 2026-11-04
 ---
 
 # GH-588 Stellar balance batching review
 
 ## State
 
-Re-review of PR #590 at `63abd21eb08f117971c343a8451fb309eac3d437` is complete. The issuer P2 is resolved with a config-derived issuer map and regression coverage. No additional actionable findings. No SDK changes or GitHub comments were made by the reviewer.
+Robi reviewed PR #590: on a Horizon 404 every token read as zero, including custom Soroban tokens such as legacybnUSD that an unfunded address can hold. Fixed in e181f0b9 (pushed 2026-11-04): on 404 only XLM and classic assets read zero, custom tokens are still simulated with a sequence-0 stand-in source. Tests and checks pass.
 
 ## Next action
 
-Observe the remote Build and Test run, still in progress at review time. The advisory Plan check reports missing approval metadata and a GitHub integration permission error. See `outcome.md`.
+Wait for Robi to re-check e181f0b9 on PR #590 (the 404 point came on Discord, no PR thread), then merge.
 
 ## File map
 
@@ -23,5 +23,5 @@ Observe the remote Build and Test run, still in progress at review time. The adv
 | --- | --- |
 | Source issue and review boundary | `issue.md` |
 | Review approach | `plan.md` |
-| Reproduction and verification evidence | `process.md` |
-| Finding and follow-up | `outcome.md` |
+| Reproduction, verification, and the 2026-11-04 fix | `process.md` |
+| Earlier review finding and follow-up | `outcome.md` |

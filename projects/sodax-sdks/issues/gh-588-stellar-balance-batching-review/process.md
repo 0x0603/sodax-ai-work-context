@@ -2,7 +2,7 @@
 type: process
 repo: sodax-sdks
 github: 588
-updated: 2026-10-30
+updated: 2026-11-04
 ---
 
 # Review evidence
@@ -31,3 +31,11 @@ updated: 2026-10-30
 - Read-only changed-file Biome lint, AI dev-file validation, doc links and generated docs checks passed. `git diff --check` passed and the SDK working tree remains clean.
 - No additional actionable code findings.
 - Remote CI run `41014205903`: Build and Test still running when inspected; E2E, docs and security checks pass. Advisory Plan run `41014205956` reports missing trusted plan/approval metadata plus `Resource not accessible by integration`; the earlier issue plan comment was visible to authenticated gh.
+
+## 2026-11-04 Robi review fix: unfunded accounts
+
+- Robi: on a Horizon 404, `getBalances` returned zero for every token before the Soroban branch, so legacybnUSD (a custom Soroban token, not in `trustlineConfigs`) read as 0.
+- Verified on mainnet: a random unfunded address gets `NotFoundError` from Horizon, yet simulating `balance()` with `new Account(addr, '0')` as source succeeds on three public Soroban RPCs. Simulation does not need the source account to exist.
+- Fix (uncommitted, worktree `.claude/worktrees/590-stellar-balances`): on 404, XLM and classic assets read 0, custom tokens are still simulated with the stand-in source. Test and README/docs sentence updated.
+- Wallet-react: 331 tests pass, `checkTs`, Biome and `check:docs-pages` pass (Node 24).
+- Pushed as e181f0b9 (signed, pre-commit hook green on Node 24 after `pnpm build:packages` in the fresh worktree).
