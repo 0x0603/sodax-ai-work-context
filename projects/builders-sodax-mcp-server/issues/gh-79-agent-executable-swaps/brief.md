@@ -83,6 +83,9 @@ updated: 2026-11-05
    `id: release` context, #102 only the server.json test merge.
    `development`'s daily Drift Check fails since ≥2026-10-30 (live API added money-market `is*` fields and an
    `open` param on `/intent`): pre-existing, not from #101. Filed as #107 (Bug, user, 2026-11-05).
+   Dropping the legacy SSE transport (`/sse` + `/messages`, the SSE guards in #104, the SSE key test in #91, the
+   sdks docs lines) is #108 (Task, user, 2026-11-05), to do after #91 and #104 merge. Gemini CLI, the reason SSE
+   was added, speaks streamable HTTP via `httpUrl`.
 2. Before #102's release: the checklist in #102's body (RPC 1/137/295, gateway check, one replica, webhook, alert
    owner, real canary run), Coolify memory (the SDK adds ~230 MB RSS), staging boots.
 3. sodax-sdks #577: the Claude Code `"type": "http"` fix is in (`eb2affb9`, 2026-11-05: the docs page and all 16
