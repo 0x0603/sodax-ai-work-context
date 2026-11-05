@@ -2,9 +2,9 @@
 type: brief
 repo: builders-sodax-mcp-server
 github: 79
-status: Active, in review — #100 merged; R0bi7's 9-point merge-plan review answered 2026-11-04 (fixes pushed on #104, #95…#102)
-next: wait for R0bi7 (owners for RPC/gateway/alerts, #104 merge); then #101 sync, restack #91 (plan-review-2026-11-02.md steps 3–10)
-updated: 2026-11-04
+status: Active, in review — #100 and #101 merged; #104 and the whole stack synced with development 2026-11-05
+next: wait for R0bi7 (#104, #90, #91 re-requested 2026-11-05; owners for RPC/gateway/alerts); then release, port guards at #91's #104 sync
+updated: 2026-11-05
 ---
 
 # GH-79 Agent-executable swaps (Builders MCP) · brief
@@ -16,17 +16,18 @@ updated: 2026-11-04
 - Code: hub submodule `sodax-command-center/repos/client/builders-sodax-mcp-server` (the standalone clone
   `sodax/builders-sodax-mcp-server/` is legacy). After checking out a branch, run `pnpm install --frozen-lockfile`:
   the pre-commit hook runs every test, and they need the SDK.
-- PRs (tips checked 2026-11-04):
+- PRs (tips after the 2026-11-05 sync):
 
 | PR | What | Branch @ tip | State |
 |---|---|---|---|
-| #90 | ADR (#80) | `feat/agent-executable-swaps` @ `1dc6dfc` | ready, R0bi7 requested |
-| #91 | #81 key forwarding, `SODAX_ENV` | `feat/81-forward-api-key` @ `bab68bf` | ready, R0bi7 requested |
-| #92–#98 | #82–#88 | `feat/82…88-*` @ `5a78943` `cf4f806` `084f8b9` `47e0cf3` `2241a9f` `67492af` `b708cdc` | ready 2026-11-01, no reviewer requested |
-| #102 | #89 docs; kill switch kept (default true), `/health.swapQuotes`, ops README, release note in its body | `feat/89-swap-docs` @ `676ffeb` | ready 2026-11-01, no reviewer requested |
+| #90 | ADR (#80) | `feat/agent-executable-swaps` @ `1dc6dfc` | ready, R0bi7 re-requested 2026-11-05, CI green |
+| #91 | #81 key forwarding, `SODAX_ENV` | `feat/81-forward-api-key` @ `31a3f68` (has #100, #101) | ready, R0bi7 re-requested 2026-11-05, CI green |
+| #92–#98 | #82–#88 | `feat/82…88-*` @ `f5105bc` `cd3ea00` `520e484` `8d60529` `3b038e0` `35fd941` `2cee78b` | ready, no reviewer requested (merge in order after #91) |
+| #102 | #89 docs; kill switch kept (default true), `/health.swapQuotes`, ops README, release note in its body | `feat/89-swap-docs` @ `c665c75` (server.json tests merged) | ready, no reviewer requested |
 | #100 | SSE hotfix (Closes #99) | squash `98226dd` on `development` | merged 2026-10-29 |
-| #104 | Hardening (issue #103, incl. markdown tables keeping addresses whole) + route-level test (`createHttpApp`, `src/index.test.ts`) | `fix/server-hardening` @ `bc03e46`, base `development`, CI green | ready, R0bi7 requested |
-| sodax-sdks #577 | Docs page + skill pointer (issue #576) | `docs/builders-mcp-swap` @ `50b9587` | ready 2026-11-01, no reviewer requested |
+| #101 | hazy2go: MCP Registry publish (Closes #106) | squash `80b8ad0` on `development` | merged 2026-11-05 |
+| #104 | Hardening (issue #103, incl. markdown tables keeping addresses whole) + route-level test (`createHttpApp`, `src/index.test.ts`) | `fix/server-hardening` @ `102e6d8` (has #101), base `development`, CI green | ready, R0bi7 re-requested 2026-11-05 |
+| sodax-sdks #577 | Docs page + skill pointer (issue #576) | `docs/builders-mcp-swap` @ `50b9587` | ready, R0bi7 requested 2026-11-05 |
 
 - GitHub stack: #91 targets `development`, each later PR the branch below it; CI runs only on PRs into
   `development`/`master`. The user marked the whole stack ready for review on 2026-11-01; it still merges in order.
@@ -39,8 +40,26 @@ updated: 2026-11-04
 - Live test on canary 2026-10-28 passed: two real swaps solved (`test-run-2026-10-28.md`).
 - #79–#89 are assigned to the user; "@0xmatterhorn" is the user's Discord handle. R0bi7 (Discord 2026-10-23): the
   epic is a draft and the user may adjust it; the agent signs and broadcasts, the MCP gets the hash (D1).
-- PR #101 (hazy2go, MCP Registry publish) clashes with #102's `server.json` test. Parked: whichever merges second
-  merges the two tests.
+- PR #101 (hazy2go, MCP Registry publish) @ `70e6779`: reviewed 2026-11-05, valid as-is (clean on `development`,
+  release-please already bumps `server.json` `$.version`, OIDC login and pinned publisher correct). The registry
+  model has no `tools` field, so the tool list never reaches it (wording in its body/test only). R0bi7 (Discord
+  2026-11-05) asked the user to merge it first, then absorb it (plan A, chosen 2026-11-05).
+  - Fixes go on hazy2go's branch, not on #104 (user, 2026-11-05). Pushed `f3c991f` (checkout pinned
+    `11d5960a` v4.4.0, comments: the registry keeps no tool list); maintainer push + courtesy comment.
+    After `/simplify` + `/code-review`, pushed `680d8b6`: publisher `1.8.1` (1.8.5 was 10 days old, hub
+    supply-chain 14-day cooldown; 1.8.1 has `validate` and `github-oidc`), `curl --retry 3`, publish job
+    `timeout-minutes: 10` + `persist-credentials: false`, ci.yml comment, `.gitignore` `/bin/`. CI green, the
+    Linux job logs the checksum OK and `server.json is valid`. The validate step stays in `ci.yml` (user: don't
+    split it). Courtesy comment 6649956827 covers both commits. Worktree `repos/client/builders-sodax-mcp-server-wt-pr101`.
+  - Hub hygiene `linked-issue` is strict: opened #106 (Task, gosodax board #1), appended `Closes #106` to
+    #101's body. Next: approve + squash-merge #101 (user's word).
+  - #104 then has only the `release-please.yml` hunk (keep pins + `id: release` + outputs).
+  - #91…#98 merge clean.
+  - #102: keep its own `server.json` (superset, live `/v0/validate` ok), drop `serverJson.test.ts`, add its
+    description + version checks to `src/server.test.ts` (each mutation-checked), un-export
+    `DOCS_META_TOOL_NAMES` again (its only outside user is gone).
+  - All tested 2026-11-05 on a scratch merge of #101 `70e6779` (#104: actionlint, 153 tests; #102: 841 tests).
+  R0bi7 also floated a dev deploy (e.g. `dev-mcp.sodax.com`) to test the stack.
 - Hub branch `docs/builders-mcp-swap-sdk` @ `eb1f30d`: open its PR once #94 merges.
 - `improvement-ideas.md` predates the ADR revision and isn't re-mapped.
 
@@ -48,8 +67,8 @@ updated: 2026-11-04
 
 1. R0bi7's review of #90, #91, #104. His 9-point merge-plan review (#79, 2026-11-02) is answered (comment
    6624748212, 2026-11-04); open asks there: owners for `SODAX_RPC_URL_1/137/295`, the gateway fake-key check,
-   alerts; one replica and `DISCORD_WEBHOOK_URL` confirmed; hard drain wanted or not. No stack branch has #100 yet
-   (#91's sync brings it; the route test guards it).
+   alerts; one replica and `DISCORD_WEBHOOK_URL` confirmed; hard drain wanted or not. The stack has #100 since 2026-11-05;
+   #104's guards reach it only when #104 merges and #91 syncs again (port by hunk, the route test guards it).
 2. Edge and BE limits (a key counted twice, per-IP write cap and jail on the MCP's IP, `submit-tx` 10/min per IP):
    asked R0bi7 2026-10-28; parked, don't raise again until it comes back.
 3. E2E (#88): a gosodax admin adds the funded wallet and canary key as `canary-e2e` secrets and sets staging
@@ -57,10 +76,13 @@ updated: 2026-11-04
 
 ## Next action
 
-1. Merge order: #100 (done) → #104 → #101 (sync it; keep pins + `id: release`) → release to master, then hold
-   master → #90 any time → sync #91 with `development` (port guards by hunk, `plan-review-2026-11-02.md` step 6) →
-   #91…#98 in order → first green canary E2E → #102 (merge the two server.json tests) → real canary run on
-   `development` → release → sodax-sdks #577.
+1. Merge order: #100, #101 (done) → #104 → release to master, then hold master → #90 any time → sync #91 with
+   `development` again for #104 (port guards by hunk, `plan-review-2026-11-02.md` step 6) → #91…#98 in order →
+   first green canary E2E → #102 → real canary run on `development` → release → sodax-sdks #577.
+   Each PR's diff was fingerprinted before/after the 2026-11-05 sync: #91–#98 unchanged, #104 only the
+   `id: release` context, #102 only the server.json test merge.
+   `development`'s daily Drift Check fails since ≥2026-10-30 (live API added money-market `is*` fields and an
+   `open` param on `/intent`): pre-existing, not from #101. Filed as #107 (Bug, user, 2026-11-05).
 2. Before #102's release: the checklist in #102's body (RPC 1/137/295, gateway check, one replica, webhook, alert
    owner, real canary run), Coolify memory (the SDK adds ~230 MB RSS), staging boots.
 3. sodax-sdks #576 is docs-only, so `no-plan` fits (`.github/issue-workflow.md` §no-plan); a maintainer applies it.
