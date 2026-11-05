@@ -1,0 +1,64 @@
+diff --git a/packages/sdk/src/shared/services/spoke/SonicSpokeService.ts b/packages/sdk/src/shared/services/spoke/SonicSpokeService.ts
+index 9da2e89f..1741b22f 100644
+--- a/packages/sdk/src/shared/services/spoke/SonicSpokeService.ts
++++ b/packages/sdk/src/shared/services/spoke/SonicSpokeService.ts
+@@ -280,7 +280,7 @@ export class SonicSpokeService {
+     }) satisfies Promise<TxReturnType<SonicChainKey, false>> as Promise<TxReturnType<SonicChainKey, Raw>>;
+   }
+ 
+-  public static async createSwapIntent<Raw extends boolean>(
++  public static async createSwapIntent<Raw extends boolean = false>(
+     params: CreateSonicSwapIntentParams<Raw>,
+   ): Promise<[TxReturnType<SonicChainKey, Raw>, Intent, bigint, Hex]> {
+     const { createIntentParams, creatorHubWalletAddress, solverConfig, fee, hubProvider } = params;
+diff --git a/packages/sdk/src/shared/services/spoke/SpokeService.ts b/packages/sdk/src/shared/services/spoke/SpokeService.ts
+index a0426657..06a12e53 100644
+--- a/packages/sdk/src/shared/services/spoke/SpokeService.ts
++++ b/packages/sdk/src/shared/services/spoke/SpokeService.ts
+@@ -704,7 +704,7 @@ export class SpokeService {
+    * @param {boolean} skipSimulation - Whether to skip deposit simulation (optional, defaults to false).
+    * @returns {Promise<TxReturnType<T, R>>} A promise that resolves to the transaction hash.
+    */
+-  public async deposit<K extends SpokeChainKey, R extends boolean>(
++  public async deposit<K extends SpokeChainKey, R extends boolean = false>(
+     params: DepositParams<K, R>,
+   ): Promise<Result<TxReturnType<K, R>>> {
+     try {
+@@ -809,7 +809,7 @@ export class SpokeService {
+     }
+   }
+ 
+-  public async verifyDepositSimulation<C extends SpokeChainKey, R extends boolean>(
++  public async verifyDepositSimulation<C extends SpokeChainKey, R extends boolean = false>(
+     params: DepositParams<C, R>,
+   ): Promise<Result<void>> {
+     try {
+--- a/packages/sdk/src/shared/entities/Sodax.execution-mode.test.ts
++++ b/packages/sdk/src/shared/entities/Sodax.execution-mode.test.ts
+@@ -20,6 +20,7 @@
+   ClLiquidityIncreaseLiquidityAction,
+   ClSupplyAction,
+   CreateIntentParams,
++  DepositParams,
+   EvmRawTransaction,
+   FeeTokenApproveAction,
+   Hex,
+@@ -116,6 +117,7 @@
+ declare const vaultP: ParamsOf<VaultSwapActionParams<BSC>>;
+ declare const spokeApproveP: Flat<SpokeApproveParams<BSC, false>>;
+ declare const sendMessageP: Flat<SendMessageParams<BSC, false>>;
++declare const depositP: Flat<DepositParams<BSC, false>>;
+ declare const feeApproveP: ParamsOf<FeeTokenApproveAction<SONIC, false>>;
+ declare const autoSwapP: ParamsOf<PartnerFeeClaimSwapAction<SONIC, false>>;
+ declare const feeCancelP: ParamsOf<PartnerFeeClaimCancelAction<SONIC, false>>;
+@@ -241,6 +243,10 @@
+     'spoke.approve': [
+       sodax.spoke.approve({ ...spokeApproveP, walletProvider: evm }),
+       sodax.spoke.approve({ ...spokeApproveP, raw: true }),
++    ],
++    'spoke.deposit': [
++      sodax.spoke.deposit({ ...depositP, walletProvider: evm }),
++      sodax.spoke.deposit({ ...depositP, raw: true }),
+     ],
+     'spoke.sendMessage': [
+       sodax.spoke.sendMessage({ ...sendMessageP, walletProvider: evm }),
