@@ -27,7 +27,7 @@ updated: 2026-11-05
 | #100 | SSE hotfix (Closes #99) | squash `98226dd` on `development` | merged 2026-10-29 |
 | #101 | hazy2go: MCP Registry publish (Closes #106) | squash `80b8ad0` on `development` | merged 2026-11-05 |
 | #104 | Hardening (issue #103, incl. markdown tables keeping addresses whole) + route-level test (`createHttpApp`, `src/index.test.ts`) | `fix/server-hardening` @ `102e6d8` (has #101), base `development`, CI green | ready, R0bi7 re-requested 2026-11-05 |
-| sodax-sdks #577 | Docs page + skill pointer (issue #576) | `docs/builders-mcp-swap` @ `50b9587` | ready, R0bi7 requested 2026-11-05 |
+| sodax-sdks #577 | Docs page + skill pointer (issue #576) | `docs/builders-mcp-swap` @ `eb2affb9` (`"type": "http"` in all 20 config snippets, Claude Code `--header` line) | ready, R0bi7 requested 2026-11-05 |
 
 - GitHub stack: #91 targets `development`, each later PR the branch below it; CI runs only on PRs into
   `development`/`master`. The user marked the whole stack ready for review on 2026-11-01; it still merges in order.
@@ -85,8 +85,8 @@ updated: 2026-11-05
    `open` param on `/intent`): pre-existing, not from #101. Filed as #107 (Bug, user, 2026-11-05).
 2. Before #102's release: the checklist in #102's body (RPC 1/137/295, gateway check, one replica, webhook, alert
    owner, real canary run), Coolify memory (the SDK adds ~230 MB RSS), staging boots.
-3. sodax-sdks #576 is docs-only, so `no-plan` fits (`.github/issue-workflow.md` §no-plan); a maintainer applies it.
-   Then add the wallet text and a Claude Code `"type": "http"` hint to the page.
+3. sodax-sdks #577: the Claude Code `"type": "http"` fix is in (`eb2affb9`, 2026-11-05: the docs page and all 16
+   network pages + blog; Cursor accepts the field too). "Spec and plan" passes now.
 4. Not run live yet (real funds): cancel, EIP-5792 batch, native source, restart before the first track.
 5. Follow-up PR: pnpm 10 + `minimumReleaseAge` instead of the hand pins (`plan-84-swap-quote.md` §Follow-up PR).
 
