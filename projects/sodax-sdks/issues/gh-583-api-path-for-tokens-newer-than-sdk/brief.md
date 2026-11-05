@@ -3,8 +3,8 @@ type: brief
 repo: sodax-sdks
 github: 583
 status: Active
-next: watch CI on PR #584 and wait for review
-updated: 2026-11-01
+next: refresh the PR #584 body, watch CI after the main merge
+updated: 2026-11-05
 ---
 
 # GH-583 API path for tokens newer than the installed SDK · brief
@@ -25,7 +25,11 @@ Nothing. `plan-approved` is on #583 (checked 2026-11-01).
 
 ## Next action
 
-Watch PR #584 CI (Docs site, Docs ship with code, AI drift, Issue linked); fix anything red.
+Merged `origin/main` (8e02d9ad) as signed d9699663, pushed 2026-11-05; PR is MERGEABLE.
+Only conflict was `BridgeCard.tsx`: main #586 made the same switch to API tokens + API limit with symbol-keyed picks,
+so the PR's `isSameToken` effects and `isPairSettled` were dropped; kept the review-pair guard and the dialog's
+`!isBridgeable` gate. Watch CI, then update the PR body (its "Bridge API page lists 29 Robinhood tokens"
+before-state is now fixed by #586).
 
 ## Settled — do not re-litigate
 
