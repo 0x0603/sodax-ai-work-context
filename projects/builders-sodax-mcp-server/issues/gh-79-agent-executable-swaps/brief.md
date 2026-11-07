@@ -2,9 +2,9 @@
 type: brief
 repo: builders-sodax-mcp-server
 github: 79
-status: Active, in review — #100 and #101 merged; #104 and the whole stack synced with development 2026-11-05
-next: wait for R0bi7 (#104, #90, #91 re-requested 2026-11-05; owners for RPC/gateway/alerts); then release, port guards at #91's #104 sync
-updated: 2026-11-05
+status: Active, changes requested — R0bi7 (2026-11-07) listed fixes on #104, #93, #95, #96, #97; pre-review of the whole stack done 2026-11-07
+next: fix per review-2026-11-07-pre-r0bi7.md (blockers #96 NEAR, #95 post-deposit errors first), update #90 body + merge plan, port #104 guards, rerun CI
+updated: 2026-11-07
 ---
 
 # GH-79 Agent-executable swaps (Builders MCP) · brief
@@ -65,10 +65,12 @@ updated: 2026-11-05
 
 ## Blocked on
 
-1. R0bi7's review of #90, #91, #104. His 9-point merge-plan review (#79, 2026-11-02) is answered (comment
-   6624748212, 2026-11-04); open asks there: owners for `SODAX_RPC_URL_1/137/295`, the gateway fake-key check,
-   alerts; one replica and `DISCORD_WEBHOOK_URL` confirmed; hard drain wanted or not. The stack has #100 since 2026-11-05;
-   #104's guards reach it only when #104 merges and #91 syncs again (port by hunk, the route test guards it).
+1. Our fixes. R0bi7 rechecked the stack 2026-11-07 (Discord): kill switch, cancel binding and route test are
+   addressed; fixes remain on #104, #93, #95, #96 (main blocker), #97, plus #90's body, the merge plan, the guard
+   port and a CI rerun. Our pre-review the same day confirmed all of it and added 2 blockers (#96 NEAR, #95
+   post-deposit errors) and more should-fix items: `review-2026-11-07-pre-r0bi7.md` (checklist). His older open
+   asks (owners for `SODAX_RPC_URL_1/137/295`, gateway fake-key check, alerts, drain) are on that checklist's
+   pre-release list. #104's guards reach the stack only when #104 merges and #91 syncs again.
 2. Edge and BE limits (a key counted twice, per-IP write cap and jail on the MCP's IP, `submit-tx` 10/min per IP):
    asked R0bi7 2026-10-28; parked, don't raise again until it comes back.
 3. E2E (#88): a gosodax admin adds the funded wallet and canary key as `canary-e2e` secrets and sets staging
@@ -76,6 +78,9 @@ updated: 2026-11-05
 
 ## Next action
 
+0. Work the checklist in `review-2026-11-07-pre-r0bi7.md` top to bottom (#104 first, then #95/#96 blockers),
+   one PR at a time, merging each fix up the stack. Then post the #90 body + merge-plan edits (drafts in
+   `review-2026-11-07/pr90-91-92.md`) and reply to R0bi7.
 1. Merge order: #100, #101 (done) → #104 → release to master, then hold master → #90 any time → sync #91 with
    `development` again for #104 (port guards by hunk, `plan-review-2026-11-02.md` step 6) → #91…#98 in order →
    first green canary E2E → #102 → real canary run on `development` → release → sodax-sdks #577.
@@ -156,6 +161,7 @@ Workflow per sub-issue (user): plan → review → implement → `/simplify` →
 | Fixes from the 2026-10-28 review: what is fixed where (per-PR map for splitting commits), research for the open items with owners, decisions for the user | `plan-fixes-2026-10-28.md` | 4.5k |
 | Stack review 2026-10-27, PR #91–#98: must-fix, mediums per PR, low/nits, out-of-date decisions, what was verified fine | `review-2026-10-27-stack.md` | 4k |
 | R0bi7's merge-plan review 2026-11-02: each of the 9 points checked against code (restack conflicts, live changes before #102, switch, ops, cancel no-quote gap, #101) | `review-2026-11-02-r0bi7-merge-plan.md` | 1.5k |
+| **Start here next week.** R0bi7's 2026-11-07 fix list + our pre-review of every PR: 2 blockers, the work checklist in merge order, and a map to the per-PR detail files in `review-2026-11-07/` (his verbatim words, fixes with code, tests, guard-port plan, #90/merge-plan drafts, pre-release gaps, #577) | `review-2026-11-07-pre-r0bi7.md` | 2.3k |
 | Plan to handle that review: decisions D-a..D-d, 10-step order with owners, route test cases, cancel fix, restack recipe, #102 changes, pre-release checklist (RPC probe 2026-11-03), reply draft | `plan-review-2026-11-02.md` | 3.5k |
 | Discussion log: balance in BE, custom RPC, full SDK vs light, rate limit, API key, cancel, partner fee | `process.md` | 2k |
 | Candidate changes from before the ADR revision, not re-mapped | `improvement-ideas.md` | 1.9k |

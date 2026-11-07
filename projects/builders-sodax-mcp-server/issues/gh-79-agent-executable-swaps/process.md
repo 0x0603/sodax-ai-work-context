@@ -2,7 +2,7 @@
 type: process
 repo: builders-sodax-mcp-server
 github: 79
-updated: 2026-10-27
+updated: 2026-11-07
 ---
 
 # Process
@@ -180,3 +180,12 @@ updated: 2026-10-27
 - Live test on canary with a blank agent: two real swaps solved (AC met), error cases, partner fee; posted on #79 (#issuecomment-6466086206). Fixes and the pending improvements implemented, split per PR (#94, #95, #96, #97, #102), restacked, force-pushed; ADR `1dc6dfc`; review requested from R0bi7 on #90 (now ready), #100, #104, #91.
 - Live test round 2 after the fixes: two more swaps solved (3 and 4 track calls instead of 9), production contract tests 25/25; posted on #79 (#issuecomment-6467367536). Test wallet: Arbitrum 1.519659 USDC + 0.000414 ETH, Base 0.000458 ETH; container still running.
 
+
+## 2026-11-07: R0bi7's fix list and a full pre-review
+
+- R0bi7 (Discord) rechecked the stack: kill switch, cancel binding and route test addressed; fixes remain on
+  #104, #93, #95, #96 (main blocker), #97, plus #90's body, the merge plan, the guard port, a CI rerun and the
+  pre-release confirmations. Verbatim in `review-2026-11-07/r0bi7-feedback.md`.
+- Seven agents pre-reviewed every PR at the 11-05 tips (read-only, scratch worktrees, nothing posted). All his
+  points confirmed; new blockers #96 NEAR and #95 post-deposit errors. Router + checklist:
+  `review-2026-11-07-pre-r0bi7.md`; per-PR detail in `review-2026-11-07/`.
