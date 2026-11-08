@@ -3,7 +3,7 @@ type: brief
 repo: sodax-sdks
 github: 603
 status: Active, follow-up pushed, waiting for CI and re-review
-next: check CI on f69552c3, then ask for a re-review (R0bi7-sodax-worker only reviewed f86cf06)
+next: check CI on 9c41017c, then ask for a re-review (R0bi7-sodax-worker only reviewed f86cf06)
 updated: 2026-11-08
 tags: review, types, execution-mode
 ---
@@ -18,7 +18,8 @@ tags: review, types, execution-mode
 - PR body rewritten on 2026-11-08 to match `aa3a72df` (runtime Bitcoin change, both compile breaks,
   no changeset, CI on `aa3a72d`). Old body: none kept here.
 - R0bi7-sodax-worker approved only `f86cf06`; the three later commits are unreviewed.
-- Pushed 2026-11-08 as `202d9d04` (fix) + `f69552c3` (chore), from worktree `repos/client/sodax-sdks/.claude/worktrees/603-infer-raw-execution-mode`
+- Pushed 2026-11-08 as `202d9d04` (fix) + `f69552c3` (chore) + `9c41017c` (test: drop the per-service
+  result-type copies), from worktree `repos/client/sodax-sdks/.claude/worktrees/603-infer-raw-execution-mode`
   on the first Mac. Detail in `process.md`.
   - `scripts/check-execution-mode.mjs` (+ `.test.mjs`): bans `raw === false` and requires `Raw = false`
     on public methods; tail of sdk `checkTs`, in `test:ci-scripts`, turbo `checkTs` inputs.
@@ -32,7 +33,7 @@ tags: review, types, execution-mode
 
 ## Next action
 
-1. Check CI on `f69552c3` (PR body Validation lists local results; CI line still says `aa3a72d`).
+1. Check CI on `9c41017c` (CI on `f69552c3` was green; the body's Validation cites it plus local results on `9c41017c`).
 2. Ask for a re-review on the new head; the user decides whether to trigger R0bi7-sodax-worker.
 
 ## Follow-ups (not in #603)

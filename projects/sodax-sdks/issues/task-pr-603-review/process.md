@@ -52,3 +52,8 @@ tags: review, types, execution-mode
   `UseSetSwapPreferenceVars` match. Skipped: checking functions / arrow props / interfaces (actions
   are class methods; `shared/guards.ts` type guards would be false positives). No changeset machinery;
   the hub-only `K` constraint goes in the PR body's Merge Danger.
+- Pasted review finding (same contract in two places): the swap / bridge / money-market service
+  tests repeated the central table's result-type assertions. Dropped the copies (and the imports
+  only they used) in `9c41017c`; the Bitcoin omitted-raw runtime tests and the moved
+  `@ts-expect-error` lines stay. MoneyMarketService.test.ts now has no diff against `main`.
+  CI on `f69552c3` was green (19 pass, 1 skipping) before this push.
