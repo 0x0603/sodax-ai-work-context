@@ -2,9 +2,9 @@
 type: brief
 repo: sodax-sdks
 github: 603
-status: Active, review written, not delivered
-next: user decides how to deliver the #603 review (post a review only, or also push the type test to R0bi7's branch)
-updated: 2026-11-05
+status: Active, follow-up pushed, waiting for CI and re-review
+next: check CI on f69552c3, then ask for a re-review (R0bi7-sodax-worker only reviewed f86cf06)
+updated: 2026-11-08
 tags: review, types, execution-mode
 ---
 
@@ -12,41 +12,41 @@ tags: review, types, execution-mode
 
 ## State
 
-- gosodax/sodax-sdks#603 `feat/infer-raw-execution-mode` @ `f86cf06e` (unchanged on 2026-11-05), by R0bi7.
-- Reviewed locally on 2026-11-05. Verdict: **approve with suggestions**. All gates pass on the head;
-  nothing blocks the merge. Nothing posted, committed or pushed.
-- The local review worktree `repos/client/sodax-sdks-wt-603-review` exists only on the first Mac.
-  On another machine, rebuild from the PR head and `git apply` the patches here.
+- gosodax/sodax-sdks#603 `feat/infer-raw-execution-mode` @ `aa3a72df`. The review was delivered as
+  commits on 2026-11-06 (0x0603): the table-driven type test, the Bitcoin Bound-auth fix for a
+  signed call that omits `raw`, the missing `= false` defaults, cast-free fixtures, changeset removed.
+- PR body rewritten on 2026-11-08 to match `aa3a72df` (runtime Bitcoin change, both compile breaks,
+  no changeset, CI on `aa3a72d`). Old body: none kept here.
+- R0bi7-sodax-worker approved only `f86cf06`; the three later commits are unreviewed.
+- Pushed 2026-11-08 as `202d9d04` (fix) + `f69552c3` (chore), from worktree `repos/client/sodax-sdks/.claude/worktrees/603-infer-raw-execution-mode`
+  on the first Mac. Detail in `process.md`.
+  - `scripts/check-execution-mode.mjs` (+ `.test.mjs`): bans `raw === false` and requires `Raw = false`
+    on public methods; tail of sdk `checkTs`, in `test:ci-scripts`, turbo `checkTs` inputs.
+  - `PartnerFeeClaimService.setSwapPreference` + `SetSwapPreferenceAction`: `K extends HubChainKey` (result was `string` /
+    every chain's raw tx because `K` has no inference site).
+  - `Sodax.execution-mode.test.ts`: rows for `setSwapPreference` and the BALN lock actions.
+  - `packages/sdk/AGENTS.md`: one Service Pattern bullet for dual-mode actions.
+  - dapp-kit `useSetSwapPreference` + `UseSetSwapPreferenceVars`: `K extends HubChainKey`, same reason.
+  - Verified: repo `checkTs`, `test:ci-scripts`, `check:ai`, `check:ai-dev-files`, sdk partner /
+    migration / execution-mode vitest. The check fails on `main` (2 `raw === false`, many missing defaults).
 
 ## Next action
 
-Deliver the review. Two options, the user's call:
+1. Check CI on `f69552c3` (PR body Validation lists local results; CI line still says `aa3a72d`).
+2. Ask for a re-review on the new head; the user decides whether to trigger R0bi7-sodax-worker.
 
-1. Post a PR review with the suggestions only.
-2. Also push `improved-type-tests.patch` (and optionally `spoke-deposit-default.patch`) to R0bi7's
-   branch. Pushing to a teammate's branch needs an explicit yes first, then a courtesy PR comment.
+## Follow-ups (not in #603)
 
-Keep the posted text terse: a few human lines, not the report structure.
-
-## Suggestions to post (detail in `review.md`)
-
-- The PR's own `expectTypeOf` assertions miss most regressions (§1, §2). The table-driven test in
-  `improved-type-tests.patch` fails under every mutation tried and passes on the head.
-- Two methods still lack the `= false` default: `SpokeService.deposit` / `verifyDepositSimulation`
-  and `SonicSpokeService.createSwapIntent` (`spoke-deposit-default.patch`).
-- An undisclosed compile break: an inline ternary argument whose signed branch omits `raw` fails
-  with TS2345 (§5). Add it to the PR body next to the disclosed TS2352 one. `!` is the maintainer's call.
-- `.changeset/infer-execution-mode-result.md` does nothing; changesets are dead machinery (§5).
-- `packages/skills` still says omitting `raw` is a compile error (§7 lists the lines).
-- The 18 `as unknown as` fixture casts are avoidable with per-mode helpers
-  (`cast-free-fixture-example.patch`); follow-up scope, low (§6).
-- Nit: unrelated Biome reformat hunks in `IconSpokeService.test.ts` and `SpokeService.test.ts`.
+- Dropping `K` from `setSwapPreference` and its hook (like the sibling methods) breaks explicit type args.
+- `packages/sdk/docs/STAKING.md` and skills `features/swap.md:50`, `features/recovery.md:16` restate
+  signatures without `= false`.
 
 ## Which file answers what
 
 | Question | File | ~tok |
 | -------- | ---- | ---: |
-| Full review: gates, mutations, coverage, edge cases, findings | `review.md` (read by `## ` section) | 7k |
-| Proposed type test `Sodax.execution-mode.test.ts` | `improved-type-tests.patch` | 5k |
-| Missing `= false` defaults + test row | `spoke-deposit-default.patch` | 0.8k |
-| Cast-free fixture prototype | `cast-free-fixture-example.patch` | 0.6k |
+| 2026-11-08 session: full-feature audit, guard design, verification | `process.md` | 1k |
+| Original review: gates, mutations, coverage, edge cases, findings | `review.md` (read by `## ` section) | 7k |
+| Proposed type test (now landed in `a6ebe164`) | `improved-type-tests.patch` | 5k |
+| Missing `= false` defaults (now landed in `aa3a72df`) | `spoke-deposit-default.patch` | 0.8k |
+| Cast-free fixture prototype (now landed in `aa3a72df`) | `cast-free-fixture-example.patch` | 0.6k |
