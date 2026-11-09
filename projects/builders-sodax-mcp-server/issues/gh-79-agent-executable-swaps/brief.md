@@ -3,7 +3,7 @@ type: brief
 repo: builders-sodax-mcp-server
 github: 79
 status: Active, fixing — R0bi7 (2026-11-07) listed fixes on #104, #93, #95, #96, #97; plan re-scoped 2026-11-09
-next: #104 needs R0bi7's approval (CI green, not behind development, merge BLOCKED on review); after it merges, port its guards into #91 + one sweep to #102
+next: stack synced with #104 and pushed (CI green on #91…#102, 2026-11-09); user sends R0bi7 the dev-deploy + release-plan drafts; then #76 release, dev deploy of `feat/89-swap-docs`, #91 → #98 in order
 updated: 2026-11-09
 ---
 
@@ -21,12 +21,12 @@ updated: 2026-11-09
 | PR | What | Branch @ tip | State |
 |---|---|---|---|
 | #90 | ADR (#80) | `feat/agent-executable-swaps` @ `197e515` (2026-11-09) | ready, R0bi7 re-requested 2026-11-05 |
-| #91 | #81 key forwarding, `SODAX_ENV` | `feat/81-forward-api-key` @ `31a3f68` (has #100, #101) | ready, R0bi7 re-requested 2026-11-05, CI green |
-| #92–#98 | #82–#88 | `feat/82…88-*` @ `f5105bc` `7672db3` `520e484` `bbc22fb` `35a4f9e` `005ed2e` `2cee78b` (2026-11-09) | ready, no reviewer requested (merge in order after #91) |
-| #102 | #89 docs; kill switch kept (default true), `/health.swapQuotes`, ops README, release note in its body | `feat/89-swap-docs` @ `c665c75` (server.json tests merged) | ready, no reviewer requested |
+| #91 | #81 key forwarding, `SODAX_ENV` | `feat/81-forward-api-key` @ `d35c990` (has #100, #101, #104) | ready, R0bi7 re-requested 2026-11-05, CI green |
+| #92–#98 | #82–#88 | `feat/82…88-*` @ `3cd2b8d` `538c381` `447a39c` `14ba697` `24be1fb` `b1fe28e` `032b642` (2026-11-09 sync) | ready, CI green on each, no reviewer requested (merge in order after #91) |
+| #102 | #89 docs; kill switch kept (default true), `/health.swapQuotes`, ops README, release note in its body | `feat/89-swap-docs` @ `7b3c88e` (2026-11-09 sync) | ready, CI green, no reviewer requested |
 | #100 | SSE hotfix (Closes #99) | squash `98226dd` on `development` | merged 2026-10-29 |
 | #101 | hazy2go: MCP Registry publish (Closes #106) | squash `80b8ad0` on `development` | merged 2026-11-05 |
-| #104 | Hardening (issue #103, incl. markdown tables keeping addresses whole) + route-level test (`createHttpApp`, `src/index.test.ts`) | `fix/server-hardening` @ `645b3b9` (has #101), base `development`, CI green | ready, R0bi7 re-requested 2026-11-05 |
+| #104 | Hardening (issue #103, incl. markdown tables keeping addresses whole) + route-level test (`createHttpApp`, `src/index.test.ts`), MERGED 2026-11-09 as `d734aed` (R0bi7 approved; release PR #76 needs a review) | `fix/server-hardening` @ `645b3b9` (has #101), base `development`, CI green | ready, R0bi7 re-requested 2026-11-05 |
 | sodax-sdks #577 | Docs page + skill pointer (issue #576) | `docs/builders-mcp-swap` @ `eb2affb9` (`"type": "http"` in all 20 config snippets, Claude Code `--header` line) | ready, R0bi7 requested 2026-11-05 |
 
 - GitHub stack: #91 targets `development`, each later PR the branch below it; CI runs only on PRs into
@@ -100,8 +100,32 @@ updated: 2026-11-09
   - #95 code (621 tests, each fix mutation-checked): a 401/403 on the opening status read after the claim is
     retried, not "new key"; a claimed deposit whose receipt goes missing waits instead of `source_not_found`;
     the refund-relay retry (track and cancel) is bounded at 10 calls.
-  - Sweep note for #94: `SODAX_RPC_URL_146` never reaches the SDK's hub provider (it reads `sodaxConfig.hub`), so
-    hub-wallet reads stay on the packaged Sonic RPC: pass `hub: { rpcUrl }` from the Sonic override in `initSodax`.
+  - The hub-RPC gap (`SODAX_RPC_URL_146` never reached the SDK's hub provider) lives on #95, not #94
+    (`parseRpcOverrides` starts there): fixed in round 2.
+- 2026-11-09 round 2 ("fix what the plan still allows"), then `/simplify` + `/code-review` (10 findings: 8 fixed; the
+  shared data-API cache not keyed by API key is #91's design, left), pushed; each new test fails on the old code:
+  - #94 (`-wt-r94`, 455 tests): Stellar recipient: Horizon 404 = not ready, a token missing from `trustlineConfigs`
+    = `RESTRICTED_TOKEN` at quote time (`stellarRecipientCheckable`, SDK `requiresTrustline`); XLM needs an existing
+    account (read via `getWalletBalance`); all-uppercase partner address
+    refused; `encodeRecipient` refuses Stellar `C…`/`M…` and Bitcoin testnet (quote `toAddress` and, after the sweep,
+    balance); the native-approve test asserts no `/allowance/check`.
+  - #95 (`-wt-r95`, 624): `initSodax` passes `hub: { rpcUrl }` from the Sonic override (README notes 146); submit
+    throttle (`submitRetryAt`: no POST before the wait the agent was told, capped at 15 s); `quoteId` lowercased; dropped the
+    vacuous `dEaD` alert assertion.
+  - #98 (`-wt-r98`, 836): canary refuses a minimum under 97% of the amount, `AMOUNT` ≤ 20, `if: always()` leak check
+    (API key, wallet key without `0x`, RPC URL host/path) before either log is printed (script output goes to a file),
+    Discord stage `a secret in the logs`; contract tests red on scheduled and push runs.
+  - #102 (main checkout, 841): README RPC 1/137/295 + 146, merge-deploys wording, 30-min refund window, 90% floor
+    warns when unpriced; `.env.example` 295; batch next step waits for a step it doesn't replace.
+  - Sync done the same day (merge only): #91 merged `development` (guards; route test that each call's own key goes
+    upstream), #92 resolves the connection before the SSE slot (refused-`/sse` slot test), #93 keeps `pathParam` with
+    `cache.get`, #94 uses `ZERO_ADDRESS_PATTERN` (now `/i`) for #93's sentinel, #96 refuses a failed read of an
+    unlisted Stellar token without a retry and shares `isHorizonNotFound`, #97 gives `swap_error` its own budget (5/h)
+    and redacts held lines (post cut to 4096), `quoteIdArg()` lowercases, #102 README: CI on every PR, alert caps.
+    Tests: #91 182, #92 243, #93 342, #94 522, #95 695, #96 735, #97 892, #98 935, #102 941. PR bodies and the #79
+    merge-plan comment updated.
+  - Drafts for R0bi7 (dev deploy of `feat/89-swap-docs` + env, release plan) were given to the user in chat; the
+    user sends them.
 
 ## Blocked on
 
