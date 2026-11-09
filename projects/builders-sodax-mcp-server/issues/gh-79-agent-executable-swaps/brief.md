@@ -3,7 +3,7 @@ type: brief
 repo: builders-sodax-mcp-server
 github: 79
 status: Active, fixing — R0bi7 (2026-11-07) listed fixes on #104, #93, #95, #96, #97; plan re-scoped 2026-11-09
-next: stack synced with #104 and pushed (CI green on #91…#102, 2026-11-09); user sends R0bi7 the dev-deploy + release-plan drafts; then #76 release, dev deploy of `feat/89-swap-docs`, #91 → #98 in order
+next: #91 → #98 merged into development (2026-11-09 evening, squash in order); #102 synced + retargeted + CI green, NOT merged: waits for the test-server env (SODAX_ENV=canary, RPC 1/137/295, webhook, 1 replica). Then merge #102, E2E dry run → 5 USDC, agent scenarios; user funds the wallet; admin creates `canary-e2e`; the daily E2E is red until then
 updated: 2026-11-09
 ---
 
@@ -61,6 +61,11 @@ updated: 2026-11-09
   - All tested 2026-11-05 on a scratch merge of #101 `70e6779` (#104: actionlint, 153 tests; #102: 841 tests).
   R0bi7 also floated a dev deploy (e.g. `dev-mcp.sodax.com`) to test the stack.
 - Hub branch `docs/builders-mcp-swap-sdk` @ `eb1f30d`: open its PR once #94 merges.
+- Dev deploy (R0bi7, 2026-11-09): the Coolify app `https://test-builders-mcp.coolify.iconblockchain.xyz` redeploys on
+  every merge to `development`. Checked 2026-11-09 12:37Z: `/health` 1.6.0, 40 tools (no swap tools), restarted at 08:40Z
+  (#104 merged 08:39Z) and sends `ratelimit-*` headers, which only #104 adds, so #104 is live there. Its env is unknown
+  (`SODAX_ENV`, RPC overrides, webhook). To test the swap tools there: either a second app on `feat/89-swap-docs`, or
+  merge #91 → #98 after review and set `SODAX_SWAP_TOOLS_ENABLED=true` plus the env list from `drafts-r0bi7-2026-11-09.md`.
 - `improvement-ideas.md` predates the ADR revision and isn't re-mapped.
 
 - Fixes for R0bi7's 11-07 list, pushed 2026-11-09 (no merge-up yet), one worktree per branch under
@@ -126,6 +131,35 @@ updated: 2026-11-09
     merge-plan comment updated.
   - Drafts for R0bi7 (dev deploy of `feat/89-swap-docs` + env, release plan): `drafts-r0bi7-2026-11-09.md`; the
     user sends them, then deletes the file.
+- 2026-11-09 evening, non-EVM RPC overrides (user: "làm luôn", then "push đi rồi làm phần còn lại"): #95 `4739ad7`
+  (`feat: override a non-EVM chain's RPC with SODAX_RPC_URL_<family>`), swept by merge: #96 `07c7590` (README row
+  conflict: kept the balances row, dropped "other families always use the public RPCs", family row says
+  `sodax_get_balance` reads through it), #97 `52f0467` (same conflict), #98 `2b121be` (clean), #102 `2530d2b` (README +
+  `.env.example` 295 conflicts; `index.ts` typed `Record<string, RpcOverride>`, the hook's `checkTs` caught it). Tests:
+  #95 703, #96 743, #97 900, #98 943, #102 949; checkTs, lint, build. PR bodies #95–#98, #102 updated; #79 merge-plan
+  comment: test-deploy line + optional `SODAX_RPC_URL_<family>` in the pre-release list (no hostname: public repo).
+  Design + review in `plan-85-swap-track.md` §Non-EVM RPC overrides. Worktree `.claude/worktrees/95-swap-track` kept.
+  commitlint caps body lines at 100 chars (first commit attempt bounced).
+- 2026-11-09 20:21 (Slack): user proposed merging the stack into development to test on canary; R0bi7: "yep, do it",
+  production only serves docs + config tools. User's call: hold #76 (it will then ship #100/#101/#104 + the stack together).
+  `development` ruleset: 1 approval, squash only, approvals NOT dismissed on push, no auto branch delete; user has push only
+  (no self-approve), so R0bi7 approves all 9 once and I run the train. #79 comment 6464424485 rewritten with: the new
+  step 3, test-server env, the missing `canary-e2e` environment (only `copilot` exists) + wallet funding, the agent test
+  plan (from `plan-test.md` §Live run); then (user: "đủ hết luôn … để robi follow") rewritten as an operator checklist:
+  §What R0bi7 does (approvals, Coolify env with each variable explained, Discord webhook how-to, `canary-e2e` environment +
+  secrets), §What I do (merge train, /health checks, E2E dry run → 5 USDC, agent scenarios), §Rules, §Before the release.
+  No hostnames, keys or wallet address in it (public repo). Test wallet `0xc4df…c139` (key in `~/.sodax-canary-test.env`): 2026-11-09 Arbitrum
+  1.52 USDC + 0.00041 ETH, Base 0 USDC + 0.00046 ETH, so under-funded for the 5 USDC E2E.
+- 2026-11-09 21:22 (Slack): R0bi7 "Should be done": all 9 PRs APPROVED, mergeStateStatus CLEAN. Merge train started 21:45
+  (local), default squash message (PR title + commit list, like #104). Rule for #102: hold until the Coolify env is set,
+  because #102 makes the swap tools default-on and the test server has `SODAX_ENV` unset (= production API).
+- Merge train result (2026-11-09, `scratchpad/merge-train2.sh`): development = `f535062` #91, `c27c4ca` #92, `85fef4d` #93,
+  `3f6b9fd` #94, `b3d671a` #95, `e66cd71` #96, `4a61a2d` #97, `13d34c5` #98. Every sync after a squash conflicted (the
+  branch holds the original commits, development the squash), resolved with `git merge -s ours origin/development` after
+  checking that development only added this train's squash commits (their trees equal the branch tips); plain `git merge`
+  is wrong there. The #95 worktree had to be removed first (git won't switch to a branch checked out elsewhere). #102 @
+  `e6bbeb2`, base development, APPROVED, CI green. Stale PRs #90 (ADR) and #76 (release) untouched. The merged head
+  branches still exist on origin (no auto-delete).
 
 ## Blocked on
 
@@ -153,8 +187,12 @@ updated: 2026-11-09
    first green canary E2E → #102 → real canary run on `development` → release → sodax-sdks #577.
    Each PR's diff was fingerprinted before/after the 2026-11-05 sync: #91–#98 unchanged, #104 only the
    `id: release` context, #102 only the server.json test merge.
-   `development`'s daily Drift Check fails since ≥2026-10-30 (live API added money-market `is*` fields and an
-   `open` param on `/intent`): pre-existing, not from #101. Filed as #107 (Bug, user, 2026-11-05).
+   `development`'s Drift Check (`drift-check.yml`: live `docs-json` spec vs tool contracts) has never passed on push or
+   cron (0 green in 100 runs back to 2026-08-11). 25 issues on 2026-11-09: 16 spec endpoints with no tool (`/v2/config/*`,
+   `/amm/volume`, `/oracle/candles|markets`, `/partners/volume*`), the `open` param and the 8 `is*` fields. #107 (Bug,
+   user, 2026-11-05) lists only the last 9, so fixing it as written leaves the check red. On a `pull_request` the step is
+   `continue-on-error`, so the PR run shows green on the same commit; `master`'s ruleset requires reviews only, no status
+   check, so it never blocks #76. Pre-existing, not from #101 or #104.
    Dropping the legacy SSE transport (`/sse` + `/messages`, the SSE guards in #104, the SSE key test in #91, the
    sdks docs lines) is #108 (Task, user, 2026-11-05), to do after #91 and #104 merge. Gemini CLI, the reason SSE
    was added, speaks streamable HTTP via `httpUrl`.

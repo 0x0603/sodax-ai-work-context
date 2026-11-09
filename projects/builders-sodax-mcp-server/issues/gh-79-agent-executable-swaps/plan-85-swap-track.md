@@ -4,7 +4,7 @@ repo: builders-sodax-mcp-server
 github: 85
 related_issues: [79, 84, 86, 87, 88, 89]
 tags: [mcp, swaps-api, submit-tx, track, cancel, evm-rpc]
-updated: 2026-10-26
+updated: 2026-11-09
 ---
 
 # #85 — `sodax_swap_track` and `sodax_swap_cancel`
@@ -406,3 +406,37 @@ Risks: the intent has no swaps-api row, so the backend's status, dashboard and a
 the backend pages if the canceller misses it. The canceller was seen disabled on canary and on 4 of 6 prod
 instances (gh-519 `research/g-chain-auto-tests.md`, 2026-10-20), so on canary a relayed deposit may sit until
 someone cancels it by hand.
+
+## Non-EVM RPC overrides (decision 2026-11-09, user: "làm luôn", extends design 4)
+
+Why now: the SDK's public defaults (Solana `api.mainnet-beta.solana.com`, fastnear, mempool.space, Horizon) rate-limit
+server-side reads, and the MCP reads balances (#96) and NEAR/Stellar recipient readiness (#94) for every agent from one
+IP. R0bi7's pre-release list asks only for `SODAX_RPC_URL_1/137/295`; this is additive. Done on #95, where
+`parseRpcOverrides` lives, in the worktree `.claude/worktrees/95-swap-track`; sweep #96 → #102 after the commit.
+
+- Env: `SODAX_RPC_URL_<family>` by chain type (`SOLANA`, `SUI`, `NEAR`, `ICON`, `INJECTIVE`, `STACKS`, `BITCOIN`),
+  Stellar as `SODAX_RPC_URL_STELLAR_HORIZON` and `_STELLAR_SOROBAN`. One mainnet chain per family, so the type is
+  the name. `SODAX_RPC_URL_<evmChainId>` unchanged.
+- Chain keys, types and the family list come from `spokeChainConfig` (user: "không lấy từ sdk được à"). Only the
+  field names the SDK gives no metadata for are hand-written (`RPC_FIELD_EXCEPTIONS`): Sui `grpc_url` (the SDK reads
+  `rpc_url ?? grpc_url`), Stellar `horizonRpcUrl` / `sorobanRpcUrl`. Everything else is `rpcUrl`. Bitcoin's
+  `rpcUrl` is an Esplora-style REST API (mempool.space), not a node; `.env.example` and the README say so.
+- `parseRpcOverrides` now returns `Record<chainKey, RpcOverride>` (a config patch), `initSodax(chains)` passes it as
+  the SDK `chains` option (deep-merged); the hub still mirrors Sonic's `rpcUrl`. A suffix the config has no field
+  for is refused at boot (bare `STELLAR`, `EVM`, lowercase, unknown id), error names the variable and lists the
+  families; values never logged.
+- Tests (10 fail on the old code): the explicit mapping, every non-EVM family in the packaged config maps to a field
+  that config has, error rows, the family list, and a NEAR read through the override (fetch spy, 400). Not covered:
+  Sui gRPC and Stellar Horizon paths end to end (no fetch; mapping test covers the field names).
+- Review 2026-11-09 (`/simplify` 4 agents, `/code-review` medium, 6 findings): one `Map` built once (`RPC_TARGETS`)
+  replaces two derivations and the object lookup (a plain object let `SODAX_RPC_URL_constructor` pass through
+  `Object.prototype`); `type: ChainType` from the SDK; **Injective refused** (`RPC_URL_UNREAD`): its SDK provider
+  hard-codes `getNetworkEndpoints(Network.Mainnet)` and never reads `rpcUrl`, so the override was a silent no-op.
+  Skipped: Icon `debugRpcUrl` (only `estimateStepCost`, which the MCP never calls); the `\w+` suffix now failing
+  boot on unknown names (intended, nothing deployed uses these vars); duplicate family types (the coverage test
+  asserts uniqueness). README row scoped to #95's reads (NEAR storage, Stellar trustlines); `.env.example` examples
+  NEAR + Stellar. Gates: 39 in file / 703 suite, checkTs, lint; 11 new tests fail on the old code.
+- Sweep done 2026-11-09: #95 `4739ad7` → #96 `07c7590` → #97 `52f0467` → #98 `2b121be` → #102 `2530d2b`. README row
+  conflicts at #96, #97, #102 (kept the balances wording, dropped the "other families always use the public RPCs"
+  sentence, family row names `sodax_get_balance`); `.env.example` 295 conflict at #102; `index.ts` at #102 typed
+  `Record<string, RpcOverride>` after the pre-commit `checkTs` failed the first merge commit.
