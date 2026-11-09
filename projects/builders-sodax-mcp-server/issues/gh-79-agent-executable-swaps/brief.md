@@ -3,7 +3,7 @@ type: brief
 repo: builders-sodax-mcp-server
 github: 79
 status: Active, fixing — R0bi7 (2026-11-07) listed fixes on #104, #93, #95, #96, #97; plan re-scoped 2026-11-09
-next: fixes pushed 2026-11-09; post the drafts (R0bi7 reply, #79 merge plan, PR bodies, pre-release ask) for #104's re-review, then port + one sweep after #104 merges
+next: #104 needs R0bi7's approval (CI green, not behind development, merge BLOCKED on review); after it merges, port its guards into #91 + one sweep to #102
 updated: 2026-11-09
 ---
 
@@ -20,9 +20,9 @@ updated: 2026-11-09
 
 | PR | What | Branch @ tip | State |
 |---|---|---|---|
-| #90 | ADR (#80) | `feat/agent-executable-swaps` @ `1dc6dfc` | ready, R0bi7 re-requested 2026-11-05, CI green |
+| #90 | ADR (#80) | `feat/agent-executable-swaps` @ `197e515` (2026-11-09) | ready, R0bi7 re-requested 2026-11-05 |
 | #91 | #81 key forwarding, `SODAX_ENV` | `feat/81-forward-api-key` @ `31a3f68` (has #100, #101) | ready, R0bi7 re-requested 2026-11-05, CI green |
-| #92–#98 | #82–#88 | `feat/82…88-*` @ `f5105bc` `7672db3` `520e484` `473f014` `35a4f9e` `005ed2e` `2cee78b` (2026-11-09) | ready, no reviewer requested (merge in order after #91) |
+| #92–#98 | #82–#88 | `feat/82…88-*` @ `f5105bc` `7672db3` `520e484` `bbc22fb` `35a4f9e` `005ed2e` `2cee78b` (2026-11-09) | ready, no reviewer requested (merge in order after #91) |
 | #102 | #89 docs; kill switch kept (default true), `/health.swapQuotes`, ops README, release note in its body | `feat/89-swap-docs` @ `c665c75` (server.json tests merged) | ready, no reviewer requested |
 | #100 | SSE hotfix (Closes #99) | squash `98226dd` on `development` | merged 2026-10-29 |
 | #101 | hazy2go: MCP Registry publish (Closes #106) | squash `80b8ad0` on `development` | merged 2026-11-05 |
@@ -81,6 +81,27 @@ updated: 2026-11-09
   typechecking all tests (21 errors in unit tests: say so in the #95 thread).
   Sweep notes: at #94 use `ZERO_ADDRESS_PATTERN` (with `i`) for #93's sentinel; at #97 format held alert lines with
   `truncate(redact(…))` and cover `swap_error`'s fields; at #102 give `swap_error` its own alert budget.
+- Posted 2026-11-09 (user: no reply to R0bi7, no separate pre-release ask):
+  - PR bodies #104, #93, #95, #96, #97: test counts, false claims fixed, an "Update 2026-11-09" section. #104's
+    body carries `BEGIN_COMMIT_OVERRIDE` (release-please-action v4.4.1) so the `/mcp` 429 shape change reaches the
+    CHANGELOG, and says the SSE cap stays because #108 drops SSE.
+  - #79 merge-plan comment 6464424485 edited: #101 merged, hold master, port + merge-up, no rebase, the pre-release
+    list (owners, RPC 1/137/295, gateway check incl. builder tools, one replica without overlap, webhook) and the
+    `/health` check before later releases.
+  - #90: ADR fixed and pushed (`197e515`, `docs:`), body posted:
+    the 12 items in `review-2026-11-07/pr90-91-92.md` plus the 11-09 fixes (oracle keyless, post-claim errors,
+    secret hedges, redaction). Its body = that file's draft, D4/D5 tightened, plus an "Update 2026-11-09" line.
+- 2026-11-09, `/simplify` + `/code-review` on the ADR diff (15 findings, verified in code), pushed in `197e515` (#90)
+  and `bbc22fb` (#95; its body now says 621 tests and names the three fixes):
+  - ADR: decision level, no stale details; fixed claims (drift check covers only the data API, contract tests are
+    `continue-on-error`, `toml` has a fix but no override, the switch also removes track/cancel, alert budgets,
+    lost entry needs chain + quoteId, aged-out quotes too). Skipped: the switch's boot failure on a bad value
+    (README says so).
+  - #95 code (621 tests, each fix mutation-checked): a 401/403 on the opening status read after the claim is
+    retried, not "new key"; a claimed deposit whose receipt goes missing waits instead of `source_not_found`;
+    the refund-relay retry (track and cancel) is bounded at 10 calls.
+  - Sweep note for #94: `SODAX_RPC_URL_146` never reaches the SDK's hub provider (it reads `sodaxConfig.hub`), so
+    hub-wallet reads stay on the packaged Sonic RPC: pass `hub: { rpcUrl }` from the Sonic override in `initSodax`.
 
 ## Blocked on
 
