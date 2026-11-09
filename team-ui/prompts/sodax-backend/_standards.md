@@ -21,8 +21,9 @@ First apply `AGENTS.md` § Review guidelines (P0/P1, swaps-api wire surface, Do 
 11. Bad client input = 4xx: addresses validated as addresses, `@ValidateNested` + `@IsDefined` + `@Type`, `runValidators` on updates that rely on schema rules, controllers map via `handleErrorAsHttpException`. Why: 9 PRs (#738, #975, #1048).
 12. Cached GETs key on normalized, clamped params and bucket `now`-relative windows; no accidental `@CacheTTL(0)`. Why: 6 PRs (#1312, #1340, #1361).
 13. Two prod stacks, own Mongo each: on-chain-derived collections must not read per-deployment state; in-memory state is per replica; single-owner jobs gated to one. Why: 6 PRs (#891, #1075, #1274, #1340).
-14. Behaviour change updates the comment, docstring, runbook or `.md` describing it; keep rationale comments; new ones say why in 1-2 lines. Why: ~29 PRs, top theme (#873, #1274, #1301).
+14. Behaviour change updates the comment, docstring, runbook or `.md` describing it, and the PR body when a later commit changes something the body quotes; keep rationale comments; new ones say why in 1-2 lines and name no outside client (a wallet, a partner) the code was not checked against. Why: ~29 PRs, top theme (#873, #1274, #1301); #1424 review round 2 N1 (PR body quoted a renamed test) and N2 (docstring named wallets).
 15. One source of truth: `@sodax/*` only via the `pnpm-workspace.yaml` catalog; reuse shared helpers instead of a swaps-api/bridge-api copy; no hand-copied unions. Why: #975, #1274, #452.
+16. A signature that proves consent or ownership is verified over a payload the server expects: a fixed prefix plus a server template or nonce. Never verify it over whatever bytes the client says it signed, because a raw verify over client-chosen bytes accepts any signature the key ever made. Why: #1424 review findings 1-2 (Stellar legacy path; `message` is bound to nothing on any chain). Spot: `verify(Buffer.from(dto.message…))`, a `message` DTO field with only `@IsString()`.
 
 Never "fix": AGENTS.md Do NOT flag; dashboard tests (no runner, #1423); Nest `Logger` swaps (#483, #516); guards in `providers` (#974); degrade-over-crash startup reads (#1266).
 
@@ -32,6 +33,7 @@ Never "fix": AGENTS.md Do NOT flag; dashboard tests (no runner, #1423); Nest `Lo
 - Tautological: asserting a literal the code sets (`apps/api/test/unit/app.service.spec.ts:19-24`, `apps/swaps-api/test/unit/openapi.spec.ts:63-66`).
 - Structure-sensitive: `(svc as any).private`, "method exists", exact pipeline arrays (`apps/data-aggregator/test/integration/sync-up-to-recent-block.test.ts:51-66`, `apps/monitoring-service/src/monitoring.service.spec.ts:38-126`, `apps/api/test/unit/moneymarket.service.spec.ts:217-234`).
 - Unfailable: mocked model echoing its return (`apps/swaps-api/test/unit/submit-tx-db.service.spec.ts:85-91`); harness unlike prod (`packages/shared-test-utils/src/utils/test-utils.ts:84` adds a BigInt interceptor; stateful-api tests skip `main.ts:102-113`). Model: `apps/swaps-api/test/e2e/submit-swap-tx.db.e2e-spec.ts`.
+- Loose: a substring of the serialized body (`JSON.stringify(res.body)` with `toContain`) instead of the exact field; a test named after real fixtures (a wallet, a partner) that feeds synthetic ones. Why: #1424 standards fix 2 and review finding 5.
 - Mutation check (AGENTS.md P1). No `.skip`, `*.exclude.ts` or `--passWithNoTests` to go green; `skipIf` env vars go in `turbo.json` `test.env`.
 - `*.e2e-spec.ts` runs in CI only for api, swaps-api, bridge-api.
 

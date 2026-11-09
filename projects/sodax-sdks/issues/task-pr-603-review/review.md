@@ -203,6 +203,17 @@ Changesets are dead on main [read + ran]:
 - **Scope nit:** unrelated Biome reformat hunks in IconSpokeService.test.ts (getDeposit and getWalletBalances blocks) and SpokeService.test.ts (`it.each` block and `requestTrustline` spy). [read from diff]
 - **`@ts-expect-error` moves (SwapService.test.ts:367, 609, 692):** correct. On the PR the error moves to the `walletProvider:` line. A directive on that property line is satisfied by any error on it, which is slightly weaker than one on the call. [ran]
 
+## 8. Recheck against main (2026-11-06)
+
+- PR head still `f86cf06e`; main moved 9 commits to `26a3a33f` (#578, #584, #586, #589, #590, #563, #593, #604, #602). `git merge-tree` is clean; the only shared file is `docs/developers/how-to/robinhood-stocks.md`. Lockfile unchanged. Main adds no new `Raw extends boolean` generic, so no new method is missing the `= false` default. [ran]
+- Trial merge `8ceb74c8` (local `commit-tree` only, never pushed), with the proposed `Sodax.execution-mode.test.ts` untracked on top [ran]:
+  - `pnpm i --frozen-lockfile && TURBO_CONCURRENCY=2 pnpm build:packages`: pass (8 tasks).
+  - `TURBO_CONCURRENCY=2 pnpm checkTs` (root): pass, 16/16 tasks; sdk reports 95 test files in the program, cast comments ok.
+  - `pnpm --filter @sodax/sdk --filter @sodax/dapp-kit --filter docs-examples test`: pass (sdk 3154, dapp-kit 946, docs-examples 13).
+- New finding: #563 (base recipes) landed after the merge base and uses the explicit `<…, false>` workaround the PR removes elsewhere: `apps/docs-examples/src/base-recipes/accept-any-token.ts:71`, `…/lending-spoke.ts:29`, `docs/base/recipes/accept-any-token.mdx:115`, `docs/base/recipes/lending-spoke.mdx:83`. They still compile. Dropping the type arguments in the two `.ts` files typechecks (`tsc --noEmit` in docs-examples, exit 0), so after merging main the PR can drop them too, consistency only. [ran]
+- The skills drift in §7 is still there on the merged tree (#578/#584 shifted lines): `swap/SKILL.md:45`, `integration/knowledge/architecture.md:279`, `:294`, `:296`, `migration-v1-to-v2/knowledge/breaking-changes/type-system.md:141`. [ran rg]
+- The worktree is back at `f86cf06e`; `dist/` there is built from the trial merge.
+
 ## Proposed type test: `improved-type-tests.patch`
 
 File: `packages/sdk/src/shared/entities/Sodax.execution-mode.test.ts`. It follows the `Sodax.<topic>.test.ts` naming beside `Sodax.initialize.test.ts`. checkTs picks it up through `include: ["src"]`, and check-tests-typechecked reports "all 93 test files". It contains no casts. Fakes are `declare const`, the rows are never called, and vitest runs it as 6 no-op tests.

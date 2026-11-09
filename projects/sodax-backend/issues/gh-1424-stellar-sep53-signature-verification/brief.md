@@ -4,7 +4,7 @@ repo: sodax-backend
 github: 1424
 status: Active, in review — PR #1439 open, CI green, FidelVe requested; local review done, real-wallet test pending
 next: user tests a real Stellar wallet against the local stack (local-test.md); then merge origin/development into #1439 (needs the user's go-ahead)
-updated: 2026-11-05
+updated: 2026-11-06
 ---
 
 # GH-1424 Stellar register/users rejects SEP-53 signatures · brief
@@ -69,7 +69,8 @@ updated: 2026-11-05
     callers, sends `{ evmAddress }`).
   - Risk: the FE and BE text are now coupled. A copy change in the FE must ship to the BE first.
   - Dropping the legacy path is not safe until the SEP-53 Hana build reaches users.
-- Hub rule: security findings go through AuditMap, never a public issue. The backend repo is private.
+- Filed as sodax-backend #1474 (Bug, Priority Low, Backlog, no sprint, 2026-11-06). The repo is private;
+  the hub baseline only bars security findings from public issues.
 
 ## Which file answers what
 
