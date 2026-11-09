@@ -75,7 +75,7 @@ Sync by merge only, never rebase or force-push.
 - [ ] Stellar recipient: 404 → `DESTINATION_NOT_READY`; missing trustline config → non-retry refusal.
 - [ ] Partner address: drop the all-uppercase branch (or `getAddress`); test 400.
 - [ ] Native approve skip: `isNativeToken` + assert no `/allowance/check`; `details.side` on side errors.
-- [ ] `swapsApi.ts:296` `apiMessage` through `withoutUrls` (redaction, lands here).
+- [ ] ~~`swapsApi.ts:296` `apiMessage` through `withoutUrls`~~ moved to #97: `withoutUrls` first exists there.
 
 #95
 - [ ] Move `callTool` into `swapClient.ts` here (from #102); contract-only tsconfig in `checkTs`; fix
@@ -97,8 +97,9 @@ Sync by merge only, never rebase or force-push.
 #97
 - [ ] Oracle keyless (`runWithRequestContext({}, …)`), comment, test.
 - [ ] Unpriced-output warning (+ optional `checks.market`), fix the test that asserts no warning, PR body.
-- [ ] Redaction: `Request body:`/`metaMessages`, `file:` frames, `:\/\/`, `sodax_…`, `Bearer`; test with a real viem error.
+- [ ] Redaction: `Request body:`/`metaMessages`, `file:` frames, `:\/\/`, `sodax_…`, `Bearer`, `swapsApi.ts:296` `apiMessage`; test with a real viem error.
 - [ ] Secrets: per-token matching, wider prefixes, chain fields, Solana-signature hedge; pass/refuse table test.
+      Scope 2026-11-09: only the false positives (R0bi7 said "false secret rejections").
 
 #98
 - [ ] `minimumAmount` floor (0.97×) before signing; `AMOUNT` cap; automated `if: always()` leak grep; drift step

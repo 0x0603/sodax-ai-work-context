@@ -2,9 +2,9 @@
 type: brief
 repo: builders-sodax-mcp-server
 github: 79
-status: Active, changes requested — R0bi7 (2026-11-07) listed fixes on #104, #93, #95, #96, #97; pre-review of the whole stack done 2026-11-07
-next: fix per review-2026-11-07-pre-r0bi7.md (blockers #96 NEAR, #95 post-deposit errors first), update #90 body + merge plan, port #104 guards, rerun CI
-updated: 2026-11-07
+status: Active, fixing — R0bi7 (2026-11-07) listed fixes on #104, #93, #95, #96, #97; plan re-scoped 2026-11-09
+next: fixes pushed 2026-11-09; post the drafts (R0bi7 reply, #79 merge plan, PR bodies, pre-release ask) for #104's re-review, then port + one sweep after #104 merges
+updated: 2026-11-09
 ---
 
 # GH-79 Agent-executable swaps (Builders MCP) · brief
@@ -22,11 +22,11 @@ updated: 2026-11-07
 |---|---|---|---|
 | #90 | ADR (#80) | `feat/agent-executable-swaps` @ `1dc6dfc` | ready, R0bi7 re-requested 2026-11-05, CI green |
 | #91 | #81 key forwarding, `SODAX_ENV` | `feat/81-forward-api-key` @ `31a3f68` (has #100, #101) | ready, R0bi7 re-requested 2026-11-05, CI green |
-| #92–#98 | #82–#88 | `feat/82…88-*` @ `f5105bc` `cd3ea00` `520e484` `8d60529` `3b038e0` `35fd941` `2cee78b` | ready, no reviewer requested (merge in order after #91) |
+| #92–#98 | #82–#88 | `feat/82…88-*` @ `f5105bc` `7672db3` `520e484` `473f014` `35a4f9e` `005ed2e` `2cee78b` (2026-11-09) | ready, no reviewer requested (merge in order after #91) |
 | #102 | #89 docs; kill switch kept (default true), `/health.swapQuotes`, ops README, release note in its body | `feat/89-swap-docs` @ `c665c75` (server.json tests merged) | ready, no reviewer requested |
 | #100 | SSE hotfix (Closes #99) | squash `98226dd` on `development` | merged 2026-10-29 |
 | #101 | hazy2go: MCP Registry publish (Closes #106) | squash `80b8ad0` on `development` | merged 2026-11-05 |
-| #104 | Hardening (issue #103, incl. markdown tables keeping addresses whole) + route-level test (`createHttpApp`, `src/index.test.ts`) | `fix/server-hardening` @ `102e6d8` (has #101), base `development`, CI green | ready, R0bi7 re-requested 2026-11-05 |
+| #104 | Hardening (issue #103, incl. markdown tables keeping addresses whole) + route-level test (`createHttpApp`, `src/index.test.ts`) | `fix/server-hardening` @ `645b3b9` (has #101), base `development`, CI green | ready, R0bi7 re-requested 2026-11-05 |
 | sodax-sdks #577 | Docs page + skill pointer (issue #576) | `docs/builders-mcp-swap` @ `eb2affb9` (`"type": "http"` in all 20 config snippets, Claude Code `--header` line) | ready, R0bi7 requested 2026-11-05 |
 
 - GitHub stack: #91 targets `development`, each later PR the branch below it; CI runs only on PRs into
@@ -63,6 +63,25 @@ updated: 2026-11-07
 - Hub branch `docs/builders-mcp-swap-sdk` @ `eb1f30d`: open its PR once #94 merges.
 - `improvement-ideas.md` predates the ADR revision and isn't re-mapped.
 
+- Fixes for R0bi7's 11-07 list, pushed 2026-11-09 (no merge-up yet), one worktree per branch under
+  `sodax-command-center/repos/client/builders-sodax-mcp-server-wt-r{104,93,95,96,97}`; each new test fails on the
+  old code. Gates green: #104 154 tests (4 commits, `ci.yml` now runs on every PR base), #93 279, #95 619 (3
+  commits, contract tests in `checkTs`), #96 652, #97 806 (3 commits). CI runs on #104 only until the sweep brings
+  the `ci.yml` change up. `/simplify` and `/code-review` done, findings fixed. Decisions taken in the fixes:
+  - #95: after the claim, a refusal of the swap (amount, 400/422) alerts and refunds at the deadline; a key or WAF
+    401/403 is retried as `UPSTREAM_UNAVAILABLE` (never "get a new key"), refunded at the deadline if it never
+    passes. Alerts over the hourly cap are held (12 per budget) and listed with tx hash and deadline in the
+    end-of-hour post; `alerted` on every state is posted-or-held; one that reached only the log says so and is
+    retried after the hour. Retry advice: 10 retries then stop; polls: 30 (~10 min) then "still in progress".
+  - #97: a 64-hex token query that is a valid account (NEAR, Sui) is still refused, worded "a token SODAX doesn't
+    swap, or a private key"; a Solana-signature shape is refused with the same hedge. Redaction (`redact`,
+    `redactErr`) covers URLs (not `file:` frames), request bodies, viem call details, SODAX keys (also cut-off
+    ones) and bearer tokens.
+  Skipped: restructuring `countBatch`, logger-wide redaction via pino hooks, flushing held alerts on shutdown,
+  typechecking all tests (21 errors in unit tests: say so in the #95 thread).
+  Sweep notes: at #94 use `ZERO_ADDRESS_PATTERN` (with `i`) for #93's sentinel; at #97 format held alert lines with
+  `truncate(redact(…))` and cover `swap_error`'s fields; at #102 give `swap_error` its own alert budget.
+
 ## Blocked on
 
 1. Our fixes. R0bi7 rechecked the stack 2026-11-07 (Discord): kill switch, cancel binding and route test are
@@ -72,15 +91,18 @@ updated: 2026-11-07
    asks (owners for `SODAX_RPC_URL_1/137/295`, gateway fake-key check, alerts, drain) are on that checklist's
    pre-release list. #104's guards reach the stack only when #104 merges and #91 syncs again.
 2. Edge and BE limits (a key counted twice, per-IP write cap and jail on the MCP's IP, `submit-tx` 10/min per IP):
-   asked R0bi7 2026-10-28; parked, don't raise again until it comes back.
+   asked R0bi7 2026-10-28; parked. Update 2026-11-09: sodax-backend #1380 (on `main`) lets a valid key whose org
+   has a limit skip `submit-tx`'s per-IP throttle when `ApiKeyGuard` isn't `off`; the edge parts stay open
+   (`plan-2026-11-09-scope-and-gaps.md`).
 3. E2E (#88): a gosodax admin adds the funded wallet and canary key as `canary-e2e` secrets and sets staging
    `SODAX_ENV=canary`.
 
 ## Next action
 
-0. Work the checklist in `review-2026-11-07-pre-r0bi7.md` top to bottom (#104 first, then #95/#96 blockers),
-   one PR at a time, merging each fix up the stack. Then post the #90 body + merge-plan edits (drafts in
-   `review-2026-11-07/pr90-91-92.md`) and reply to R0bi7.
+0. Follow `plan-2026-11-09-scope-and-gaps.md` (tiers + order): "Must" items from the 11-07 checklist, each PR
+   fixed on its own branch (#104 first, with the `ci.yml` trigger), one sweep #91 → #102 after #104 merges. Then
+   post the #90 body + merge-plan edits (drafts in `review-2026-11-07/pr90-91-92.md`) and reply to R0bi7. Ask
+   for the pre-release items now.
 1. Merge order: #100, #101 (done) → #104 → release to master, then hold master → #90 any time → sync #91 with
    `development` again for #104 (port guards by hunk, `plan-review-2026-11-02.md` step 6) → #91…#98 in order →
    first green canary E2E → #102 → real canary run on `development` → release → sodax-sdks #577.
@@ -161,7 +183,8 @@ Workflow per sub-issue (user): plan → review → implement → `/simplify` →
 | Fixes from the 2026-10-28 review: what is fixed where (per-PR map for splitting commits), research for the open items with owners, decisions for the user | `plan-fixes-2026-10-28.md` | 4.5k |
 | Stack review 2026-10-27, PR #91–#98: must-fix, mediums per PR, low/nits, out-of-date decisions, what was verified fine | `review-2026-10-27-stack.md` | 4k |
 | R0bi7's merge-plan review 2026-11-02: each of the 9 points checked against code (restack conflicts, live changes before #102, switch, ops, cancel no-quote gap, #101) | `review-2026-11-02-r0bi7-merge-plan.md` | 1.5k |
-| **Start here next week.** R0bi7's 2026-11-07 fix list + our pre-review of every PR: 2 blockers, the work checklist in merge order, and a map to the per-PR detail files in `review-2026-11-07/` (his verbatim words, fixes with code, tests, guard-port plan, #90/merge-plan drafts, pre-release gaps, #577) | `review-2026-11-07-pre-r0bi7.md` | 2.3k |
+| **Start here.** Which of the 11-07 items to do (Must / Should / Deferred), the order (one sweep after #104), the CI trigger gap, and what is left to finish the MCP outside the code list (ops, BE #1380 throttle, fake keys, non-EVM RPCs, wallet MCP test) | `plan-2026-11-09-scope-and-gaps.md` | 2k |
+| R0bi7's 2026-11-07 fix list + our pre-review of every PR: 2 blockers, the work checklist in merge order, and a map to the per-PR detail files in `review-2026-11-07/` (his verbatim words, fixes with code, tests, guard-port plan, #90/merge-plan drafts, pre-release gaps, #577) | `review-2026-11-07-pre-r0bi7.md` | 2.3k |
 | Plan to handle that review: decisions D-a..D-d, 10-step order with owners, route test cases, cancel fix, restack recipe, #102 changes, pre-release checklist (RPC probe 2026-11-03), reply draft | `plan-review-2026-11-02.md` | 3.5k |
 | Discussion log: balance in BE, custom RPC, full SDK vs light, rate limit, API key, cancel, partner fee | `process.md` | 2k |
 | Candidate changes from before the ADR revision, not re-mapped | `improvement-ideas.md` | 1.9k |
