@@ -124,8 +124,8 @@ updated: 2026-11-09
     and redacts held lines (post cut to 4096), `quoteIdArg()` lowercases, #102 README: CI on every PR, alert caps.
     Tests: #91 182, #92 243, #93 342, #94 522, #95 695, #96 735, #97 892, #98 935, #102 941. PR bodies and the #79
     merge-plan comment updated.
-  - Drafts for R0bi7 (dev deploy of `feat/89-swap-docs` + env, release plan) were given to the user in chat; the
-    user sends them.
+  - Drafts for R0bi7 (dev deploy of `feat/89-swap-docs` + env, release plan): `drafts-r0bi7-2026-11-09.md`; the
+    user sends them, then deletes the file.
 
 ## Blocked on
 
