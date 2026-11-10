@@ -3,7 +3,7 @@ type: brief
 repo: builders-sodax-mcp-server
 github: 110
 status: Active, in review — PR #111 open, CI green (2026-11-10)
-next: Address the review findings on PR #111 (head 05d4b5c, see process.md); then enable staging with an infra token and allowlisted egress, and check quote and track in Grafana. Update the hub card after merge.
+next: address the independent review's findings on PR #111 (process.md 2026-11-10, reviewed at 05d4b5c; tip now a8546fa with request records, frames-only errors, intent.hash); then staging token + allowlist from infra, test server env (incl. POSTHOG_CLIENT_ID_SECRET for client.ip_hash), connect check, one quote + track in Grafana; hub card after merge; follow-up: sodax-sdks docs mention intentHash
 updated: 2026-11-10
 ---
 
@@ -54,6 +54,9 @@ belongs in `plan.md` or a knowledge note, and this file should link to it.
 - 2026-11-10: end-to-end through the real sodax-observability stack run locally (plan.md §End-to-end): records land in
   ClickHouse with the right resource, pass the ingest filter, chain by `request.id`, flush on SIGTERM; found the gateway
   redacts `api*key`-named attributes → `caller.key_hash` (606156d); index.test off the network (f351e5f).
+- 2026-11-10 evening: coverage review vs "log every step from request to response" → 05d4b5c: an "HTTP request" record per
+  MCP request (refusals included, context opened in the middleware), "Rate limited" once per window, frames-only error on a
+  thrown tool, docs MCP call instrumented; details plan.md §Coverage review and §Simplify + code-review round.
 
 ## Blocked on
 

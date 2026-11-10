@@ -11,8 +11,8 @@ updated: 2026-11-10
 
 ## State in five lines
 
-- Issue filed 2026-11-10 (Task, Sodax board #1, Backlog, stream Builders MCP, assignee 0x0603): 30 open alerts
-  on `pnpm-lock.yaml`, none in this repo's code. Full grouping with fix paths in `issue.md`.
+- Issue filed 2026-11-10 (Task, Sodax board #1, Backlog, stream Builders MCP, assignee 0x0603): 91 open alerts across 24 packages
+  (first filed as 30: one API page; corrected the same evening), none in this repo's code. Full grouping with fix paths in `issue.md`.
 - Seen while pushing to PR #111 (the remote prints the Dependabot URL). No Dependabot PRs, no `.github/dependabot.yml`.
 - Nothing fixed yet. The alerted versions were checked against the lockfile and the 14-day rule on 2026-11-10;
   dates are in the issue body, so re-check before bumping if a week has passed.
@@ -36,3 +36,7 @@ issue in sodax-sdks (anchor/stellar/injective/solana bumps).
 | Decisions while fixing | `plan.md` | 0 |
 | Session notes | `process.md` (index) | 0 |
 | Result | `outcome.md` | 0 |
+
+## Landmines
+
+- `gh api .../dependabot/alerts` paginates at 30 by default: use `--paginate` (and join the arrays) before counting.

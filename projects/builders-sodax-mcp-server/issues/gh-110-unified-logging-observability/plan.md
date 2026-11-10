@@ -290,3 +290,71 @@ Stack torn down (`down -v`, `.env`/`.data` removed), Colima stopped.
 - Pre-commit then caught a flake of my own making: `clearCache()` in index.test's afterEach sent the global-limit
   test's 100 parallel `/health` calls to the real data API (no in-flight dedup in the TtlCache) → timeout. One
   `beforeEach` fetch stub for the whole suite (f351e5f). Test report posted on #110 (2026-11-10).
+
+## Coverage review of the step records (2026-11-10, after the user asked "quote rồi submit, sao biết là một luồng")
+
+Robi's ask is "log every step from request to response". Checked against the code, not the PR text:
+- Every tool, `docs_*` included, goes through the `server.tool` wrapper (no `registerTool` anywhere) → "Tool call".
+- Every swap-side network call (data API, solver, Swaps API, relay) goes through `fetchJson`/`timedFetch` → "Upstream call".
+- 8 `bounded()` sites (hub wallet, receipt, block number, tx known, balance, NEAR storage, Stellar trustline, oracle) → "Chain read".
+- Swap failures: `actionTool` logs unexpected errors with the stack; `ActionError` → `error.code`; operator alerts → `error`
+  records with `alert`; quote cache full → `warn`. HTTP 500 → "Unhandled HTTP error" with stack.
+- Cross-request linking: `request.id` is per HTTP request, so quote → track → cancel link through `quote.id` and `tx.hash`
+  on the "Tool call" records. The first track call must carry `quoteId` (the server submits only with the quote), so its
+  record holds both ids; later track-by-hash calls carry `tx.hash` only, which is enough.
+
+Gaps found and fixed (commits after f351e5f):
+1. No record for a request a guard refused (429, 413, batch cap, invalid JSON) nor for initialize / tools/list →
+   `logMcpRequests` in index.ts, mounted `app.all(["/mcp","/messages","/sse"], …)` before the limiters (routed, so
+   `/MCP/` counts like the handlers do; a `Set` on `req.path` missed those). It mints the id, opens the request context
+   with `runWithRequestContext({ requestId }, next)`, and on the response's `close` logs one "HTTP request" record
+   (`http.method`, `http.route` lowercased without trailing slash, `http.status`, `duration.ms`, `mcp.method`
+   whitelisted / "batch" / "other", `client.ip_hash`, `http.aborted`); `error` for 5xx, else `info` (the status is the
+   attribute; a 4xx-minus-exceptions rule would accrete: 405/406/415 are the SDK's protocol answers). The handlers
+   extend the context (`{ ...getRequestContext(), ...connection.context }`), so every record from the middleware on
+   shares the id: the simplify altitude agent probed ALS through express-rate-limit + express.json on Node 22/24/26
+   with the repo's Express (bodies split across TCP writes too) and it holds; my first version carried the id in
+   `res.locals` on the wrong premise that ALS is lost in body-parser, and left createServer's records and `/sse`
+   without an id. `/health` and the pages are not logged (noise). On GET /sse the record is the session's.
+2. A non-swap tool that threw logged at `info` with the class name only → `logToolCall` takes the thrown error, logs at
+   `error` with `err` (stack, redacted). Swap tools never throw (actionTool), so no double record.
+3. The docs MCP POST (`docsProxy.ts`) bypassed `timedFetch` → routed through it, so `docs_*` calls have an upstream record.
+Dropped: "quote.id on track-by-hash from the claimed quote" — wrong premise. `resolveSource` finds a quote only by
+`quoteId` (no deposit-tx index in quoteCache), so without `quoteId` the server has no quote at all; nothing to log.
+Cross-service join, resolved without asking (the user: "sao hỏi sao không sửa?"): the backend has shipped no logging
+attributes yet (no `intent.hash` strings, no OTel deps), its spec only lists `intent.hash`/`tx.hash`/`chain.id` as naming
+examples, and its own code looks an intent up by the hub tx (`GET /intent/tx/{dstIntentTxHash}`). The data API's key is
+`intentHash` = keccak256 of the `createIntent` struct (IF-11); the SDK has `EvmSolverService.getIntentHash(intent)`, pure,
+and the server holds the struct in the cached quote → `intentHash()` in sodax.ts (strings → bigint), exposed on the quote,
+track and cancel results and logged as `intent.hash`. Verified: 3/3 real intents of the test wallet from
+`/intent/user/<addr>` hash to the API's `intentHash`. The hub card's caveat (intentHash not unique over time) is fine for
+logs: `tx.hash` sits beside it.
+Noted, not changed: "Tool call" is `info` even on `tool.outcome=error` (Grafana filters on attributes; crashes are `error`);
+data tools' `isError` results carry no `error.code` (the "Upstream call" status under the same id explains them).
+
+### Simplify + code-review round on the sweep (2026-11-10, evening)
+
+/simplify (4 agents): moved the id to the AsyncLocalStorage context opened by the middleware (the altitude agent
+probed ALS through express-rate-limit + express.json on Node 22/24/26: it holds), routed mount `app.all([...])`
+instead of a `Set` on `req.path` (`/MCP/` was missed), `mcpMethod()` helper, no try/catch in the close listener,
+handler-failure tests via a spied `createServer` instead of `hashClientIp` throwing (that throw had moved into the
+middleware), one `httpRequestRecord(spy, match)` test helper (matched, because an SSE stream aborted in afterEach
+writes its record during the next test).
+/code-review: 10 findings, 8 fixed:
+- `mcp.method` unbounded (probe: a 60 KB letter string logged verbatim) → whitelist derived from the SDK's own
+  `ClientRequestSchema.options` + `ClientNotificationSchema.options` (22 methods), else "other"; "batch" for arrays;
+  undefined only when nothing was parsed (body-parser leaves `{}` after a failed parse → "other").
+- `err` on a thrown tool error carried the message (may echo agent input) → `whereThrown()`: class + stack frames only;
+  test "never its text" restored.
+- 429 records unbounded by the limiter (flood → OTel queue churn evicts real records) → request record at `debug`
+  for 429; `rateLimitHandler` on both limiters logs one `warn` "Rate limited" per client per window
+  (`used === limit + 1`), with `rate_limit.limit`, `rate_limit.window_ms`.
+- `client.ip_hash` reversible without `POSTHOG_CLIENT_ID_SECRET` (2^32 sha256) → only when keyed (`CLIENT_ID_KEYED`).
+- `http.aborted` meaningless on /sse and status 200 on an early abort → dropped; `http.status` only when headers sent.
+- 500 logged twice at error → request record always `info`/`debug`; the error handler's record carries the stack.
+- `hashClientIp` twice per request → once, in the context as `clientId`; handlers read it.
+- Tests for 500, /messages, batch, "other", exactly one record, keyed flag, once-per-window.
+Not done: moving `logMcpRequests` into httpGuards.ts (relocation only); `{ result, thrown }` arg object (churn).
+Smoke on the build: 62 pings → 7×429 at debug, one "Rate limited"; 3000-char method → "other"; keyed hash present with
+the secret; an aborted tools/call → record without `http.status` (see the probe note below).
+
