@@ -24,4 +24,6 @@ updated: 2026-11-10
 - `httpGuards.ts:113`: A two-message batch after 59 requests bypassed the rate-limit warning, and the next rejected request was also silent at the default level. Share the first-crossing warning between single requests and batches.
 - `index.ts:492`: Invalid `SODAX_ENV` or `SODAX_SWAP_USD_WARN` exits before OTLP attaches. The loopback receiver got no record for an invalid `SODAX_ENV`, while an invalid swap-tools flag after initialization shipped a fatal record. Initialize the exporter before those two startup checks so the existing fatal flush can send their records.
 
+Addressed: all six in e973996 (plan.md §Independent review's six findings).
+
 ## Changes During Work

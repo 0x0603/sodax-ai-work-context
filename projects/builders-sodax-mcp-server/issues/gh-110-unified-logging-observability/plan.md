@@ -358,3 +358,20 @@ Not done: moving `logMcpRequests` into httpGuards.ts (relocation only); `{ resul
 Smoke on the build: 62 pings → 7×429 at debug, one "Rate limited"; 3000-char method → "other"; keyed hash present with
 the secret; an aborted tools/call → record without `http.status` (see the probe note below).
 
+### Independent review's six findings (other machine, 2026-11-10, at 05d4b5c) → fixed in e973996
+
+1. SDK-refused calls (unknown tool, invalid args) had no record: `withAnalytics` now also wraps the protocol layer's
+   `tools/call` handler (`server.server.setRequestHandler`, installed by McpServer after our hook) and logs a "Tool call"
+   with `TOOL_NOT_FOUND` / `INVALID_ARGUMENTS` / `TOOL_DISABLED` when the result is `isError` and no handler ran (WeakSet
+   of `extra`); the name is logged only if registered on that server, else "other". McpError text comes prefixed
+   "MCP error -32602: ", stripped before classifying.
+2. `timedFetch` logged at headers: now `timedFetch(url, init, ok, read)` returns `{ response, body }` and logs after the
+   body is read (status + `error.code` on a body failure). `request()`, relay and docsProxy pass their readers.
+3. Keyless shared reads (oracle, catalog) dropped `request.id`: `withoutCredentials()` keeps `requestId`/`clientId`;
+   a caller joining an in-flight catalog refresh logs `refresh.request.id`.
+4. "Rate limited" named a client-typed path: `knownRoute()` → one of /mcp,/messages,/sse,/health,/api or "other".
+5. Batch crossing the limit skipped the warning: `logRateLimited()` shared by the limiter handler and `countBatch`.
+6. Boot: OTel start moved before the SODAX_ENV / SODAX_SWAP_USD_WARN checks; verified with a loopback sink (one batch
+   each before exit 1).
+Tests: 1005. Smoke: both fatal boots exported a batch.
+

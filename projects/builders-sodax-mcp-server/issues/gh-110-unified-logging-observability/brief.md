@@ -3,7 +3,7 @@ type: brief
 repo: builders-sodax-mcp-server
 github: 110
 status: Active, in review — PR #111 open, CI green (2026-11-10)
-next: address the independent review's findings on PR #111 (process.md 2026-11-10, reviewed at 05d4b5c; tip now a8546fa with request records, frames-only errors, intent.hash); then staging token + allowlist from infra, test server env (incl. POSTHOG_CLIENT_ID_SECRET for client.ip_hash), connect check, one quote + track in Grafana; hub card after merge; follow-up: sodax-sdks docs mention intentHash
+next: R0bi7 review of PR #111 (tip e973996: coverage sweep, review rounds, intent.hash, the independent review's six findings all closed); staging token + allowlist from infra; test server env (incl. POSTHOG_CLIENT_ID_SECRET for client.ip_hash); connect check; one quote + track in Grafana; hub card after merge; follow-up: sodax-sdks docs mention intentHash
 updated: 2026-11-10
 ---
 
