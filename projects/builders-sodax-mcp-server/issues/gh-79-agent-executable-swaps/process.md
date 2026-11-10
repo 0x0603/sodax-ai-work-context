@@ -2,10 +2,14 @@
 type: process
 repo: builders-sodax-mcp-server
 github: 79
-updated: 2026-11-07
+updated: 2026-11-10
 ---
 
 # Process
+
+## 2026-11-10: Canary E2E schedule
+
+- The user asked to turn off daily MCP E2E. Draft [PR #113](https://github.com/gosodax/builders-sodax-mcp-server/pull/113) removes the cron and keeps manual dispatch with the same inputs and job. Parsed workflow comparison, typecheck, lint, and all 949 unit tests passed. No live swap was run. The schedule remains active until merge to `development`.
 
 ## 2026-10-23 — design discussion, not yet in plan.md
 

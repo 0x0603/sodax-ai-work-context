@@ -4,7 +4,7 @@ repo: builders-sodax-mcp-server
 github: 79
 status: Active, fixing — R0bi7 (2026-11-07) listed fixes on #104, #93, #95, #96, #97; plan re-scoped 2026-11-09
 next: stack live on the test server (swap: 5) but env unset (production API until R0bi7 sets SODAX_ENV=canary, RPC, webhook); #110 observability task opened (R0bi7's ask, sub-issue of #79, Backlog): plan it after the env + canary tests; user funds the wallet; admin creates `canary-e2e`; then E2E dry run → 5 USDC → agent scenarios; #76 ships everything
-updated: 2026-11-09
+updated: 2026-11-10
 ---
 
 # GH-79 Agent-executable swaps (Builders MCP) · brief
@@ -12,6 +12,8 @@ updated: 2026-11-09
 **The entry point. Read this, then open the one file the map points at.**
 
 ## State
+
+- Canary E2E (#88): draft PR #113 removes the daily schedule on `development` and keeps manual dispatch, including dry run. The schedule remains active until merge. See `process.md` for verification.
 
 - Code: hub submodule `sodax-command-center/repos/client/builders-sodax-mcp-server` (the standalone clone
   `sodax/builders-sodax-mcp-server/` is legacy). After checking out a branch, run `pnpm install --frozen-lockfile`:
