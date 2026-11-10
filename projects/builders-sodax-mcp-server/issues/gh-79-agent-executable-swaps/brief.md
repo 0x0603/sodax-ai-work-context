@@ -3,7 +3,7 @@ type: brief
 repo: builders-sodax-mcp-server
 github: 79
 status: Active, fixing — R0bi7 (2026-11-07) listed fixes on #104, #93, #95, #96, #97; plan re-scoped 2026-11-09
-next: #91 → #98 merged into development (2026-11-09 evening, squash in order); #102 synced + retargeted + CI green, NOT merged: waits for the test-server env (SODAX_ENV=canary, RPC 1/137/295, webhook, 1 replica). Then merge #102, E2E dry run → 5 USDC, agent scenarios; user funds the wallet; admin creates `canary-e2e`; the daily E2E is red until then
+next: stack live on the test server (swap: 5) but env unset (production API until R0bi7 sets SODAX_ENV=canary, RPC, webhook); #110 observability task opened (R0bi7's ask, sub-issue of #79, Backlog): plan it after the env + canary tests; user funds the wallet; admin creates `canary-e2e`; then E2E dry run → 5 USDC → agent scenarios; #76 ships everything
 updated: 2026-11-09
 ---
 
@@ -27,7 +27,7 @@ updated: 2026-11-09
 | #100 | SSE hotfix (Closes #99) | squash `98226dd` on `development` | merged 2026-10-29 |
 | #101 | hazy2go: MCP Registry publish (Closes #106) | squash `80b8ad0` on `development` | merged 2026-11-05 |
 | #104 | Hardening (issue #103, incl. markdown tables keeping addresses whole) + route-level test (`createHttpApp`, `src/index.test.ts`), MERGED 2026-11-09 as `d734aed` (R0bi7 approved; release PR #76 needs a review) | `fix/server-hardening` @ `645b3b9` (has #101), base `development`, CI green | ready, R0bi7 re-requested 2026-11-05 |
-| sodax-sdks #577 | Docs page + skill pointer (issue #576) | `docs/builders-mcp-swap` @ `eb2affb9` (`"type": "http"` in all 20 config snippets, Claude Code `--header` line) | ready, R0bi7 requested 2026-11-05 |
+| sodax-sdks #577 | Docs page + skill pointer (issue #576) | `docs/builders-mcp-swap` @ `92aeee31` (2026-11-09: `main` merged `163675f0`, page fixed: refund window and partner fee range point at the server README instead of restating; docs gates green) | ready, no conflicts; merges after the MCP release |
 
 - GitHub stack: #91 targets `development`, each later PR the branch below it; CI runs only on PRs into
   `development`/`master`. The user marked the whole stack ready for review on 2026-11-01; it still merges in order.
@@ -160,6 +160,23 @@ updated: 2026-11-09
   is wrong there. The #95 worktree had to be removed first (git won't switch to a branch checked out elsewhere). #102 @
   `e6bbeb2`, base development, APPROVED, CI green. Stale PRs #90 (ADR) and #76 (release) untouched. The merged head
   branches still exist on origin (no auto-delete).
+- #102 merged 2026-11-09 15:26Z as `46f65a2` on the user's call ("merge đi … robi set env sau cũng được") after I flagged
+  that without `SODAX_ENV=canary` the test server's swap tools hit the production API, with public RPC defaults and no
+  alerts. Test server redeployed 15:28Z: `/health` 45 tools, `swap: 5`, `swapQuotes.open: 0`; `?profile=swap` without a key →
+  403; `/api` lists the profiles. Env still unset at that point (production API).
+- 2026-11-09 22:29 (Slack): R0bi7 asked for a task to stream the MCP's logs into unified logging (sodax-observability), modelled
+  on its `docs/specs/unified-logging-backend.md`, so Grafana alerts → Slack can be built; "the observability part of the MCP".
+  Opened #110 (Task, sub-issue of #79, board Sodax #1 Backlog / Builders MCP, assignee user) with decisions M1–M11 (pino OTLP
+  destination, env-only activation, resource attributes, failure isolation, redaction kept, `request.id`, one record per step),
+  env table, record mapping, rollout, AC. Needs from infra: token per env + allowlist IPv4. Added to #79's pre-release list.
+  The hub `create-issue` skill isn't loaded in this workspace session; did it with `gh` + GraphQL (type `IT_kwDODGRGe84BmH_G`,
+  `addSubIssue`, `gh project item-add 1 --owner gosodax`, Status/Stream via `item-edit`).
+  R0bi7 left unanswered: the Discord webhook + E2E funding question, and where the backend's paid RPCs are.
+- 2026-11-09 late: `/docs-review` on sodax-sdks #577 against development's README: one false-ish claim (track refund
+  window) and one incomplete one (partner fee range) in `docs/builders-mcp.mdx`, fixed; nothing else in the diff or outside it
+  (no counts left, network faq/quickstart lines still true). Gates pass: check:doc-links, docs-nav, docs-pages, ai-dev-files,
+  check:ai; `mint validate` not installed locally (CI). User: "simplify và review lại rồi push": the refund sentence lost the
+  30-minute figure (drifts) for a README pointer; committed with Node 24 (`163675f0` merge, `92aeee31` docs), pushed, PR body updated.
 
 ## Blocked on
 
