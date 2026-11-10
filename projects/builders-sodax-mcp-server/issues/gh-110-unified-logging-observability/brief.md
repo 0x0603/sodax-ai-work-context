@@ -3,8 +3,8 @@ type: brief
 repo: builders-sodax-mcp-server
 github: 110
 status: Active, in review — PR #111 open, CI green (2026-11-10)
-next: R0bi7 review of PR #111 (tip f351e5f, test report on #110); staging token + allowlist from infra; then test server env, connect check, one quote + track in Grafana; hub card after merge
-updated: 2026-11-09
+next: Address the review findings on PR #111 (head 05d4b5c, see process.md); then enable staging with an infra token and allowlisted egress, and check quote and track in Grafana. Update the hub card after merge.
+updated: 2026-11-10
 ---
 
 # GH-110 Unified Logging Observability · brief
@@ -19,6 +19,8 @@ belongs in `plan.md` or a knowledge note, and this file should link to it.
 ## State in five lines
 
 <!-- Where the work actually stands. What exists in the real repo, what doesn't. -->
+
+- Review at `05d4b5c`: CI and 998 local tests passed. Local reproductions show unsafe global rate-limit path logging and gaps in request correlation, SDK-level error outcomes, upstream body failures, batch refusals, and early boot flush. See `process.md` for the reproduction conditions and suggested fixes. Staging delivery remains unverified by this review.
 
 - 2026-11-10 (implemented in `.claude/worktrees/110-unified-logging`, uncommitted): otel.ts (config → resource → BatchLogRecordProcessor
   4096/512/5 s → OTLPLogExporter proto with bearer; pino line → LogRecord: level→severity, `err`→`exception.*`, dotted flatten,
@@ -114,6 +116,7 @@ belongs in `plan.md` or a knowledge note, and this file should link to it.
 | Question | File |
 |---|---|
 | The task as filed (decisions, env, record mapping, rollout, AC) | `issue.md` |
+| Findings and verification for the review of PR #111 at `05d4b5c` | `process.md` |
 | How it lands in code: D1–D11 (in-process sdk-logs, not the pino transport, and why), file-by-file changes, tests, verification, the plan review and the /simplify outcome | `plan.md` |
 | The PR body to post once the branch is pushed | `pr-body.md` |
 | How to connect a producer (gateway contract, required attributes, connect check, error codes) | hub skill `sodax-command-center/.claude/skills/unified-logging-connect/SKILL.md` |
