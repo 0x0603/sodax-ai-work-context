@@ -3,7 +3,7 @@ type: brief
 repo: builders-sodax-mcp-server
 github: 118
 status: Active
-next: shared groundwork on branch feat/118-swap-from-non-evm (base feat/115-swap-from-hub): step shape per family, tx hash rule, held quote + hub check after relay
+next: user decides commit/push; then update the #118 issue body to the implemented design (plan.md) and open the PR (base feat/115-swap-from-hub)
 related_issues: [79, 115, 117]
 updated: 2026-11-11
 ---
@@ -19,7 +19,11 @@ updated: 2026-11-11
   swap on the hub after the relay (held quote, `IntentCreated` = quoted intent hash), Solana checks keccak(relayData)
   in the tx before submit. Differs from #79 D5 (a draft the user may adjust); the issue says why, the PR body repeats it
   for review.
-- No code yet. Worktree `.claude/worktrees/118-swap-from-non-evm` in the MCP submodule.
+- 2026-11-11: implemented, uncommitted, in worktree `.claude/worktrees/118-swap-from-non-evm` (branch
+  feat/118-swap-from-non-evm off feat/115-swap-from-hub). 1119 unit + 37 contract tests green after the review round (canary), incl. a live
+  Solana quote and real-deposit fixtures for all five families. Design differs from the issue body: see plan.md
+  (local SDK build of the swap tx; payload-in-tx check before submit; no hub check, no held quote).
+- Bug caught by the live test and fixed: toAddress defaulted to a non-EVM sender's address on an EVM destination.
 
 ## Blocked on
 
@@ -27,8 +31,7 @@ updated: 2026-11-11
 
 ## Next action
 
-Shared groundwork, see the issue's "Shared work" (`issue.md`). Per-family facts with SDK/backend/relay line refs are in
-`research.md`.
+Review findings, then the issue body. Design and verified facts: `plan.md`; per-family research: `research.md`.
 
 ## Settled — do not re-litigate
 
