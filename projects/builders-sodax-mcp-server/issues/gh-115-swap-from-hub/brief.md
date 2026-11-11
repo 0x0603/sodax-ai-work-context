@@ -3,7 +3,7 @@ type: brief
 repo: builders-sodax-mcp-server
 github: 115
 status: Active, in review — PR #117 open at 618b048 (stacked on #111), CI green, body synced
-next: R0bi7 reviews #111 then #117; after #111 merges, retarget #117 to development; follow-up for #116 builder-wide items (chain names, JSON-only format) and an early hub cancel
+next: R0bi7 reviews #111 then #117; after #111 merges, retarget #117 to development; non-EVM sources moved to #118 (gh-118-swap-from-non-evm)
 updated: 2026-11-11
 related_issues: [79, 110, 116]
 ---
@@ -37,9 +37,21 @@ related_issues: [79, 110, 116]
   answer is to wait, no `stopAfter` for a claimed deposit, live contract test of real hub `IntentCreated` logs.
   1046 unit tests, contract 22/22 on canary. Deferred: early hub cancel before the backend row.
 
+- 2026-11-11 later: scope grew to every non-EVM source except Bitcoin and Stacks (user). #115 retitled "Swap tools: start
+  a swap from the hub and the non-EVM chains", plan v2 posted (comment 6791061784). README note on Bitcoin/Stacks
+  uncommitted in the 115 worktree. Robi's #79 D2/D3 keep the Swaps API as the builder: the MCP checks its build per
+  family. Track proves each deposit from chain data (Solana: relay revert mode if the payload hash differs).
+
+- 2026-11-11 last: non-EVM split to #118 (user: follow-up after EVM merges, not a sub-issue of #79). #115 title back
+  to "Swap tools: start a swap from Sonic, the hub"; the plan v2 comment now points to #118. Research moved there.
+  Uncommitted in the 115 worktree: README note (Bitcoin, Stacks, ICON not sources) and the corrected submit-tx rate-limit
+  comments in track.ts (per IP unless the key's org has a limit). Commit + push when the user asks.
+
 ## Which file answers what
 | Question | File |
 |---|---|
 | The issue as filed | `issue.md` (scaffold) and GitHub #115 |
 | The posted plan | `plan-posted.md` |
 | PR #117 body | `pr-body.md` |
+
+- 2026-11-11: moved under the follow-up epic #119 ("Sodax MCP: agent-executable swaps (follow-up)"); #79 keeps phase 1 (#99, #103 stay there).

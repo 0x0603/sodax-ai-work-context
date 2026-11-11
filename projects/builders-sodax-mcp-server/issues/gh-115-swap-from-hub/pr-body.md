@@ -1,11 +1,3 @@
----
-type: draft
-repo: builders-sodax-mcp-server
-github: 115
-status: Posted as the PR for #115
-updated: 2026-11-11
----
-
 Closes #115. Refs #116.
 
 Stacked on #111 (both touch the swap records); this PR targets `feat/110-unified-logging` until #111 merges.
@@ -32,6 +24,9 @@ Also from #116:
 
 Follow-up, not here: a hub swap's intent exists once its tx is mined, so it could be cancelled before the backend has a row for it; cancel still waits for that row.
 
+Swaps from the non-EVM chains (NEAR, Stellar, Sui, Solana, Injective) are #118, after this merges. The README now says Bitcoin, Stacks and ICON aren't planned as sources, and why. The track comments on the `submit-tx` limit are corrected: it's per IP unless the key's org has its own limit.
+
 The other #116 items stay open there. `sodax_get_swap_tokens` taking a chain name and `format: json` returning only JSON are builder-wide (every builder tool prefixes its JSON with a markdown header), so they get their own PR.
 
 Tested: `checkTs`, lint, build, unit tests (1046; the new ones in `swapHub.test.ts`, `swapTrack.test.ts`, `sourceTx.test.ts` and `source.test.ts` fail on the previous code, the memo and stop-time ones checked by removing each change). Contract tests on canary: 22/22, including the Sonic quote and the hub `IntentCreated` logs. Simplify (4 agents) and a high-effort code review ran before this push; their fixes are in the second commit.
+
