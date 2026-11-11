@@ -2,8 +2,8 @@
 type: brief
 repo: builders-sodax-mcp-server
 github: 110
-status: Active, in review — PR #111 at f65c48a (review fixes b832691 + README f65c48a), reply posted to Robi 2026-11-11 (comment 6794054697)
-next: Robi re-reviews #111; Robi adds OTEL_LOGS_ENABLED=true and OTEL_EXPORTER_OTLP_LOGS_ENDPOINT in Coolify (+ optional Include Source Commit in Build); after merge, merge the new #111 tip into #117 when the user asks; README point left for #116: "a non-sodax key is ignored" (swap profile refuses it with 403)
+status: Merged — PR #111 into development as 6788b0f (2026-11-11); test server exports logs (heartbeat counts rising, failed 0)
+next: Robi checks the records in Grafana (ClickHouse isn't reachable from here: no reader password); prod needs the OTEL_* env at the development → master release; merge development into #117 when the user asks. README key point done in #123 (#116)
 updated: 2026-11-11
 ---
 
@@ -48,9 +48,9 @@ updated: 2026-11-11
 
 1. Robi: the two missing Coolify variables on staging and prod; confirm `46.224.215.235/32` is on `otel-allowlist`;
    allowlist the user's IPv4 for the dev token. 2026-11-11 Slack: Robi says dev and prod already have the tokens, the
-   MCP should read `OTEL_LOGS_TOKEN` and `DEPLOYMENT_ENV` (it does), and gave the gateway host without a scheme. Still
-   to tell him: `OTEL_LOGS_ENABLED=true`, the endpoint with `https://`, and `DEPLOYMENT_ENV` = `prod` / `staging`
-   (not `production` / `development`); none of it acts until #111 merges.
+   MCP should read `OTEL_LOGS_TOKEN` and `DEPLOYMENT_ENV` (it does), and gave the gateway host without a scheme. Told
+   him in the edited #111 reply (comment 6794054697, edit 2026-11-11, no notification): `OTEL_LOGS_ENABLED=true`, the
+   endpoint with `https://`, `DEPLOYMENT_ENV` = `prod` / `staging` exactly; none of it acts until #111 merges.
 2. Robi: review and merge #111. Staging ships only after that; prod after the next development → production release.
 
 ## Next action
