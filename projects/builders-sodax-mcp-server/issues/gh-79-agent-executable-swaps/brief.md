@@ -4,7 +4,7 @@ repo: builders-sodax-mcp-server
 github: 79
 status: Active, fixing — R0bi7 (2026-11-07) listed fixes on #104, #93, #95, #96, #97; plan re-scoped 2026-11-09
 next: stack live on the test server (swap: 5) but env unset (production API until R0bi7 sets SODAX_ENV=canary, RPC, webhook); #110 observability task opened (R0bi7's ask, sub-issue of #79, Backlog): plan it after the env + canary tests; user funds the wallet; admin creates `canary-e2e`; then E2E dry run → 5 USDC → agent scenarios; #76 ships everything
-updated: 2026-11-10
+updated: 2026-11-11
 ---
 
 # GH-79 Agent-executable swaps (Builders MCP) · brief
@@ -29,7 +29,7 @@ updated: 2026-11-10
 | #100 | SSE hotfix (Closes #99) | squash `98226dd` on `development` | merged 2026-10-29 |
 | #101 | hazy2go: MCP Registry publish (Closes #106) | squash `80b8ad0` on `development` | merged 2026-11-05 |
 | #104 | Hardening (issue #103, incl. markdown tables keeping addresses whole) + route-level test (`createHttpApp`, `src/index.test.ts`), MERGED 2026-11-09 as `d734aed` (R0bi7 approved; release PR #76 needs a review) | `fix/server-hardening` @ `645b3b9` (has #101), base `development`, CI green | ready, R0bi7 re-requested 2026-11-05 |
-| sodax-sdks #577 | Docs page + skill pointer (issue #576) | `docs/builders-mcp-swap` @ `92aeee31` (2026-11-09: `main` merged `163675f0`, page fixed: refund window and partner fee range point at the server README instead of restating; docs gates green) | ready, no conflicts; merges after the MCP release |
+| sodax-sdks #577 | Docs page + skill pointer (issue #576) | `docs/builders-mcp-swap` @ `92aeee31` (2026-11-09: `main` merged `163675f0`, page fixed: refund window and partner fee range point at the server README instead of restating; docs gates green) | `c6aa3fe8` (2026-11-11) answers R0bi7's review (COMMENTED, all points verified): wallet tool + each step confirmed, `swap` profile refuses keyless, key out of committed config, skills README row + `sodax-build` STOP-gate row, API keys page (MCP swap tools need a key, format only; from MCP #116); PR body gate now "`/api` lists `sodax_swap_quote` + `profiles`". Open: #576 needs `no-plan` (R0bi7 is admin) and its `### Acceptance Criteria` heading → `##` (plan-check.yml:70; agents may not edit the spec, user does); reply to R0bi7 not posted; merges after the MCP release |
 
 - GitHub stack: #91 targets `development`, each later PR the branch below it; CI runs only on PRs into
   `development`/`master`. The user marked the whole stack ready for review on 2026-11-01; it still merges in order.
@@ -218,7 +218,8 @@ updated: 2026-11-10
 2. Before #102's release: the checklist in #102's body (RPC 1/137/295, gateway check, one replica, webhook, alert
    owner, real canary run), Coolify memory (the SDK adds ~230 MB RSS), staging boots.
 3. sodax-sdks #577: the Claude Code `"type": "http"` fix is in (`eb2affb9`, 2026-11-05: the docs page and all 16
-   network pages + blog; Cursor accepts the field too). "Spec and plan" passes now.
+   network pages + blog; Cursor accepts the field too). "Spec and plan" is green only because it is advisory:
+   #576 has no label and an `###` AC heading. R0bi7's 2026-11-11 review fixes: see the PR table row.
 4. Not run live yet (real funds): cancel, EIP-5792 batch, native source, restart before the first track.
 5. Follow-up PR: pnpm 10 + `minimumReleaseAge` instead of the hand pins (`plan-84-swap-quote.md` §Follow-up PR).
 
