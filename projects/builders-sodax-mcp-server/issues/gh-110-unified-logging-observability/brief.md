@@ -36,7 +36,10 @@ updated: 2026-11-11
 ## Blocked on
 
 1. Robi: the two missing Coolify variables on staging and prod; confirm `46.224.215.235/32` is on `otel-allowlist`;
-   allowlist the user's IPv4 for the dev token.
+   allowlist the user's IPv4 for the dev token. 2026-11-11 Slack: Robi says dev and prod already have the tokens, the
+   MCP should read `OTEL_LOGS_TOKEN` and `DEPLOYMENT_ENV` (it does), and gave the gateway host without a scheme. Still
+   to tell him: `OTEL_LOGS_ENABLED=true`, the endpoint with `https://`, and `DEPLOYMENT_ENV` = `prod` / `staging`
+   (not `production` / `development`); none of it acts until #111 merges.
 2. Robi: review and merge #111. Staging ships only after that; prod after the next development → production release.
 
 ## Next action
