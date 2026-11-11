@@ -48,3 +48,5 @@ Review findings, then the issue body. Design and verified facts: `plan.md`; per-
 | What each family's tx, proof and cancel look like, with code refs; effort | `research.md` | 2k |
 | Plan | `plan.md` | |
 | History | `process.md` | |
+
+- 2026-11-11: moved under the follow-up epic #119 ("Sodax MCP: agent-executable swaps (follow-up)"); #79 keeps phase 1 (#99, #103 stay there).

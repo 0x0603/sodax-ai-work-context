@@ -53,3 +53,5 @@ related_issues: [79, 110, 116]
 | The issue as filed | `issue.md` (scaffold) and GitHub #115 |
 | The posted plan | `plan-posted.md` |
 | PR #117 body | `pr-body.md` |
+
+- 2026-11-11: moved under the follow-up epic #119 ("Sodax MCP: agent-executable swaps (follow-up)"); #79 keeps phase 1 (#99, #103 stay there).

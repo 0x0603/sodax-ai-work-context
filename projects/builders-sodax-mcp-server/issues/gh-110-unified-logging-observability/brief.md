@@ -75,3 +75,5 @@ updated: 2026-11-11
   `unifiedLogging: {"on": false}`. Check `/health` after every env change.
 - The dev token was posted in Slack: it goes only into the gitignored `.env`, never into notes, issues or chat replies.
 - The 110 worktree's `.env` turns shipping on: any `pnpm dev` / `pnpm start` there sends to the real gateway as `dev`.
+
+- 2026-11-11: moved under the follow-up epic #119 ("Sodax MCP: agent-executable swaps (follow-up)"); #79 keeps phase 1 (#99, #103 stay there).
