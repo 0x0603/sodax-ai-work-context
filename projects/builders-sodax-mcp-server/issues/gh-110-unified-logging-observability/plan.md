@@ -375,3 +375,25 @@ the secret; an aborted tools/call → record without `http.status` (see the prob
    each before exit 1).
 Tests: 1005. Smoke: both fatal boots exported a batch.
 
+## Code-side completion (2026-11-10, night; the user: "làm toàn bộ về code đi"), all uncommitted
+
+- #111 delta (110 worktree): route templates from the drift-check contract, registered by sodaxApi.ts (not imported
+  into http.ts: apiDriftCheck imports http, a cycle); fallback keeps only plain lowercase words before segment 5; a
+  source-scan test that the client builds no off-contract path; Swaps API failure records on `url.path`/`http.status`
+  with ids masked in `apiMessage`; heartbeat every 5 min through `logger.child({}, { level: "info" })` (proves the
+  logger→hook→exporter path, independent of LOG_LEVEL); late shutdown of a replaced handle leaves the new one. 1011.
+- Hub PR (worktree sodax-command-center.worktrees/mcp-unified-logging-card, branch docs/mcp-unified-logging-card):
+  card, IF-25/IF-37 rows, skill bullet + liveness rule, observability card points at IF-37. Body: pr-body-hub.md.
+  Merge after #111.
+- Observability producer PR (worktree sodax-command-center.worktrees/observability-builders-mcp-producer, branch
+  feat/builders-mcp-producer): tokens BUILDERSMCP STAGING + PROD (runbook §5), allowlist listing for
+  ubuntu-24gb-12vcpu-1 (registry IPv4; egress unverified), runbook step 3 liveness decision, step 5 count dropped.
+  Verified on the local stack with the MCP build. Body: pr-body-observability.md. Must merge and release before #111
+  can be tried on the test server.
+- #112 separate (see its dossier). Combined #111 + #112: 1011 pass.
+Reviews run on all four: /simplify (4 agents), /code-review, one independent reviewer. Notable catches: exact
+overrides act as ceilings on pnpm 9; the heartbeat must go through the logger; the observability PR merges before
+#111 so its text can't claim the MCP already heartbeats; card claim "not the standard OTel variables" was false.
+For Robi (in the observability PR body): tokens not bound to a namespace; the skill's connect check trips the
+liveness alert for `dev`.
+

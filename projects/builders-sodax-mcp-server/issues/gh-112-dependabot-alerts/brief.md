@@ -2,9 +2,9 @@
 type: brief
 repo: builders-sodax-mcp-server
 github: 112
-status: Active
-next: nothing started; when picked up, group 1 (lockfile refresh) first, in a worktree off development, one commit per bump
-updated: 2026-11-10
+status: Active, in review — PR #114 open (2026-11-11), reviewer R0bi7
+next: R0bi7 reviews PR #114 (branch chore/112-dependabot-alerts at 62d4a4d, rebased on development 144b3bc); then Dependabot dismissals for bigint-buffer/elliptic, sodax-sdks issue for stream-json, a zod strict-schema issue
+updated: 2026-11-11
 ---
 
 # GH-112 Dependabot alerts · brief
@@ -14,13 +14,25 @@ updated: 2026-11-10
 - Issue filed 2026-11-10 (Task, Sodax board #1, Backlog, stream Builders MCP, assignee 0x0603): 91 open alerts across 24 packages
   (first filed as 30: one API page; corrected the same evening), none in this repo's code. Full grouping with fix paths in `issue.md`.
 - Seen while pushing to PR #111 (the remote prints the Dependabot URL). No Dependabot PRs, no `.github/dependabot.yml`.
-- Nothing fixed yet. The alerted versions were checked against the lockfile and the 14-day rule on 2026-11-10;
-  dates are in the issue body, so re-check before bumping if a week has passed.
+- 2026-11-11: committed `62d4a4d` `chore(deps): clear the open Dependabot alerts` (Refs #112), rebased on development
+  144b3bc (#113, no overlap) and pushed `chore/112-dependabot-alerts`: 949 tests, tsc, lint, build green. PR #114 → development opened the same day
+  (body `pr-body.md`), reviewer R0bi7.
+
+## What the commit holds
+
+Body draft: `pr-body.md`. In short: exact pins for the MCP SDK 1.32.2, express 4.22.3, vitest + coverage-v8 5.0.5,
+vite 6.4.5 (a devDependency, vitest 5 has it as a peer only). Transitive fixes are pinned by the lockfile alone (each
+patch is inside its parent's range); overrides change only where needed: follow-redirects hold removed,
+`@hono/node-server@<2.1.3: 2.1.3` (exact; the old `^1.19.14` floor kept 1.x), toml 5.0.1, uuid 11.1.1. Exact
+override targets were a first attempt and got reverted: on pnpm 9 an override rewrites every intersecting parent range,
+so an exact target is a ceiling and a cooldown hold never lifts itself. `vitest.config.ts` has `mockReset: true`
+(vitest 5's restoreAllMocks restores spies only). Dependabot 91 → 7 left: zod (decision: wait, see pr-body),
+stream-json (upstream), bigint-buffer and elliptic (no patch: dismiss). Verified as listed in pr-body.md.
 
 ## Next action
 
-Group 1 from `issue.md` (`pnpm update` inside existing ranges, express to 4.22.3 first), then group 2; group 3 needs an
-issue in sodax-sdks (anchor/stellar/injective/solana bumps).
+After #114 merges, the 7 left: dismiss bigint-buffer and elliptic with a reason,
+file a sodax-sdks issue for stream-json (anchor/stellar/injective/solana bumps), a zod strict-schema issue.
 
 ## Settled — do not re-litigate
 

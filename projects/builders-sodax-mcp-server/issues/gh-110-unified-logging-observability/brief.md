@@ -2,126 +2,73 @@
 type: brief
 repo: builders-sodax-mcp-server
 github: 110
-status: Active, in review — PR #111 open, CI green (2026-11-10)
-next: R0bi7 review of PR #111 (tip e973996: coverage sweep, review rounds, intent.hash, the independent review's six findings all closed); staging token + allowlist from infra; test server env (incl. POSTHOG_CLIENT_ID_SECRET for client.ip_hash); connect check; one quote + track in Grafana; hub card after merge; follow-up: sodax-sdks docs mention intentHash
-updated: 2026-11-10
+status: Active, in review — PR #111 open at 99f83c1; gateway side merged (icon-project/sodax-observability#25)
+next: Robi adds OTEL_LOGS_ENABLED=true and OTEL_EXPORTER_OTLP_LOGS_ENDPOINT to the staging and prod Coolify env, confirms the allowlist, allowlists the user's IPv4 for the dev token; then a local run with the dev token; then #111 review and merge
+updated: 2026-11-11
 ---
 
 # GH-110 Unified Logging Observability · brief
 
-**The entry point. An agent resuming this task reads this file and nothing else,
-then opens exactly one row from the map below.**
+**The entry point. Read this, then open exactly one row from the map below.**
 
-Keep it under ~80 lines. It is a router plus the current state — not a summary of
-the other files. If a section here starts explaining something, that explanation
-belongs in `plan.md` or a knowledge note, and this file should link to it.
+## State
 
-## State in five lines
-
-<!-- Where the work actually stands. What exists in the real repo, what doesn't. -->
-
-- Review at `05d4b5c`: CI and 998 local tests passed. Local reproductions show unsafe global rate-limit path logging and gaps in request correlation, SDK-level error outcomes, upstream body failures, batch refusals, and early boot flush. See `process.md` for the reproduction conditions and suggested fixes. Staging delivery remains unverified by this review.
-
-- 2026-11-10 (implemented in `.claude/worktrees/110-unified-logging`, uncommitted): otel.ts (config → resource → BatchLogRecordProcessor
-  4096/512/5 s → OTLPLogExporter proto with bearer; pino line → LogRecord: level→severity, `err`→`exception.*`, dotted flatten,
-  `otel.diag` lines skipped; `write` never throws; diag throttled 5 min), logger.ts tee destination (`attachOtelLogs`, `flush`
-  delegated, `buildLogger` for tests, mixin `request.id`), analytics.ts `Tool call` record + request id per tool call
-  (+`api_key.hash`), http.ts `logUpstreamCall` used by request() and relay.ts, sodax.ts `bounded(call, {label, chainKey,
-  timeoutMs})` → `Chain read`, actionTool.ts `Swap tool result`, index.ts `enableOtelLogs` + flush races. Deps pinned: api
-  1.10.0, sdk-logs 3.0.0, exporter-logs-otlp-proto 0.300.0, resources 3.0.0; engines ≥22.15. Gates: 972 tests (17 new in
-  otel.test.ts + 5 extended files, all red on the old code), checkTs, lint, build. Live: built server → local sink got 3
-  protobuf POSTs with Authorization (boot, request, SIGTERM flush); sink 500 → one `otel.diag` warn, /health 200; bad
-  DEPLOYMENT_ENV → one warn, off, no token in logs. Plan review (agent) findings folded in: see plan.md §Review.
-
-- 2026-11-10 final state (uncommitted, 17 files +522/−62 plus otel.ts and otel.test.ts): /simplify and /code-review applied
-  (plan.md §/simplify, §/code-review). Gates: 976 tests (otel.test.ts + 5 extended files red on the old code), checkTs, lint,
-  build. Live with the built server: 2 protobuf POSTs with bearer and a clean exit on SIGTERM; gateway 500 → one tagged diag
-  warn, /health 200, no token in logs, and the process still exits on SIGTERM with records queued (the hang the review
-  found); bad DEPLOYMENT_ENV → one warn, off; NODE_ENV=development ships too (streamWrite hook).
-
-- Plan posted on #110 as comment 6757883403 (2026-11-10): how it works, env, why not the pino transport, infra needs,
-  rollout, out of scope, the two deviations (request id per HTTP request / stdio call; semconv names, `hub_tx.hash`).
-
-- 2026-11-10: committed `4b2339d` (`feat: ship the logs to unified logging over OTLP`, Closes #110; commitlint caps body lines
-  at 100 chars, took two tries) and pushed `feat/110-unified-logging`; PR #111 → development, reviewer R0bi7, body from
-  `pr-body.md`; CI green (Drift Check, Build and Test, Docker build). #110 plan comment and the #79 pre-release line point
-  at #111. Worktree `.claude/worktrees/110-unified-logging` kept for review fixes.
-
-- 2026-11-10 (user: "push đi"): `cc5c321` `feat: show log shipping on /health and tighten the records` (Refs #110) pushed onto
-  PR #111 after a second /simplify + /code-review round (plan.md); PR body refreshed (993 tests, /health field, marker,
-  contract test, errorName). Worktree clean.
-
-- 2026-11-10: end-to-end through the real sodax-observability stack run locally (plan.md §End-to-end): records land in
-  ClickHouse with the right resource, pass the ingest filter, chain by `request.id`, flush on SIGTERM; found the gateway
-  redacts `api*key`-named attributes → `caller.key_hash` (606156d); index.test off the network (f351e5f).
-- 2026-11-10 evening: coverage review vs "log every step from request to response" → 05d4b5c: an "HTTP request" record per
-  MCP request (refusals included, context opened in the middleware), "Rate limited" once per window, frames-only error on a
-  thrown tool, docs MCP call instrumented; details plan.md §Coverage review and §Simplify + code-review round.
+- PR #111 (branch `feat/110-unified-logging`, MCP worktree `.claude/worktrees/110-unified-logging`) open at `99f83c1`
+  (pushed 2026-11-11, body synced, CI green), 1021 tests, reviewer R0bi7. Body: `pr-body.md`. Verified end to end against the sodax-observability
+  stack run locally (plan.md §End-to-end; rerun on `e7a7278` with #25's config 2026-11-11, process.md), never yet
+  against the live gateway (this IPv4 gets 403). `91a72ce` and `1aab810` hold the 2026-11-11 review fixes (process.md): OTel
+  names, lowercase severity, bare-origin endpoint, guarded start, keyless swap tool named, X-Request-Id in and out,
+  one drift record, README record catalog.
+- Gateway: Robi opened and merged icon-project/sodax-observability#25 on 2026-11-10: tokens
+  `SERVICE_HEX_64_TOKENBUILDERSMCP{PROD,STAGING,DEV}`, `46.224.215.235/32` in the runbook's allowlist listing, the
+  liveness alert excludes this namespace's `staging` and `dev`. My draft (`pr-body-observability.md`, worktree
+  `sodax-command-center.worktrees/observability-builders-mcp-producer`) is superseded.
+- Coolify (Robi, Slack 2026-11-10 22:31): `OTEL_LOGS_TOKEN` and `DEPLOYMENT_ENV` set for the development (staging) and
+  production (prod) deployments. Missing: `OTEL_LOGS_ENABLED=true` and `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT` (the IF-37
+  URL), so nothing ships even after #111 deploys. Reply drafted for the user to send.
+- Dev token: handed over in Slack; since 2026-11-11 in the 110 worktree's gitignored `.env` (mode 600) with
+  `OTEL_LOGS_ENABLED=true`, `DEPLOYMENT_ENV=dev`, `ORIGIN=local-0x0603`. The gateway still answers 403 to this IPv4;
+  a background check retries every minute and runs the live test once it is allowlisted.
+- Hub PR icon-project/sodax-command-center#115 (branch `docs/mcp-unified-logging-card`, opened 2026-11-11), to merge
+  after #111. Body: `pr-body-hub.md`. The superseded observability draft worktree was removed. Follow-on work: #117
+  (swap from Sonic, stacked on #111), dossier `../gh-115-swap-from-hub/`.
 
 ## Blocked on
 
-<!-- Numbered. Each one: what is blocked, who/what unblocks it. Delete if nothing is. -->
+1. Robi: the two missing Coolify variables on staging and prod; confirm `46.224.215.235/32` is on `otel-allowlist`;
+   allowlist the user's IPv4 for the dev token.
+2. Robi: review and merge #111. Staging ships only after that; prod after the next development → production release.
 
 ## Next action
 
-<!-- One concrete thing. Name the file that already holds the material for it. -->
+1. Once the IPv4 is allowlisted: run the #111 build locally with `OTEL_LOGS_ENABLED=true`, the IF-37 endpoint,
+   `DEPLOYMENT_ENV=dev` and the dev token in `.env`; `/health` `unifiedLogging`, then one quote + track in Grafana by
+   `request.id`.
+2. After #111 merges: `/health` on the test server, the same Grafana check with `staging`; then open the hub PR.
 
 ## Settled — do not re-litigate
 
-<!-- Decisions that are closed, so a fresh agent does not reopen them. -->
+- In-process `@opentelemetry/sdk-logs`, not the pino transport (plan.md D1).
+- `OTEL_LOGS_ENABLED` is the switch, as in sodax-backend's shared-logger; rollback is an env change (issue.md M2).
+- `caller.key_hash`, not `api_key.*`: the gateway masks values under api-key-named keys.
+- `client.ip_hash` only with `POSTHOG_CLIENT_ID_SECRET` set: the plain hash can be reversed to the IP.
+- The gateway host and IPs go in no public-repo text (issue, PR, README).
 
 ## Which file answers what
 
 | Question | File | ~tok |
 | -------- | ---- | ---: |
-|  | `plan.md` |  |
-|  | `process.md` (index) |  |
-|  | `outcome.md` |  |
-
-<!-- ~tok ≈ bytes / 3800. Refresh with:
-     for f in *.md; do printf "%5.1fk  %s\n" \
-       "$(echo "scale=2; $(wc -c <"$f")/3800" | bc)" "$f"; done -->
+| The task as filed (M1–M11, env, record mapping, rollout, AC) | `issue.md` | 2.6k |
+| How it lands in code: D1–D11, review rounds, end-to-end on the local stack (`rg -n "^## "` first) | `plan.md` | 8.9k |
+| Independent review findings at `05d4b5c`, dated log, older state history | `process.md` | 1.5k |
+| PR #111 body / hub PR body | `pr-body.md` / `pr-body-hub.md` | 1.9k / 0.3k |
+| What an agent using the MCP stumbled on (tool UX, outside #111) | `agent-roleplay-findings.md` | 0.8k |
+| Connect a producer: gateway contract, attributes, connect check | hub skill `.claude/skills/unified-logging-connect/SKILL.md` | |
+| Epic context, test server | `../gh-79-agent-executable-swaps/brief.md` | |
 
 ## Landmines
 
-<!-- Things that already burned someone: stale claims, branches not on default,
-     notes that were wrong. Delete if none yet. -->
-
-## State
-
-- Opened 2026-11-09 22:35 (local) at R0bi7's ask (Slack 22:29: log every step request → response, stream into unified
-  logging, modelled on sodax-observability `docs/specs/unified-logging-backend.md`; "the observability part of the MCP";
-  then Grafana alerts → Slack). Task, sub-issue of #79, board Sodax #1 (Backlog, Builders MCP), assignee: me.
-- Issue body = decisions M1–M11, env table, record mapping, rollout, AC (`issue.md`). Key choices: pino OTLP destination
-  (`pino-opentelemetry-transport` first candidate, `@opentelemetry/sdk-logs` fallback), env-only activation, resource
-  attributes `service.name=builders-mcp` / `service.namespace=builders-sodax-mcp-server`, redaction kept as a hard rule
-  (SDK/viem errors carry URLs), `request.id` via the existing `RequestContext`, one `info` record per step.
-- Code facts (development @ #102): `src/services/logger.ts` pino → stderr fd 2, `redact`/`redactErr`; `RequestContext`
-  has apiKey + partnerFee only; tool calls logged only on failure (`actionTool.ts`); PostHog `tool_called`; Discord alerts.
-- Public repo: the issue names no gateway host, token or IP. The backend spec is in the private sodax-observability repo.
-
-## Blocked on
-
-1. Infra (R0bi7): an OTLP token per environment (staging, prod) through the secret channel; the test server's and
-   production's egress IPv4 on the ingest allowlist (`otel-allowlist`, Coolify proxy config, not in Git).
-2. Sequencing: the swap stack is on the test server since 2026-11-09 but its env (SODAX_ENV=canary, RPC, webhook) is
-   unset and the canary tests haven't run; do those first (gh-79 brief).
-
-## Next action
-
-1. `plan.md`: transport choice after `npm view` on both candidates (14-day cooldown), the pino mixin for `request.id`,
-   where each step record is emitted (tool wrapper in `actionTool.ts`/`toolRegistry.ts`, upstream clients in
-   `src/services/*.ts`, SDK wrappers in `sodax.ts`), tests with an in-memory exporter, README/.env.example rows.
-2. Ask R0bi7 for the staging token + allowlist when the PR is near.
-
-## Which file answers what
-
-| Question | File |
-|---|---|
-| The task as filed (decisions, env, record mapping, rollout, AC) | `issue.md` |
-| Findings and verification for the review of PR #111 at `05d4b5c` | `process.md` |
-| How it lands in code: D1–D11 (in-process sdk-logs, not the pino transport, and why), file-by-file changes, tests, verification, the plan review and the /simplify outcome | `plan.md` |
-| The PR body to post once the branch is pushed | `pr-body.md` |
-| How to connect a producer (gateway contract, required attributes, connect check, error codes) | hub skill `sodax-command-center/.claude/skills/unified-logging-connect/SKILL.md` |
-| The backend spec this mirrors | `sodax-command-center/repos/infra/sodax-observability/docs/specs/unified-logging-backend.md` (24 KB: read §3 Decisions and §5 Record mapping only) |
-| Epic context, test server, merge state | `../gh-79-agent-executable-swaps/brief.md` |
+- A token without `OTEL_LOGS_ENABLED=true` logs no warning: the server stays stderr-only and `/health` shows
+  `unifiedLogging: {"on": false}`. Check `/health` after every env change.
+- The dev token was posted in Slack: it goes only into the gitignored `.env`, never into notes, issues or chat replies.
+- The 110 worktree's `.env` turns shipping on: any `pnpm dev` / `pnpm start` there sends to the real gateway as `dev`.
