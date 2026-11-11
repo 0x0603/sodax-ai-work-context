@@ -2,8 +2,8 @@
 type: brief
 repo: builders-sodax-mcp-server
 github: 110
-status: Active, in review — PR #111 open at 99f83c1; gateway side merged (icon-project/sodax-observability#25)
-next: Robi adds OTEL_LOGS_ENABLED=true and OTEL_EXPORTER_OTLP_LOGS_ENDPOINT to the staging and prod Coolify env, confirms the allowlist, allowlists the user's IPv4 for the dev token; then a local run with the dev token; then #111 review and merge
+status: Active, in review — PR #111 at f65c48a (review fixes b832691 + README f65c48a), reply posted to Robi 2026-11-11 (comment 6794054697)
+next: Robi re-reviews #111; Robi adds OTEL_LOGS_ENABLED=true and OTEL_EXPORTER_OTLP_LOGS_ENDPOINT in Coolify (+ optional Include Source Commit in Build); after merge, merge the new #111 tip into #117 when the user asks; README point left for #116: "a non-sodax key is ignored" (swap profile refuses it with 403)
 updated: 2026-11-11
 ---
 
@@ -32,6 +32,17 @@ updated: 2026-11-11
 - Hub PR icon-project/sodax-command-center#115 (branch `docs/mcp-unified-logging-card`, opened 2026-11-11), to merge
   after #111. Body: `pr-body-hub.md`. The superseded observability draft worktree was removed. Follow-on work: #117
   (swap from Sonic, stacked on #111), dossier `../gh-115-swap-from-hub/`.
+
+- 2026-11-11 Robi's review (PR comment 6792449399): Part 1 (commit as service.version, blank HOSTNAME, trailing
+  slash, stale body), Part 2 F1–F6, additions 1–7 all done in worktree `builders-sodax-mcp-server-wt-110` (this
+  machine; uncommitted), 1060 tests. Two /simplify + two /code-review xhigh rounds (round 1: 10 of 15 fixed; round 2:
+  12 of 14). Kept on purpose,
+  say so in the reply: no error message on an unexpected swap-tool error or on upstream failures (Robi's own rule),
+  data tools mark failures through a WeakMap (`toolFailure.ts`), SDK transport refusals (406/415) carry no
+  `error.type`. Not ours: 8–9 (backend `X-Request-Id`), Coolify env, records-per-day after a week. Robi's Slack table
+  says the dev token is for "local runs on operator machines (VPN on)": the 403 is likely no VPN, not a missing
+  allowlist entry (inference, untested). Coolify "Include Source Commit in Build" makes `service.version` the commit
+  (same pending toggle as sodax-backend#1436).
 
 ## Blocked on
 
