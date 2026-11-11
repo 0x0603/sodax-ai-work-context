@@ -2,7 +2,7 @@
 type: brief
 repo: builders-sodax-mcp-server
 github: 115
-status: Active, in review — PR #117 open at 618b048 (stacked on #111), CI green, body synced
+status: Active, in review — PR #117 open at 75bb627 (stacked on #111), body synced
 next: R0bi7 reviews #111 then #117; after #111 merges, retarget #117 to development; non-EVM sources moved to #118 (gh-118-swap-from-non-evm)
 updated: 2026-11-11
 related_issues: [79, 110, 116]
@@ -46,6 +46,13 @@ related_issues: [79, 110, 116]
   to "Swap tools: start a swap from Sonic, the hub"; the plan v2 comment now points to #118. Research moved there.
   Uncommitted in the 115 worktree: README note (Bitcoin, Stacks, ICON not sources) and the corrected submit-tx rate-limit
   comments in track.ts (per IP unless the key's org has a limit). Commit + push when the user asks.
+
+- 2026-11-11 review round (4 agents on #117 + #118, user "review lại code sonic và non-evm"), pushed as `75bb627`:
+  Sonic wording. An unsubmitted hub intent is on the hub already: track/cancel now say it's refunded once expired
+  unless a solver fills it first (the backend orderbook is built from chain by data-transformator; whether a solver
+  fills an unsubmitted intent is unverified), never "give support the tx hash". stopAfter nextStep: track until then,
+  once more after. New tests: cancel without quote from Sonic, router cancel `from`, contract test on a real wallet
+  `createIntent` on Sonic (0x01ff71f7…, hash of the calldata intent = logged hash). 1050 unit, contract 29/29.
 
 ## Which file answers what
 | Question | File |

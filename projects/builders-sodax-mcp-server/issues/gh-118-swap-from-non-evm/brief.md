@@ -2,8 +2,8 @@
 type: brief
 repo: builders-sodax-mcp-server
 github: 118
-status: Active
-next: user decides commit/push; then update the #118 issue body to the implemented design (plan.md) and open the PR (base feat/115-swap-from-hub)
+status: Active — branch pushed (84794c2, merges #117's 75bb627), no PR yet (user: no PR)
+next: open the PR (base feat/115-swap-from-hub, or development once #117 merges) only when the user asks
 related_issues: [79, 115, 117]
 updated: 2026-11-11
 ---
@@ -24,6 +24,15 @@ updated: 2026-11-11
   Solana quote and real-deposit fixtures for all five families. Design differs from the issue body: see plan.md
   (local SDK build of the swap tx; payload-in-tx check before submit; no hub check, no held quote).
 - Bug caught by the live test and fixed: toAddress defaulted to a non-EVM sender's address on an EVM destination.
+
+- 2026-11-11 review round, pushed as `d255d16` (+ merge `84794c2`): Injective swaps from EIP-712 wallets are
+  `MsgExecuteContractCompat` (msg as JSON text), which the parser missed (real swap AC4D677E…, hub 0x4087b43a…, now
+  the fixture; the old fixture was a non-swap deposit). Solana programs (from the IDL, read via RPC) pinned to config
+  for deposit and cancel; Sui package (latest_package_id, read via RPC) must equal the Swaps API build's `to`
+  (`callsPinnedTarget`). Sui raw tx gets `sender` (SDK leaves it unset). Injective/Sui not-found only from the node
+  itself (Injective 404 + code 5; Sui NOT_FOUND message naming the digest). Missing marker → INTERNAL alert; unknown
+  NEAR stage throws; secrets: `ed25519:` NEAR key, Solana keypair file. Renamed Spoke* → NonEvm*. 1140 unit,
+  contract 39/39. Issue body updated.
 
 ## Blocked on
 
