@@ -2,7 +2,7 @@
 type: brief
 repo: builders-sodax-mcp-server
 github: 115
-status: Active, in review — PR #117 rebased onto development (4bfba30, 5 commits), base development, mergeable, body synced
+status: Active, in review — PR #117 on development (8d00e27, 6 commits), base development, body synced
 next: R0bi7 reviews #117 (rebased 2026-11-12; one conflict, sodax.ts imports vs #121); rename sodax_swap_track after #123 merges; R0bi7 reviews #117; non-EVM sources moved to #118 (gh-118-swap-from-non-evm)
 updated: 2026-11-12
 related_issues: [79, 110, 116]
@@ -63,6 +63,10 @@ related_issues: [79, 110, 116]
   backend row; hub refusals never alert; `relayForRefund`/`handedOver` naming on the hub path; `pinnedSourceOf` in
   sodax.ts with a type-only import cycle; check_chain_support uses pinnedSourceOf, not the live catalog or kill switch.
   Live Sonic swap not run: the E2E wallet has no S on Sonic and 1.5 USDC on Arbitrum.
+
+- 2026-11-12 chain coverage review (with #118): pushed `8d00e27`, chain support says the swap tools are off under
+  SODAX_SWAP_TOOLS_ENABLED (was: "can start a swap"), README step 1 says to track even after expiresAt. 1099 unit,
+  contract 29/29, Docker 27/27. PR body synced.
 
 ## Which file answers what
 | Question | File |

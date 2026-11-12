@@ -2,7 +2,7 @@
 type: brief
 repo: builders-sodax-mcp-server
 github: 118
-status: Active — branch pushed (cb3b74e + 19ad94e) on #117's 4bfba30 (rebased onto development), no PR yet (user: no PR)
+status: Active — branch pushed (4f601a9 + ad21e9a + 597db5b) on #117's 8d00e27 (rebased onto development), no PR yet (user: no PR)
 next: open the PR (base feat/115-swap-from-hub, or development once #117 merges) only when the user asks; rename sodax_swap_track if #123 merges first
 related_issues: [79, 115, 117]
 updated: 2026-11-12
@@ -71,6 +71,20 @@ updated: 2026-11-12
   Solana RPC: stdout JSON only (the deposit path hits only getAssetManagerIdl's console.error; console.log is in the
   cancel build, not reproducible without a backend row). Fresh Solana swap 5vtqe7iEM6… matched; recent Injective and
   Sui swaps already pruned on public nodes. Found and fixed: "not a Injective transaction" wording, pushed as 19ad94e.
+
+- 2026-11-12 chain coverage + quality review (agent): 22 SDK chains, 19 sources (all but bitcoin, stacks, 0x1.icon).
+  Docker matrix per chain (support, resolve, balance, quote from, quote to): all sources quote `ready` with the right
+  step; misses were outside the code (redbelly: no route on canary; polygon/ethereum: SDK public RPCs, fine with
+  RPC_CONFIG; injective test wallet short of 1 INJ; ICON sample was the zero address; Bitcoin balance times out on
+  development too). 26 real swaps on all 13 EVM spokes matched. Fixed and pushed as `597db5b` (the kill switch part
+  and README step 1 expiresAt wording as #117's `8d00e27`, #118 rebased on it, same tree): chain support says "turned off"
+  under the kill switch; UNSUPPORTED_SOURCE lists
+  the live catalog's sources as ChainInfo; Ethereum-style (0x) NEAR senders refused at quote (relayer + account
+  contract, track can't see it); Injective sender read as signer (EIP-712 wallets) + hint; mismatch wording only
+  "can't tell who sent it" where no signer is read; non-EVM awaiting drops "batch id"; checkPinnedTarget shared;
+  casts; comments trimmed; HEX_64 direct. Regression caught live and fixed: per-try Injective timeout failed a read
+  on one slow node → a slow try is retried, unknown only if every try said so. 1211 unit, contract 39/39 + 29/29,
+  Docker 27/27 + 59/59.
 
 ## Blocked on
 
