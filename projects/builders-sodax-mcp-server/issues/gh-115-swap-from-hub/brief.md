@@ -2,9 +2,9 @@
 type: brief
 repo: builders-sodax-mcp-server
 github: 115
-status: Active, in review — PR #117 open at 75bb627 (stacked on #111), body synced
-next: R0bi7 reviews #111 then #117; after #111 merges, retarget #117 to development; non-EVM sources moved to #118 (gh-118-swap-from-non-evm)
-updated: 2026-11-11
+status: Active, in review — PR #117 rebased onto development (4bfba30, 5 commits), base development, mergeable, body synced
+next: R0bi7 reviews #117 (rebased 2026-11-12; one conflict, sodax.ts imports vs #121); rename sodax_swap_track after #123 merges; R0bi7 reviews #117; non-EVM sources moved to #118 (gh-118-swap-from-non-evm)
+updated: 2026-11-12
 related_issues: [79, 110, 116]
 ---
 
@@ -53,6 +53,16 @@ related_issues: [79, 110, 116]
   fills an unsubmitted intent is unverified), never "give support the tx hash". stopAfter nextStep: track until then,
   once more after. New tests: cancel without quote from Sonic, router cancel `from`, contract test on a real wallet
   `createIntent` on Sonic (0x01ff71f7…, hash of the calldata intent = logged hash). 1050 unit, contract 29/29.
+
+- 2026-11-12 retest (user: "test every case, real Docker, real txs, no bugs"): 1050 unit, contract 29/29, Docker
+  image on canary 27/27 scenarios, real Sonic createIntent txs proven by IntentCreated (4/4; a fifth, created by a
+  third-party contract, has creator = srcAddress, not a hub wallet: track reports it, cancel won't build it). Senior
+  review (agent + own). Fixed and pushed as `1112c9d` (PR body synced): cancel `not_submitted` on Sonic no longer says "never
+  submitted, call track" (its intent is on chain; refunded once expired), `not_on_hub_yet` wording, quote text has no
+  "starts its refund" for Sonic, `seenOnChain: seen || claimed`. Open, not done (team call): early hub cancel before a
+  backend row; hub refusals never alert; `relayForRefund`/`handedOver` naming on the hub path; `pinnedSourceOf` in
+  sodax.ts with a type-only import cycle; check_chain_support uses pinnedSourceOf, not the live catalog or kill switch.
+  Live Sonic swap not run: the E2E wallet has no S on Sonic and 1.5 USDC on Arbitrum.
 
 ## Which file answers what
 | Question | File |

@@ -2,10 +2,10 @@
 type: brief
 repo: builders-sodax-mcp-server
 github: 118
-status: Active — branch pushed (84794c2, merges #117's 75bb627), no PR yet (user: no PR)
-next: open the PR (base feat/115-swap-from-hub, or development once #117 merges) only when the user asks
+status: Active — branch pushed (cb3b74e + 19ad94e) on #117's 4bfba30 (rebased onto development), no PR yet (user: no PR)
+next: open the PR (base feat/115-swap-from-hub, or development once #117 merges) only when the user asks; rename sodax_swap_track if #123 merges first
 related_issues: [79, 115, 117]
-updated: 2026-11-11
+updated: 2026-11-12
 ---
 
 # GH-118 Swap from non-EVM chains · brief
@@ -34,13 +34,53 @@ updated: 2026-11-11
   NEAR stage throws; secrets: `ed25519:` NEAR key, Solana keypair file. Renamed Spoke* → NonEvm*. 1140 unit,
   contract 39/39. Issue body updated.
 
+- 2026-11-12 retest + senior review (agent + own), pushed as `b2fa4cd` + merge `16b9cb9` (carries 115's `1112c9d`): 1149 unit, contract 39/39, Docker on canary 58/59 (the miss was a test address that exists).
+  Real mainnet swaps proven `match` by the MCP's own check: Solana 5, Stellar 4, NEAR 1 (archival RPC), Injective 1;
+  no recent Sui swap exists (latest ~21 days, pruned), fixture only. Quote -> SDK build -> track check agrees for
+  SOL/USDC, XLM/USDC, SUI, NEAR/USDC, INJ with real funded senders (signer, asset manager, payload, gross amount).
+  Fixed: NEAR deposit the asset manager's own receipt rejected = failed (token refunds it; a later callback failure
+  still isn't); base58 hashes must decode to 32/64 bytes (was CHAIN_UNAVAILABLE retry loop); Injective LCD asked 3x
+  on NotFound (its nodes keep different history: a 17 h old swap read ~50% of the time); non-EVM `deposit_mismatch`
+  text no longer calls someone else's deposit the user's; non-EVM `source_not_found` says the node may have dropped
+  an old tx; asset-manager marker required in pinnedSourceOf (refused at quote, not after deposit); NEAR RPC read at
+  quote; Solana/Sui build mismatch blamed on the local build, not the Swaps API; signing hints a full Record + Stellar
+  sequence caveat; shared base58Bytes in constants.ts. Not done: non-EVM sender check and multiple-deposit count
+  (residual), Sui reader's private SDK field, separate family tags in SourceTx/SwapSource, cancel without quote of a
+  pruned old tx ends in 10 retries then "give support the hash", alert title "of its sender's" for non-EVM.
+
+- 2026-11-12 sync + simplify + /code-review xhigh (user): #118's diff re-applied 3-way on the rebased #117 and squashed
+  to one commit (the 3 old commits were written on the old #117). #121 conflicts: README RPC row (folded into
+  RPC_CONFIG), sodax.ts imports, source.ts chainRead without its label. Simplify (4 agents): marker on NonEvmSource,
+  SourceTx carries its source (dead family fallbacks gone), shared HEX_64, hexToBytes, isRecord, regex constants,
+  EvmStep in the canary script. Code review (14 findings), fixed: SDK console.log on stdout in stdio (Solana IDL
+  fetch) → console to stderr; markers SDK-free (Solana base58, Stellar StrKey base32), so chain support answers
+  without the SDK; UNSUPPORTED_SOURCE lists sourceChains (swap profile has no chain support tool); Injective per-try
+  timeout (AbortSignal needs an integer: caught by a test) and pruned-height 500 read as unknown; NEAR signer check
+  (other_sender / not_a_deposit, cancel too) and "asset manager never ran" = failed; keccak only for Solana; Solana
+  deposit must name the packaged connection program; non-EVM wording; alert title; cancel without quote of a pruned
+  non-EVM deposit → QUOTE_NOT_FOUND with a final nextStep. Skipped: multiple-deposit count, Sui private field,
+  per-family descriptor, @scure/base. 1206 unit, contract 39/39, Docker 58/59, real txs re-matched (NEAR via
+  archival RPC_CONFIG; the Injective one is now pruned everywhere).
+
+- 2026-11-12 final retest on the pushed commits (#117 4bfba30, #118 cb3b74e): unit 1099/1206, contract 29/29 + 39/39,
+  Docker canary 27/27 + 59/59 (Stellar test now a fresh random account → SWAP_REJECTED), production container reads.
+  Real canary swaps signed by the E2E wallet: Arbitrum→Base via the #118 image (swap 0x849c90ec…, solved, 1.493921
+  USDC arrived) and Base→Arbitrum via the #117 image (swap 0x3f52749a…, solved, 1.48392 USDC); then track/cancel of
+  both with and without quote, the approve tx, cross-container: all right. 4 real Sonic cancels: IntentCancelled
+  check true, and the MCP's hub cancel rebuild holds the exact real cancelIntent calldata. stdio in Docker with a dead
+  Solana RPC: stdout JSON only (the deposit path hits only getAssetManagerIdl's console.error; console.log is in the
+  cancel build, not reproducible without a backend row). Fresh Solana swap 5vtqe7iEM6… matched; recent Injective and
+  Sui swaps already pruned on public nodes. Found and fixed: "not a Injective transaction" wording, pushed as 19ad94e.
+
 ## Blocked on
 
 1. #117 (and #111 under it) merging before this PR can target development. Work goes ahead meanwhile.
 
 ## Next action
 
-Review findings, then the issue body. Design and verified facts: `plan.md`; per-family research: `research.md`.
+Review round and issue body are done (2026-11-11, `d255d16`). Open the PR when the user asks. Before that: after #123
+merges, rename `sodax_swap_track` here too; expect `parseRpcOverrides` conflicts with #120. Design and verified facts:
+`plan.md`; per-family research: `research.md`.
 
 ## Settled — do not re-litigate
 
