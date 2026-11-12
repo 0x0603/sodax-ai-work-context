@@ -3,10 +3,16 @@ type: plan
 repo: builders-sodax-mcp-server
 github: 118
 status: Active
-updated: 2026-11-11
+updated: 2026-11-12
 ---
 
 # Plan (implementation, 2026-11-11)
+
+Current proposed follow-up after the 2026-11-12 review:
+[`plan-source-adapters.md`](plan-source-adapters.md) — final feedback, proof
+verification fixes, adapter boundaries, implementation order and acceptance
+criteria. The original implementation plan below records the approach reviewed;
+its missing sender/multiple-deposit checks are not accepted as merge-ready.
 
 Changed from the issue body after reading the code and real txs; the issue gets updated to match.
 

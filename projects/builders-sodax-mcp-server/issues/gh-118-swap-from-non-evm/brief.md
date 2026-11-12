@@ -3,7 +3,7 @@ type: brief
 repo: builders-sodax-mcp-server
 github: 118
 status: Active — branch pushed (4f601a9 + ad21e9a + 597db5b) on #117's 8d00e27 (rebased onto development), no PR yet (user: no PR)
-next: address the two independent review findings (deposit proof binding and multiple-deposit guard); open the PR only when the user asks; rename sodax_swap_track if #123 merges first
+next: implement the proposed proof-verification fixes, then source adapters (plan-source-adapters.md); open the PR only when the user asks; rename sodax_swap_track if #123 merges first
 related_issues: [79, 115, 117]
 updated: 2026-11-12
 ---
@@ -99,6 +99,8 @@ instead of being refused as ambiguous. Details and validation in `process.md`.
 ## Next action
 
 Address the two findings above before treating the branch as ready to merge.
+The proposed implementation order and final review are in `plan-source-adapters.md`;
+no code changes have been made for that plan.
 
 Review round and issue body are done (2026-11-11, `d255d16`). Open the PR when the user asks. Before that: after #123
 merges, rename `sodax_swap_track` here too; expect `parseRpcOverrides` conflicts with #120. Design and verified facts:
@@ -117,7 +119,8 @@ merges, rename `sodax_swap_track` here too; expect `parseRpcOverrides` conflicts
 | -------- | ---- | ---: |
 | Scope, approach, per-family table, done-when | `issue.md` | 2k |
 | What each family's tx, proof and cancel look like, with code refs; effort | `research.md` | 2k |
-| Plan | `plan.md` | |
+| Original implementation plan and current-plan link | `plan.md` | |
+| Final review, proposed adapter design and acceptance criteria | `plan-source-adapters.md` | 2k |
 | History | `process.md` | |
 
 - 2026-11-11: moved under the follow-up epic #119 ("Sodax MCP: agent-executable swaps (follow-up)"); #79 keeps phase 1 (#99, #103 stay there).

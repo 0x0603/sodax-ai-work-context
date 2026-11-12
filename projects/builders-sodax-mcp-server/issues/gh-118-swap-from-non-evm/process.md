@@ -53,3 +53,13 @@ maintenance concerns, not independently reproduced runtime bugs.
 ## Findings
 
 ## Changes During Work
+
+### 2026-11-12 — final feedback and proposed remediation plan
+
+At the user's request, consolidated the final review and long-term adapter plan
+in `plan-source-adapters.md`, linked from both the brief and original plan.
+Correctness fixes precede broad extraction; adapter operations return verified
+evidence instead of exposing arbitrary transaction bytes. Explicit execution,
+sender, recipient and deposit-count checks are acceptance criteria. Sui private
+access stays isolated until a public SDK API is available. Implementation has
+not started; no new tests were run for this documentation-only change.
