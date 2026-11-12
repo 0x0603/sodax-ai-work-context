@@ -3,7 +3,7 @@ type: brief
 repo: builders-sodax-mcp-server
 github: 118
 status: Active — branch pushed (4f601a9 + ad21e9a + 597db5b) on #117's 8d00e27 (rebased onto development), no PR yet (user: no PR)
-next: open the PR (base feat/115-swap-from-hub, or development once #117 merges) only when the user asks; rename sodax_swap_track if #123 merges first
+next: address the two independent review findings (deposit proof binding and multiple-deposit guard); open the PR only when the user asks; rename sodax_swap_track if #123 merges first
 related_issues: [79, 115, 117]
 updated: 2026-11-12
 ---
@@ -88,9 +88,17 @@ updated: 2026-11-12
 
 ## Blocked on
 
+2026-11-12 independent review of `597db5b`: two P2 correctness findings,
+locally reproduced: a Solana Noop message is accepted as a deposit by substring
+matching; an Injective transaction with two deposits matches its second quote
+instead of being refused as ambiguous. Details and validation in `process.md`.
+1211 unit tests, typecheck, and lint pass; no live tests rerun. No source fixes yet.
+
 1. #117 (and #111 under it) merging before this PR can target development. Work goes ahead meanwhile.
 
 ## Next action
+
+Address the two findings above before treating the branch as ready to merge.
 
 Review round and issue body are done (2026-11-11, `d255d16`). Open the PR when the user asks. Before that: after #123
 merges, rename `sodax_swap_track` here too; expect `parseRpcOverrides` conflicts with #120. Design and verified facts:
