@@ -69,10 +69,16 @@ related_issues: [79, 110, 116]
   contract 29/29, Docker 27/27. PR body synced.
 
 ## Which file answers what
+
+2026-11-12 independent code review of `8d00e27`: no actionable findings;
+`checkTs`, lint, and 1099 unit tests passed. Live contract tests / real swaps not
+rerun. Details: `process.md`. PR remains awaiting maintainer review.
+
 | Question | File |
 |---|---|
 | The issue as filed | `issue.md` (scaffold) and GitHub #115 |
 | The posted plan | `plan-posted.md` |
 | PR #117 body | `pr-body.md` |
+| Latest independent code review and validation | `process.md` |
 
 - 2026-11-11: moved under the follow-up epic #119 ("Sodax MCP: agent-executable swaps (follow-up)"); #79 keeps phase 1 (#99, #103 stay there).
