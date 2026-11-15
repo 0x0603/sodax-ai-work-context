@@ -20,3 +20,5 @@ Recommendation: retain MCP as an adapter; introduce durable execution and indepe
 | Research approach | plan.md |
 | Evidence and limits | process.md |
 | Proposed architecture and evaluation gates | outcome.md |
+
+Follow-up: `process.md` distinguishes nearai/near-mcp, IQ AI NEAR Intents MCP, and the separate NEAR Agent API.

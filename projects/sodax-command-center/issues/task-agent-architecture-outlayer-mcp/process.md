@@ -38,3 +38,7 @@ Documentation review, not an audit, on-chain governance verification, release ve
 ## Context sync
 
 Initial restricted-network pull failed DNS; approved network pull succeeded, already up to date.
+
+## Follow-up: concrete NEAR MCP comparison
+
+User asks for NEAR MCP rather than the abstract protocol. Checked https://github.com/nearai/near-mcp and its TOOLS.md: includes signing, sending and local key management. Also checked IQ AI's distinct NEAR Intents MCP, https://adk.iqai.com/docs/mcp-servers/iq-ai-servers/near-intents : configured with ACCOUNT_KEY and exposes quote, deposit notification and status tools. Neither should be conflated with the NEAR Agent API / OutLayer policy architecture. SODAX MCP plus an external wallet signer can already support autonomous transactions; the meaningful difference is integration of signing and the authority actually granted to it. No deployment or source audit performed.
