@@ -2,8 +2,8 @@
 type: plan
 repo: builders-sodax-mcp-server
 github: 118
-status: Proposed — review complete, implementation not started
-updated: 2026-11-12
+status: Done — implemented in PR #124 (4ad0af7, 210fde6, c3234ef)
+updated: 2026-11-16
 related_issues: [115, 117]
 ---
 

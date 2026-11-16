@@ -2,15 +2,41 @@
 type: brief
 repo: builders-sodax-mcp-server
 github: 118
-status: Active — branch pushed (4f601a9 + ad21e9a + 597db5b) on #117's 8d00e27 (rebased onto development), no PR yet (user: no PR)
-next: implement the proposed proof-verification fixes, then source adapters (plan-source-adapters.md); open the PR only when the user asks; rename sodax_swap_track if #123 merges first
-related_issues: [79, 115, 117]
-updated: 2026-11-12
+status: Active — PR #124 open (base feat/115-swap-from-hub = #117), head 0658715; development (#123) merged into #117 (988292c) and #118, pushed 2026-11-16
+next: human review of #117 and #124; real non-EVM swaps need funded wallets (user's call); retarget #124 to development once #117 merges
+related_issues: [79, 115, 117, 123]
+updated: 2026-11-16
 ---
 
 # GH-118 Swap from non-EVM chains · brief
 
 ## State in five lines
+
+- 2026-11-16 (now): PR #124 (gosodax/builders-sodax-mcp-server) opened 2026-11-13 on #117, head `c3234ef`, CI green,
+  no review yet (the "@claude make PR review" comment ran nothing: the repo has no Claude workflow). Commits since the
+  log below, written on the other machine: `4ad0af7` proves non-EVM swaps by the connection's own messages (fixes both
+  P2 findings, regression tests `sources.test.ts` "Noop", "two deposits", `swapNonEvm.test.ts` claim boundary and
+  cancel without a message) and moves every source to an adapter in `src/services/swap/sources/` (plan-source-adapters
+  steps 1-4); `210fde6` unreadable events answer once; `c3234ef` review fixes (unverified tx alerts, NEAR FINAL, Solana
+  finalized, checked deposit not re-read). PR body validation (not rerun here): 1225 unit, contract 44, local E2E
+  113/114, real third-party deposits matched; no real non-EVM swap sent (test wallet unfunded there).
+- 2026-11-16: #117 was CONFLICTING with development since #123 (rename to `sodax_swap_submit_and_track`, UNSUPPORTED_SOURCE
+  names the source chains, `sent` variant on track/cancel) merged on 2026-11-12. Merged development into both, no
+  commit, worktrees `repos/client/builders-sodax-mcp-server-wt-117` / `-wt-118`. #118's resolution was made by applying
+  its own diff 3-way onto #117's resolved tree, so a later merge of #117 into #118 is clean. Choices: #123's cancel
+  `not_submitted` wording (reviewed fix), #117's "swap service hasn't processed" for not_on_hub_yet, #117's
+  cancel_confirmed renamed; #118 keeps its adapter check in `sourceChainFor` and takes #123's `unsupportedSource`, with
+  the SDK config's sources as the default list when there is no catalog. #123's "Sonic isn't a source" tests re-aimed:
+  Sui in #117, ICON in #118.
+- 2026-11-16 /code-review of both merges (8 findings, all wording/resolution, no mechanical fault). Fixed: (1) #118
+  cancel of a quoted non-EVM tx its node doesn't have yet said not_submitted, whose #123 text claims track "won't
+  submit anything here", but before the deadline track submits it once it lands: now `not_sent` before the deadline
+  (`cancel.ts` unsubmittedDeposit, new test); (2) #118 dropped "yet" again (6eb9ab5 removed it: ICON/Bitcoin/Stacks
+  aren't planned); (4) #118 pinnedSource refuses with the `sent` variant; (5) cancel_confirmed "won't submit it"
+  (hub swap may never have been submitted), both; (6) #117 keeps its static UNSUPPORTED_SOURCE fallback; (8) README
+  sentence order. Not fixed: sent-path still checks the live catalog (same on development, pre-existing); a shared
+  "won't submit" helper (cleanup). Results: #117 tsc, biome, 1105 unit, build, contract 29/29; #118 tsc, biome, 1230
+  unit, build, contract 44/44 (contract runs were before the review fixes, which touch wording and cancel only).
 
 - Split out of #115 on 2026-11-11 (user): Sonic ships in PR #117 first; non-EVM follows in one PR for all five
   families (NEAR, Stellar, Sui, Solana, Injective). Not a sub-issue of #79 (user asked).
@@ -88,23 +114,17 @@ updated: 2026-11-12
 
 ## Blocked on
 
-2026-11-12 independent review of `597db5b`: two P2 correctness findings,
-locally reproduced: a Solana Noop message is accepted as a deposit by substring
-matching; an Injective transaction with two deposits matches its second quote
-instead of being refused as ambiguous. Details and validation in `process.md`.
-1211 unit tests, typecheck, and lint pass; no live tests rerun. No source fixes yet.
-
-1. #117 (and #111 under it) merging before this PR can target development. Work goes ahead meanwhile.
+1. Human review of #117 and #124 (none yet).
+2. Real non-EVM swaps (quote, sign, submit_and_track, solved; and a non-EVM cancel, never run live) need a funded test
+   wallet per family and the user's explicit test scope.
+3. Production `RPC_CONFIG` for NEAR/Sui/Injective (nodes with enough history) is ops' (gh-120: Robi on Coolify; no
+   `/health.rpcConfig` yet to check it). Public Sui/Injective nodes prune fast, so a late track reads not found.
 
 ## Next action
 
-Address the two findings above before treating the branch as ready to merge.
-The proposed implementation order and final review are in `plan-source-adapters.md`;
-no code changes have been made for that plan.
-
-Review round and issue body are done (2026-11-11, `d255d16`). Open the PR when the user asks. Before that: after #123
-merges, rename `sodax_swap_track` here too; expect `parseRpcOverrides` conflicts with #120. Design and verified facts:
-`plan.md`; per-family research: `research.md`.
+Pushed 2026-11-16: #117 `988292c` (merge of development), #118 `0658715` (merge of #117's `988292c`, so #124's diff
+stays #118-only: 48 files as before). Next: a human review of #117 and #124. Merge, never rebase. Retarget #124 to
+development once #117 merges. Follow-up, not blocking: gosodax/sodax-sdks#628 (public reader of connection messages).
 
 ## Settled — do not re-litigate
 
