@@ -3,7 +3,7 @@ type: brief
 repo: builders-sodax-mcp-server
 github: 118
 status: Active — PR #124 open (base feat/115-swap-from-hub = #117), head 412d5ff (merge of #117's review fixes 827de4b), pushed 2026-11-16, body synced
-next: human review of #117 and #124; real non-EVM swaps need funded wallets (user's call); retarget #124 to development once #117 merges
+next: one line on the review fixes in #124's body (offered, not done); then human review of #117 and #124; real non-EVM swaps need funded wallets (user's call); retarget #124 to development once #117 merges
 related_issues: [79, 115, 117, 123]
 updated: 2026-11-16
 ---
@@ -12,6 +12,11 @@ updated: 2026-11-16
 
 ## State in five lines
 
+- 2026-11-16 (latest): /code-review of #124 @ `412d5ff` gave 15 findings; each re-checked in code and in SDK
+  `@sdks@2.2.0`; fixes A-F implemented, then /simplify + /code-review; #10 and #12 reverted on review (accepted
+  risk / no safety gain), #13 reverted (README contract); four review rounds in all. Pushed as `4b27407` on
+  `feat/118-swap-from-non-evm` (signed, hook green): unit 1267, contract 48/48. Details: `plan-review-fixes.md`
+  §Outcome.
 - 2026-11-16 (latest): #117's review fixes (`827de4b`, see gh-115 brief) merged into #118 as `412d5ff`. Conflicts in 9
   files: #118's adapter structure kept (it already had `kind` on `SourceChain`), #117's behaviour ported onto it:
   `intentClosed` before any cancel build (non-EVM spokes too, read past the row's `dstIntentTxHash`), hub reads in
@@ -149,6 +154,7 @@ development once #117 merges. Follow-up, not blocking: gosodax/sodax-sdks#628 (p
 | What each family's tx, proof and cancel look like, with code refs; effort | `research.md` | 2k |
 | Original implementation plan and current-plan link | `plan.md` | |
 | Final review, proposed adapter design and acceptance criteria | `plan-source-adapters.md` | 2k |
+| 2026-11-16 /code-review of #124: verdict per finding, fix plan A-F | `plan-review-fixes.md` | 3k |
 | History | `process.md` | |
 
 - 2026-11-11: moved under the follow-up epic #119 ("Sodax MCP: agent-executable swaps (follow-up)"); #79 keeps phase 1 (#99, #103 stay there).
