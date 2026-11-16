@@ -2,8 +2,8 @@
 type: draft-comment
 repo: sodax-sdks
 github: 741
-status: draft — NOT posted
-updated: 2026-08-26
+status: superseded — a shorter rewrite was posted 2026-11-12 (issuecomment-6812874324)
+updated: 2026-11-12
 ---
 
 # Draft sign-off comment for ICON-Projects-Planning#741

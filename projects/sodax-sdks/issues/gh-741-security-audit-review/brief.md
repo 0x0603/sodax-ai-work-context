@@ -5,7 +5,7 @@ github: 741
 related_issues: [753]
 status: Active
 next: Pass 2/3 delta now has its own issue — ICON-Projects-Planning#753 (43 items, 49 checkboxes, Batches F/G/H/CI). Bot-review-2 R1 has LANDED (`7f287f56b`, encodeTokenIdentifier + BOT-R1 tests), so it no longer blocks. Front of queue: finish the remaining bot-review-2 replies, then work #753 Batch F starting at P2-1 — see plan-pass23.md and #753.
-updated: 2026-09-03
+updated: 2026-11-12
 ---
 
 # GH-741 Security Audit Review · brief
@@ -22,8 +22,10 @@ effective is 0 High / 15 Medium. Full assessment + per-finding table in
 
 ## Blocked on
 
-1. User decision: post the sign-off comment (draft ready) vs. hold. Nothing
-   technical is blocking.
+Nothing. Sign-off for the 2026-08-22 report posted 2026-11-12
+(issuecomment-6812874324), scoped to Pass 1 only; it does not mention the
+Pass 2/3 comment or the Stacks staging test (user's call: released long enough).
+PR #405 merged 2026-09-03. Pass 2/3 still open in #753 (0/49 as of 2026-11-12).
 
 ## Next action
 
