@@ -2,9 +2,9 @@
 type: brief
 repo: builders-sodax-mcp-server
 github: 115
-status: Active, in review — PR #117 on development (8d00e27, 6 commits), base development, body synced
-next: R0bi7 reviews #117 (rebased 2026-11-12; one conflict, sodax.ts imports vs #121); rename sodax_swap_track after #123 merges; R0bi7 reviews #117; non-EVM sources moved to #118 (gh-118-swap-from-non-evm)
-updated: 2026-11-12
+status: Active, in review — PR #117 head 827de4b (review fixes on 988292c, the development merge), base development, CI green, body synced 2026-11-16
+next: maintainer review of #117 (none yet); once it merges, retarget #124 to development; non-EVM sources are #118 (gh-118-swap-from-non-evm)
+updated: 2026-11-16
 related_issues: [79, 110, 116]
 ---
 
@@ -67,6 +67,21 @@ related_issues: [79, 110, 116]
 - 2026-11-12 chain coverage review (with #118): pushed `8d00e27`, chain support says the swap tools are off under
   SODAX_SWAP_TOOLS_ENABLED (was: "can start a swap"), README step 1 says to track even after expiresAt. 1099 unit,
   contract 29/29, Docker 27/27. PR body synced.
+
+- 2026-11-16 (user: "code review", then "fix hết đi rồi code review", "push đi rồi sync với 118"): /code-review of
+  `988292c` (15 findings), all fixed; /simplify (4 agents, 7 applied); second /code-review (12 findings, 9 fixed).
+  Pushed `827de4b`. Hub reads: `hubIntentClosed(hash, createdIn)` reads `intentStates` at a block no older than the
+  hub tx that created the intent (a lagging node can't fake "closed"); a failed read counts as open. A cancel is built
+  only while the intent is open (every source); track reads it before submitting a Sonic swap and on expiry
+  (`intent_closed`). A confirmed hub cancel beats a lagging row; a quoted Sonic swap cancels from its quote unless the
+  row ended it; `not_this_swap` for a tx that isn't the quote's swap. Unseen tx: `pollUntil` (15 min from the first
+  call), then ask the user; `stopAfter` stays deadline + 5 min. Memo per API key, skips the backend status. `kind` on
+  `SourceChain`; no operator alerts for hub swaps (`alertStranded`); chain support asks the live catalog; a full cache
+  evicts unused, then ended/submitted, then `left_to_refund` quotes; `markSubmitted` keeps a hub outcome. 1124 unit,
+  contract 30/31 on canary (HBAR quote: Hedera public RPC timing out; passed later), new live test: `intentStates`
+  held at the intent's own block, gone once solved. Docker scenarios not rerun. Judged, not done: chain support waits
+  for a cold catalog; track without a quote can still offer a cancel from a lagging row (cancel then answers
+  `closed`); evicting a `left_to_refund` quote loses its early cancel.
 
 ## Which file answers what
 

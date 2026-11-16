@@ -2,7 +2,7 @@
 type: brief
 repo: builders-sodax-mcp-server
 github: 118
-status: Active — PR #124 open (base feat/115-swap-from-hub = #117), head 0658715; development (#123) merged into #117 (988292c) and #118, pushed 2026-11-16
+status: Active — PR #124 open (base feat/115-swap-from-hub = #117), head 412d5ff (merge of #117's review fixes 827de4b), pushed 2026-11-16, body synced
 next: human review of #117 and #124; real non-EVM swaps need funded wallets (user's call); retarget #124 to development once #117 merges
 related_issues: [79, 115, 117, 123]
 updated: 2026-11-16
@@ -12,6 +12,14 @@ updated: 2026-11-16
 
 ## State in five lines
 
+- 2026-11-16 (latest): #117's review fixes (`827de4b`, see gh-115 brief) merged into #118 as `412d5ff`. Conflicts in 9
+  files: #118's adapter structure kept (it already had `kind` on `SourceChain`), #117's behaviour ported onto it:
+  `intentClosed` before any cancel build (non-EVM spokes too, read past the row's `dstIntentTxHash`), hub reads in
+  track, `intent_closed`, `pollUntil`, per-key memo, `alertStranded`, `checkSwapTx` (keeps #118's prunes/failed/unreadable
+  rules) with `not_this_swap`, live-catalog chain support (`sui` can start; wording "can't start a swap from it.").
+  `hubIntentClosed` mocked in `swapNonEvm`/`swapTrack` tests (they called the real Sonic RPC via `initSodax`); new
+  test: a non-EVM cancel isn't built once the intent is closed. tsc, biome, 1250 unit, contract 46/46. #124 diff now
+  49 files (`chainSupport.test.ts` changed for non-EVM). PR body note added.
 - 2026-11-16 (now): PR #124 (gosodax/builders-sodax-mcp-server) opened 2026-11-13 on #117, head `c3234ef`, CI green,
   no review yet (the "@claude make PR review" comment ran nothing: the repo has no Claude workflow). Commits since the
   log below, written on the other machine: `4ad0af7` proves non-EVM swaps by the connection's own messages (fixes both
@@ -122,8 +130,8 @@ updated: 2026-11-16
 
 ## Next action
 
-Pushed 2026-11-16: #117 `988292c` (merge of development), #118 `0658715` (merge of #117's `988292c`, so #124's diff
-stays #118-only: 48 files as before). Next: a human review of #117 and #124. Merge, never rebase. Retarget #124 to
+Pushed 2026-11-16: #117 `827de4b` (review fixes), #118 `412d5ff` (merge of it, so #124's diff stays #118-only).
+Next: a human review of #117 and #124. Merge, never rebase. Retarget #124 to
 development once #117 merges. Follow-up, not blocking: gosodax/sodax-sdks#628 (public reader of connection messages).
 
 ## Settled — do not re-litigate
