@@ -2,9 +2,9 @@
 type: brief
 repo: builders-sodax-mcp-server
 github: 115
-status: Active, in review — PR #117 head 827de4b (review fixes on 988292c, the development merge), base development, CI green, body synced 2026-11-16
-next: maintainer review of #117 (none yet); once it merges, retarget #124 to development; non-EVM sources are #118 (gh-118-swap-from-non-evm)
-updated: 2026-11-16
+status: Active, in review — PR #117 head 6716985 (review fixes on 988292c, the development merge), base development, CI not yet seen on 6716985, body synced 2026-11-16
+next: reply on R0bi7's review (fixes pushed as 6716985), sync the PR body; once it merges, retarget #124 to development; non-EVM sources are #118 (gh-118-swap-from-non-evm)
+updated: 2026-11-17
 related_issues: [79, 110, 116]
 ---
 
@@ -82,6 +82,12 @@ related_issues: [79, 110, 116]
   held at the intent's own block, gone once solved. Docker scenarios not rerun. Judged, not done: chain support waits
   for a cold catalog; track without a quote can still offer a cancel from a lagging row (cancel then answers
   `closed`); evicting a `left_to_refund` quote loses its early cancel.
+
+- 2026-11-17 R0bi7 review 5920918297 on `827de4b` (P1, P2), both valid, pushed as `6716985`:
+  P1 a hub cancel is confirmed only if mined after the tx that created the tracked intent (`EvmReceipt` carries
+  `blockNumber` + `txIndex`; creation receipt unreadable → `cancel_awaiting_confirmation`). Whether the intents contract
+  re-accepts a cancelled hash is unverified (contract source not readable). P2 past `pollUntil`, `retryAfterSec` runs
+  to `stopAfter` + 15 s. 1126 unit, checkTs, lint, track contract tests 10/10 on live chains.
 
 ## Which file answers what
 
