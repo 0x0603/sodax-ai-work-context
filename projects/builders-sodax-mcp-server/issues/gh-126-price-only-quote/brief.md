@@ -2,7 +2,7 @@
 type: brief
 repo: builders-sodax-mcp-server
 github: 126
-status: Active, in review — PR #134 (feat/126-price-only-quote 0a37aec, base feat/118 = #124), Closes #126
+status: Active, in review — PR #134 (feat/126-price-only-quote 9470774, base feat/118 = #124), Closes #126; docs gosodax/sodax-sdks#644 (draft PR, merge on deploy)
 next: review of #134; retarget to development once #124 merges; conflicts with #133 in quote.ts/swap.ts/README for whichever merges second
 updated: 2026-11-18
 related_issues: [119, 124, 129]
@@ -35,3 +35,9 @@ related_issues: [119, 124, 129]
   error; refusal now fatal with no stray "Required"; mode trimmed/lowercased; open-quote cap advice names price_only;
   one QUOTE_MODES; schema enum pinned by a test). Skipped: reusing an unclaimed quote (changes no-mode results), polling
   pacing (out of scope), sender check in price_only (kept on purpose), recipient/config checks in price_only (by design).
+- 2026-11-18 design changed at the user's call: `sodax_swap_quote` split into `sodax_swap_price` (pair + amount, no
+  address, no slippage; `status: "price"`, `expectedAmount`, `prepareNeeds`, `quotedAt`) and `sodax_swap_prepare`
+  (fromAddress optional in the schema so a missing one is a structured INVALID_ADDRESS listing both; slippageBps with a
+  "tighter fills less" note; deadlineMinutes). `mode` gone. Commit `feat(swap)!` 9470774 (breaking: the old tool runs on
+  development). Issue #126 body rewritten + comment. Rejected after discussion: raising the slippage floor and a track
+  "price moved below minimum" signal (no evidence it's needed). Targeted /code-review: 13 findings, 7 fixed.
