@@ -2,9 +2,9 @@
 type: brief
 repo: builders-sodax-mcp-server
 github: 116
-status: Active — #123 merged (596aa0e); PR #128 open (fix/116-tool-inputs-json, 43630f0 on development 596aa0e), "Refs #116"
-next: CI and a review on #128; items 3, 5, 6, 7 still open
-updated: 2026-11-16
+status: Active — #123 merged (596aa0e); PR #128 open (fix/116-tool-inputs-json, fed598a), "Refs #116"; round 3 is PR #133 (feat/116-swap-results 937318c, base feat/118 = #124), Closes #116
+next: review of #128 (4b pushed as 4b342e3) and #133; retarget #133 to development once #124 merges (Closes only fires on the default branch); item 6 is #129. Plan: plan-round3.md
+updated: 2026-11-18
 related_issues: [79, 119, 115, 118]
 ---
 
@@ -12,6 +12,13 @@ related_issues: [79, 119, 115, 118]
 
 ## State
 
+- 2026-11-18 round 3 (`plan-round3.md`): 3a/7c by agent A, 3b/5 by agent B (detached worktrees, uncommitted), 7b by me,
+  merged into `wt-116c` on #124's `5dedece`; 4b on #128's branch (`wt-116b`, uncommitted). All support hints name one
+  help desk (`SODAX_HELP_DESK`, Discord); INTERNAL's default advice carries `SWAP_HELP`. /simplify done (skips noted
+  in plan). /code-review: 12 findings, 8 fixed (burn check now on the resolved recipient, so a defaulted
+  `fromAddress` of 0x…dEaD is refused too; GIVE_UP asks for the requestId; cooldown survives a clock step back and
+  says "Not cleared"), 4 skipped (stdio requestId, shared cooldown helper, token casing, approve type). Quote test
+  fixtures moved off 0x…dEaD to 0x1234…7890. 1283 unit, contract 48/48, checkTs, lint green.
 - 2026-11-16 second PR, #128 (43630f0): #116 item 4 plus the same class from an outside MCP review. `format: "json"`
   is the data alone (formatResponse frames Markdown only; not-found answers `null`); spoke chain-key tools
   (swap tokens, hub assets, money market tokens) resolve names via `toChainKey` (exact key first, raw value when the
