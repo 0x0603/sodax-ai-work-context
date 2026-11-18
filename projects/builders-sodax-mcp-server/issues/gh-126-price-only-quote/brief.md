@@ -2,7 +2,7 @@
 type: brief
 repo: builders-sodax-mcp-server
 github: 126
-status: Active, in review — PR #134 (feat/126-price-only-quote 9470774, base feat/118 = #124), Closes #126; docs gosodax/sodax-sdks#644 (draft PR, merge on deploy)
+status: Active, in review — PR #134 (feat/126-price-only-quote 9470774, base feat/118 = #124), Closes #126; docs gosodax/sodax-sdks#644 → draft PR #645 (7b339618), covering #124/#128/#133/#134 in one page update; merge once all four deploy
 next: review of #134; retarget to development once #124 merges; conflicts with #133 in quote.ts/swap.ts/README for whichever merges second
 updated: 2026-11-18
 related_issues: [119, 124, 129]
@@ -41,3 +41,6 @@ related_issues: [119, 124, 129]
   "tighter fills less" note; deadlineMinutes). `mode` gone. Commit `feat(swap)!` 9470774 (breaking: the old tool runs on
   development). Issue #126 body rewritten + comment. Rejected after discussion: raising the slippage floor and a track
   "price moved below minimum" signal (no evidence it's needed). Targeted /code-review: 13 findings, 7 fixed.
+- 2026-11-18 sdks docs: one PR for all four MCP PRs (user's call). sodax-sdks gates implementation on `plan-approved` or
+  `no-plan` (agents never apply either; the user applied `no-plan` to #644). Spec in the template's sections. I committed
+  before the label (not pushed): wrong order, caught before any push.
