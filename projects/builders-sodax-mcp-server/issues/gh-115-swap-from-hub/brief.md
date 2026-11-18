@@ -2,9 +2,9 @@
 type: brief
 repo: builders-sodax-mcp-server
 github: 115
-status: Active, in review — PR #117 head 6716985 (review fixes on 988292c, the development merge), base development, CI not yet seen on 6716985, body synced 2026-11-16
-next: reply on R0bi7's review (fixes pushed as 6716985), sync the PR body; once it merges, retarget #124 to development; non-EVM sources are #118 (gh-118-swap-from-non-evm)
-updated: 2026-11-17
+status: Merged — PR #117 squash-merged into development as 36ab701 (2026-11-17); #115 closed
+next: none here. R0bi7's follow-up is #132 (sub of #119, Backlog); non-EVM sources continue in #118 (PR #124)
+updated: 2026-11-18
 related_issues: [79, 110, 116]
 ---
 
@@ -88,6 +88,17 @@ related_issues: [79, 110, 116]
   `blockNumber` + `txIndex`; creation receipt unreadable → `cancel_awaiting_confirmation`). Whether the intents contract
   re-accepts a cancelled hash is unverified (contract source not readable). P2 past `pollUntil`, `retryAfterSec` runs
   to `stopAfter` + 15 s. 1126 unit, checkTs, lint, track contract tests 10/10 on live chains.
+
+- 2026-11-17 R0bi7 approved `6716985` (review 5935586956). Non-blocking follow-up he asked to file as an issue: hub
+  cancel isn't bound to the intent instance. `hubIntentClosed` (sodax.ts:321) uses `createdIn` only as a minimum
+  block and reads `intentStates` at latest; `hubCancelled` matches hash + `minedAfter`. A→closed→B (same hash):
+  cancel(A) builds B's cancel and confirms it as A's; a filled A is then reported cancelled. Funds go to the same
+  creator. Both claims hold in code. Recreation is possible (derived, eth_call on Sonic mainnet, no source): an open
+  intent's `createIntent` reverts `IntentAlreadyExists` before the token pull; a closed one (0x01ff71f7…'s intent)
+  passes that check and reverts only at the ERC20 transfer. Events carry the hash in data, not a topic, so a fix
+  scans the intents contract's `IntentCreated` logs from the creation to now. Realistic trigger: the same quote's
+  createIntent sent twice, the second after the first closed. User chose not to fix in #117 (a log scan needs a per-call
+  bound, or a caller-chosen old tx amplifies RPC load); filed as #132 (Task, sub of #119, gosodax board Backlog).
 
 ## Which file answers what
 

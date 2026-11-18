@@ -2,16 +2,22 @@
 type: brief
 repo: builders-sodax-mcp-server
 github: 118
-status: Active — PR #124 open (base feat/115-swap-from-hub = #117), head 412d5ff (merge of #117's review fixes 827de4b), pushed 2026-11-16, body synced
-next: one line on the review fixes in #124's body (offered, not done); then human review of #117 and #124; real non-EVM swaps need funded wallets (user's call); retarget #124 to development once #117 merges
+status: Active, in review — PR #124 head 5dedece, base development (52 files, mergeable), review requested from R0bi7 2026-11-18
+next: wait for R0bi7's review of #124; real non-EVM swaps need funded wallets (user's call, #130)
 related_issues: [79, 115, 117, 123]
-updated: 2026-11-16
+updated: 2026-11-18
 ---
 
 # GH-118 Swap from non-EVM chains · brief
 
 ## State in five lines
 
+- 2026-11-18 (latest): catch-up merge of development (#117's squash `36ab701`) pushed as `5dedece`; #124 retargeted
+  to development, body updated, R0bi7 requested.
+  Routed through a signed intermediate `0a8e813` (development + #117's last tip `6716985`): 18 conflicts → 1
+  (`cancel.ts` `hubCancelled`). #117's last fix (a hub cancel counts only if mined after the creating tx) ported
+  onto #118's `SourceTx`: the hub variant now carries `blockNumber`/`txIndex`. One #118 test now expects the one extra
+  read that order check makes. Unit 1269, contract 48/48, checkTs + lint green.
 - 2026-11-16 (latest): /code-review of #124 @ `412d5ff` gave 15 findings; each re-checked in code and in SDK
   `@sdks@2.2.0`; fixes A-F implemented, then /simplify + /code-review; #10 and #12 reverted on review (accepted
   risk / no safety gain), #13 reverted (README contract); four review rounds in all. Pushed as `4b27407` on
@@ -135,9 +141,8 @@ updated: 2026-11-16
 
 ## Next action
 
-Pushed 2026-11-16: #117 `827de4b` (review fixes), #118 `412d5ff` (merge of it, so #124's diff stays #118-only).
-Next: a human review of #117 and #124. Merge, never rebase. Retarget #124 to
-development once #117 merges. Follow-up, not blocking: gosodax/sodax-sdks#628 (public reader of connection messages).
+#117 merged 2026-11-17; #124 caught up (`5dedece`) and retargeted to development 2026-11-18. Next: R0bi7's review.
+Merge, never rebase. Follow-up, not blocking: gosodax/sodax-sdks#628 (public reader of connection messages).
 
 ## Settled — do not re-litigate
 
