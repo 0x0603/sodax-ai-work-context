@@ -3,7 +3,7 @@ type: brief
 repo: builders-sodax-mcp-server
 github: 126
 status: Done — PR #134 squash-merged into development 2026-11-19 (725ae0d, approved by R0bi7), #126 closed; docs gosodax/sodax-sdks#645 stays draft until the server deploys
-next: review of #134; retarget to development once #124 merges; conflicts with #133 in quote.ts/swap.ts/README for whichever merges second
+next: none here; #133 takes #134's names when it catches up (gh-116); mark sodax-sdks#645 ready once the server deploys
 updated: 2026-11-19
 related_issues: [119, 124, 129]
 ---
