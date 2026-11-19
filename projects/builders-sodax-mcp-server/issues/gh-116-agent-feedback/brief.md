@@ -3,7 +3,7 @@ type: brief
 repo: builders-sodax-mcp-server
 github: 116
 status: Active — #123 merged (596aa0e); #128 merged 2026-11-19 (8df8a7d, approved by R0bi7, Avalanche ticker added); round 3 is PR #133 (feat/116-swap-results 937318c, base feat/118 = #124), Closes #116, not yet reviewed
-next: request review of #133; retarget #133 to development once #124 merges (Closes only fires on the default branch), renaming any sodax_swap_quote it adds; item 6 is #129. Plan: plan-round3.md
+next: #133 (base still feat/118) — merge development (now with #124 and #134) into it, resolve README.md, quote.ts and swapQuote.test.ts, rename its sodax_swap_quote strings to prepare/price, test, push, retarget to development, request R0bi7's review; item 6 is #129. Plan: plan-round3.md
 updated: 2026-11-19
 related_issues: [79, 119, 115, 118]
 ---
