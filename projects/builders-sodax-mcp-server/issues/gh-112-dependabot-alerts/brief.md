@@ -2,8 +2,8 @@
 type: brief
 repo: builders-sodax-mcp-server
 github: 112
-status: Active, approved — PR #114 approved by R0bi7 2026-11-18; conflicts with development on package.json and the lockfile
-next: after #124 merges, merge development into #114 once (worktree builders-sodax-mcp-server-wt-114, head 45307e7), regenerate the lockfile, drop the unused @vitest/coverage-v8, run unit + contract tests on vitest 5 (Solana reads exercise uuid via jayson, toml sits in Stellar/anchor paths we don't run), fix the squash message (only @hono/node-server is pinned); then Dependabot dismissals for bigint-buffer/elliptic, sodax-sdks issue for stream-json, a zod strict-schema issue
+status: Active, approved — PR #114 approved by R0bi7 2026-11-18; caught up with development (#124, #134) 2026-11-19 at 2263508, coverage-v8 dropped, PR body updated
+next: merge #114 on the user's ask once CI is green (squash message: only @hono/node-server is pinned); then Dependabot dismissals for bigint-buffer/elliptic, sodax-sdks issue for stream-json, a zod strict-schema issue
 updated: 2026-11-19
 ---
 
