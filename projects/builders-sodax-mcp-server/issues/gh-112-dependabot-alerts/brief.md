@@ -2,8 +2,8 @@
 type: brief
 repo: builders-sodax-mcp-server
 github: 112
-status: Active, approved — PR #114 approved by R0bi7 2026-11-18; caught up with development (#124, #134) 2026-11-19 at 2263508, coverage-v8 dropped, PR body updated
-next: merge #114 on the user's ask once CI is green (squash message: only @hono/node-server is pinned); then Dependabot dismissals for bigint-buffer/elliptic, sodax-sdks issue for stream-json, a zod strict-schema issue
+status: Active — PR #114 squash-merged into development 2026-11-19 (97dc62f, approved by R0bi7); #112 stays open for the alerts left on purpose
+next: Dependabot dismissals for bigint-buffer/elliptic, sodax-sdks issue for stream-json, a zod strict-schema issue
 updated: 2026-11-19
 ---
 
