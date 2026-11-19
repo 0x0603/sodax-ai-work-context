@@ -2,10 +2,10 @@
 type: brief
 repo: builders-sodax-mcp-server
 github: 118
-status: Active, in review — PR #124 head 5dedece, base development (52 files, mergeable), review requested from R0bi7 2026-11-18
-next: wait for R0bi7's review of #124; real non-EVM swaps need funded wallets (user's call, #130)
+status: Active, approved — PR #124 head 8804159, base development, approved by R0bi7 2026-11-18; his two test gaps fixed in 8804159 and answered on the PR
+next: merge #124 (before #114, which needs one lockfile catch-up after it); real non-EVM swaps need funded wallets (user's call, #130)
 related_issues: [79, 115, 117, 123]
-updated: 2026-11-18
+updated: 2026-11-19
 ---
 
 # GH-118 Swap from non-EVM chains · brief
@@ -133,7 +133,7 @@ updated: 2026-11-18
 
 ## Blocked on
 
-1. Human review of #117 and #124 (none yet).
+1. Nothing for review: R0bi7 approved #124 on 2026-11-18.
 2. Real non-EVM swaps (quote, sign, submit_and_track, solved; and a non-EVM cancel, never run live) need a funded test
    wallet per family and the user's explicit test scope.
 3. Production `RPC_CONFIG` for NEAR/Sui/Injective (nodes with enough history) is ops' (gh-120: Robi on Coolify; no
@@ -141,7 +141,12 @@ updated: 2026-11-18
 
 ## Next action
 
-#117 merged 2026-11-17; #124 caught up (`5dedece`) and retargeted to development 2026-11-18. Next: R0bi7's review.
+#117 merged 2026-11-17; #124 caught up (`5dedece`) and retargeted to development 2026-11-18; R0bi7 approved it
+2026-11-18 with two test gaps, fixed in `8804159` 2026-11-19 and answered on the PR: the stub's relay payload now comes from
+the intent JSON, so the four signed-intent tampers reach `tx.data` again, plus a relay-payload-only tamper case; the live
+reader test requires a read per family, and Injective (node keeps <17h) skips instead of passing. Injective hashes
+upper-case match the relay's own (sodaxscan stores them so). Then: merge #124, before #114 (which conflicts on the
+lockfile and needs one catch-up after #124).
 Merge, never rebase. Follow-up, not blocking: gosodax/sodax-sdks#628 (public reader of connection messages).
 
 ## Settled — do not re-litigate
