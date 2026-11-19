@@ -2,9 +2,9 @@
 type: brief
 repo: builders-sodax-mcp-server
 github: 112
-status: Active, in review — PR #114 open (2026-11-11), reviewer R0bi7
-next: R0bi7 reviews PR #114 (branch chore/112-dependabot-alerts at 62d4a4d, rebased on development 144b3bc); then Dependabot dismissals for bigint-buffer/elliptic, sodax-sdks issue for stream-json, a zod strict-schema issue
-updated: 2026-11-11
+status: Active, approved — PR #114 approved by R0bi7 2026-11-18; conflicts with development on package.json and the lockfile
+next: after #124 merges, merge development into #114 once (worktree builders-sodax-mcp-server-wt-114, head 45307e7), regenerate the lockfile, drop the unused @vitest/coverage-v8, run unit + contract tests on vitest 5 (Solana reads exercise uuid via jayson, toml sits in Stellar/anchor paths we don't run), fix the squash message (only @hono/node-server is pinned); then Dependabot dismissals for bigint-buffer/elliptic, sodax-sdks issue for stream-json, a zod strict-schema issue
+updated: 2026-11-19
 ---
 
 # GH-112 Dependabot alerts · brief

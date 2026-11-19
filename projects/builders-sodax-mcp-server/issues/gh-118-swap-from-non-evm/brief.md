@@ -2,7 +2,7 @@
 type: brief
 repo: builders-sodax-mcp-server
 github: 118
-status: Active, approved — PR #124 head 8804159, base development, approved by R0bi7 2026-11-18; his two test gaps fixed in 8804159 and answered on the PR
+status: Active, approved — PR #124 head d1ad158, base development, approved by R0bi7 2026-11-18; merged development with #128 (cdfdf7e) 2026-11-19
 next: merge #124 (before #114, which needs one lockfile catch-up after it); real non-EVM swaps need funded wallets (user's call, #130)
 related_issues: [79, 115, 117, 123]
 updated: 2026-11-19
@@ -145,8 +145,11 @@ updated: 2026-11-19
 2026-11-18 with two test gaps, fixed in `8804159` 2026-11-19 and answered on the PR: the stub's relay payload now comes from
 the intent JSON, so the four signed-intent tampers reach `tx.data` again, plus a relay-payload-only tamper case; the live
 reader test requires a read per family, and Injective (node keeps <17h) skips instead of passing. Injective hashes
-upper-case match the relay's own (sodaxscan stores them so). Then: merge #124, before #114 (which conflicts on the
-lockfile and needs one catch-up after #124).
+upper-case match the relay's own (sodaxscan stores them so). 2026-11-19: #128 merged, #124 merged development
+(cdfdf7e: source.ts imports, Sui → ICON tests), then 737b93a keeps Sui/NEAR/HyperEVM display names over the SDK's
+SUI/Near/Hyper, and d1ad158 makes the live reader test fail only when the relay carried a tx in the last day (NEAR's
+node keeps ~2.5 days; the daily drift-check cron is authoritative). Both explained to R0bi7 on the PR. Next: merge
+#124, then catch up #114 once (lockfile) and retarget #133/#134.
 Merge, never rebase. Follow-up, not blocking: gosodax/sodax-sdks#628 (public reader of connection messages).
 
 ## Settled — do not re-litigate
