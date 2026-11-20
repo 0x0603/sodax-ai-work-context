@@ -2,7 +2,7 @@
 type: brief
 repo: builders-sodax-mcp-server
 github: 129
-status: Active — draft PR #138 (feat/129-next-action, a7e7157) opened 2026-11-20 against development; 1932 tests green
+status: Active — draft PR #138 (feat/129-next-action, 33e9e24) against development; 2128 tests green
 next: mark #138 ready (and request review) once #127 is in development and `delivered` is mapped
 updated: 2026-11-20
 related_issues: [119, 125, 126, 127, 130, 132]
@@ -12,8 +12,9 @@ related_issues: [119, 125, 126, 127, 130, 132]
 
 ## State
 
-- Code on `feat/129-next-action` from development `e5c2450`, in `repos/client/builders-sodax-mcp-server-wt-129`.
-  Uncommitted. Tests, biome, `tsc` (main, contract, scripts) and build pass.
+- Code on `feat/129-next-action` from development `e5c2450`, in `repos/client/builders-sodax-mcp-server-wt-129`:
+  `a7e7157` (the contract) + `33e9e24` (bounds), pushed. Tests, biome, `tsc` (main, contract, scripts) and build
+  pass; `test:contract` not run.
 - PR title should mark the break: `feat(swap)!:` (track's `failed.outcome` renamed `failure`; see below).
 - PRs here squash-merge, so phase 1 and 2 as separate commits don't survive the merge; one commit is fine.
 
@@ -63,6 +64,20 @@ related_issues: [119, 125, 126, 127, 130, 132]
 - A pending cancel is replaced only after an explicit `confirm` of kind `unsent_cancel` ("the wallet never sent
   it"): `external: check_wallet` + a yes only meant the user looked.
 - The runtime saves every track call's arguments before making it, so a resume uses a corrected hash or chain.
+
+## Third review, on #138 (3 findings, verified and fixed in 33e9e24)
+
+- Loops through a person are bounded: an agent answering yes for the user looped (cancel_failed sent cancels without
+  end, destination_not_ready re-prepared, source_not_found took a new hash forever). Every call a person's answer
+  leads back to is bounded, 3 per reason, under a key without the args (`<tool>:ask:<reason>`). Past it: `none`
+  (terminal) before a send, `help_desk` after.
+- Cancels are counted at the wallet: a cancel `ready`'s `afterSend` is bounded (`sodax_swap_cancel:send`, 3), and the
+  runtime counts it before signing; every cancel confirm shares `sodax_swap_cancel:ask:cancel`.
+- `unsent_cancel` is `confirm` with `by: "wallet"` (new contract field): only the wallet's record (nonce reused,
+  blockhash expired) replaces a pending cancel; the runtime's `Host.walletShows`.
+- The runtime saves a pending cancel's latest args (a chain added after a lost quote), keeping its `follow`.
+- Tests: a check that every call after a person's answer is bounded (price → prepare excepted, a step forward), and a
+  harness guard of 200 calls so a runaway fails instead of hanging.
 
 ## Known, left for the PR thread
 

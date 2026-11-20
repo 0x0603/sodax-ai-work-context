@@ -140,9 +140,12 @@ type ExternalReason = "help_desk" | "check_wallet" | "still_in_progress" | "dest
    the receipt later fails (a NEAR tx can fail after its deposit ran, `swapNonEvm.test.ts:289`). The persisted
    `{ args, hash }` resumes the swap.
 3. **Bounds.** A `call_tool` without `until` / `maxAttempts` is allowed only when (a) the server's own clock forces a
-   different answer by the time it's due (the post-deadline calls), (b) it hands over to another tool whose actions
-   are bounded (cancel → track), or (c) it sits behind a person. The runtime counts attempts per `retryKey`
-   across the whole workflow, so a new server instance or an expired cache never grants a fresh budget.
+   different answer by the time it's due (the post-deadline calls), or (b) it hands over to another tool whose
+   actions are bounded (cancel → track). A call behind a person is bounded too (#138 review: an agent answering
+   yes looped): 3 per reason under `<tool>:ask:<reason>`, a key the answers don't change; past it `none` before a
+   send, `help_desk` after. A cancel's `afterSend` is counted before the wallet signs (3 per swap), and
+   `unsent_cancel` is a `confirm` with `by: "wallet"`. The runtime counts attempts per `retryKey` across the whole
+   workflow, so a new server instance or an expired cache never grants a fresh budget.
 4. **Declining.** A person declining a `confirm`, `choose` or `provide` ends the loop, not terminal; the runtime keeps
    any sent `{ args, hash }` so the user can resume later. Only where declining leaves funds needing recovery does an
    action carry `onDecline` (`deposit_mismatch`, §4).
@@ -291,7 +294,7 @@ type ExternalReason = "help_desk" | "check_wallet" | "still_in_progress" | "dest
 5. Tests:
    - table: one fixture per status, reason and error code (before and after a send): type, `terminal`, `outcome`;
    - invariants on every fixture: `none` ⇒ terminal ⇒ `none` | `external`; `choose` ≥ 1 option; a bounded
-     `call_tool` has `retryKey` (with `maxAttempts`) and `onExhausted`; every unbounded one is case (a), (b) or (c);
+     `call_tool` has `retryKey` (with `maxAttempts`) and `onExhausted`; every unbounded one is case (a) or (b), and every call after a person's answer is bounded;
      `held` never on an `unverified` branch; no error after a send is `none`; explicit args on `SwapRef` results,
      `sameArgs` on errors; nothing the caller sent appears in `args` or `nextStep`;
    - text: each `call_tool`'s `nextStep` names its tool (catches a §3.13 row left behind);
