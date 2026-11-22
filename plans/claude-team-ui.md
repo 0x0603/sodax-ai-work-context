@@ -82,7 +82,9 @@ things while I am out and get an answer I can paste back; plan and create issues
    `fix/swap-speed-tier-vault-lookup`, `test/ci-skip`, `apply-ai-export-improvements`). Back them up on my fork or
    drop them, then delete both clones. `sodax-backend/` stays for the parked bridge alerter stash.
 3. Optional: HTTPS through `tailscale serve`.
-4. Later: Retro copies spec / plan / review / retro here on its own (Save to context does it by tap now); the
+4. **Review quality** (2026-11-22): layered rules and checks, code-first evidence, a design check, Codex as a
+   second reviewer of plan and diff. Plan: [claude-team-ui-review-quality.md](claude-team-ui-review-quality.md).
+5. Later: Retro copies spec / plan / review / retro here on its own (Save to context does it by tap now); the
    assistant may scaffold a dossier with `scripts/new-issue.sh` (v2, it is read-only in v1).
 
 ## Team-operation findings (2026-10-27, console `57b617b`)
@@ -137,7 +139,7 @@ things while I am out and get an answer I can paste back; plan and create issues
   the language I write.
 - 2026-10-27: per-project setup and test commands live in `team-ui/projects.json`; repo gotchas live in
   `team-ui/prompts/<repo>/_rules.md` as a copy of the default rules plus a "Repo notes" list, because a per-project
-  file replaces the default.
+  file replaces the default. Superseded 2026-11-22: rules and checks layer (D67), the files hold only the repo notes.
 - 2026-10-27: quick flow: the lead codes itself, one reviewer stays. Review rounds keep earlier reports and review the
   diff since `{{SINCE}}`. Plan prompts separate Risks from Open questions.
 
