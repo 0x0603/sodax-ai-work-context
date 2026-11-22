@@ -24,7 +24,12 @@ Baseline checked 2026-11-22: team-ui `main` = `origin/main` = `2ad7791`, clean; 
 - **Other machine:** run `scripts/setup-team-ui.sh` (pulls team-ui, then imports these prompts), then restart its
   console (`launchctl kickstart -k gui/$(id -u)/com.claude-team-ui`, or `./start.sh`). An old console process reading
   the cut files would run without the default rules.
-- Part 4 (Codex) waits for `codex` to be installed and logged in.
+- Part 4 (Codex) landed on team-ui `main` as `3153711` (D71, V20, 447 smoke checks), after /code-review (14 findings,
+  all fixed; the guard bypasses it proved — launchers, a quoted `-s`, `cd` before `-o` — are closed). The review step
+  runs Codex independently on `git diff --merge-base`, then one exchange over the lead's answers; `codex exec review`
+  was dropped because `--base` covers only commits and `--uncommitted` only the rest. Console restarted: Codex on,
+  logged in with ChatGPT. Other machine: install Codex (`brew install --cask codex`, `codex login`) as well.
+- Next: a first real Quick run on a small sodax-sdks issue, to see the new steps end to end.
 
 ## Goal
 
