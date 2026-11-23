@@ -30,8 +30,8 @@ Baseline checked 2026-11-22: team-ui `main` = `origin/main` = `2ad7791`, clean; 
   was dropped because `--base` covers only commits and `--uncommitted` only the rest. Console restarted: Codex on,
   logged in with ChatGPT. Other machine: install Codex (`brew install --cask codex`, `codex login`) as well.
 - First real run (builders-sodax-mcp #127, Quick): Codex on the plan caught 2 major + 3 minor, all accepted; it then
-  hit the ChatGPT usage limit in the review (~160k tokens), so Codex now reviews only the plan and only for a task
-  added with it (off by default). The run also exposed two console bugs, fixed on main: an MCP server held the only
+  hit the ChatGPT usage limit in the review (~160k tokens). Codex now reviews every plan, and the code only for a task
+  added with "Codex reviews the code too" (off by default; a fix round reads only what changed). The run also exposed two console bugs, fixed on main: an MCP server held the only
   build-lane slot for 46 min, and a lead's "not done; I will reply STANDARDS DONE" ended Standards early.
 - Also landed 2026-11-22: lead opus + xhigh by default with effortLevel in the cartridge settings (D73, V22), and the
   Office tab (D72). team-ui `main` = `1dba198`.
