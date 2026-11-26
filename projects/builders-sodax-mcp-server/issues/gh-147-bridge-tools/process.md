@@ -218,3 +218,17 @@ Validation:
 
 The previous bundled-message review findings are resolved by `7077dba`; removed the stale unresolved
 follow-up from the brief. Remaining release gates are the real-bridge canary and SDK documentation page.
+
+
+## 2026-11-26 first-time bridge agent walkthrough
+
+User requested feedback as an unfamiliar agent. Used an isolated `83f411c` worktree because the active
+feature worktree initially had a merge conflict; its merge and later edits were left untouched. Fourteen
+MCP calls exercised discovery, common input mistakes, live API/RPC preview, balance read, unsigned prepare,
+non-EVM address requirements, invalid hash input and an unseen hash. No signing/broadcast or real delivery.
+
+`agent-feedback.md` contains the observations, five prioritized UX recommendations and scope limitations;
+`artifacts/agent-onboarding-2026-11-26.json` records every call with explicit sampling/omissions. The MCP
+initialization instructions were inspected as well as tool schemas/results. This was not a separate blind
+model evaluation, hosted transport/API-key onboarding test, or completed funded bridge. No implementation
+changes were made. Temporary worktree removed after preserving the evidence.

@@ -46,6 +46,11 @@ updated: 2026-11-26
   README runtime snippet and PR description updated. Gates: lint, checkTs, build, 66 files / 2,967 tests passed;
   new tests also typechecked directly. Both the unbounded retry and missing bridge hash persistence were
   reintroduced temporarily and caught by regression tests, then restored. No live bridge was signed or broadcast.
+- Contract-only first-time agent walkthrough (2026-11-26) on isolated `83f411c`: 14 MCP calls, real
+  production API/public RPC preview and unsigned prepare succeeded; no signing/broadcast. Discovery and bounded
+  domain-error recovery worked. Five UX recommendations (wallet requirements, discoverable action protocol,
+  fee/check status, earlier unseen-hash verification, protocol-error fallback) are recorded in `agent-feedback.md`,
+  with sampled evidence in `artifacts/agent-onboarding-2026-11-26.json`. Recommendations were not implemented.
 - #138 and #145 still open. GitHub redirects the repository to `gosodax/sodax-mcp`; local paths are unchanged.
 
 ## Blocked on
@@ -108,6 +113,7 @@ The base `feat/129-next-action` moved to `57f1996` after `9ef5d54`: merge it in 
 | -------- | ---- | ---: |
 | What the backend/SDK give, with file:line | `issue.md` | 0.6k |
 | Review findings and decisions needed before planning | `process.md` | 2.0k |
+| First-time agent feedback and sampled MCP evidence | `agent-feedback.md` | 1.9k |
 | Design decisions with code refs, route/failure tables, build order | `plan.md` | 3.3k |
 
 ## Landmines

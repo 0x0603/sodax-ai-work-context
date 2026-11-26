@@ -1,0 +1,668 @@
+{
+  "source_commit": "83f411c632038779174a7980be44aab6494cf6cb",
+  "date": "2026-11-26",
+  "method": "In-process MCP Client/InMemoryTransport; real production API and public SDK-default RPC reads; no signing or broadcast. A public example address is not a user-owned wallet claim.",
+  "sampling": "Every call is represented. Duplicate text/structured JSON, calldata, wallet balances and most choice options are omitted. Character counts are serialized-envelope measurements, not token counts.",
+  "instructions": "To move a token to the same asset on another chain, 1:1 less any partner fee: `sodax_bridge_tokens` lists what bridges between two chains, and `sodax_bridge_preview` shows what a bridge would deliver and the most its route takes now, building nothing. Once the user is ready to sign, call `sodax_bridge_prepare` with each side as the user names it (a chain plus a symbol, an address or \"native\") and their wallet as fromAddress (and the recipient as toAddress unless both chains are EVM): it returns the transactions to sign and the bridgeId. If a pair can't be bridged, it names the tokens that can. If it returns UNKNOWN_TOKEN, resolve that side with `sodax_resolve_token` with for: bridge and ask the user; never guess a token or an address. It doesn't check balances; `sodax_get_balance` with for: bridge reads them. Show the user the amounts and get their confirmation before their wallet signs; this server never signs or moves funds. Never pass private keys, seed phrases or API keys as tool inputs. After the user's wallet sends the bridge, call `sodax_bridge_submit_and_track` with the bridgeId and the bridge transaction's hash: it submits the bridge, so call it at least once, and never resend a bridge it hasn't reported failed. Every bridge tool result, errors included, carries nextAction: follow it until the result is terminal, or read its nextStep. If the user needs help with a swap or a bridge, they can ask the SODAX team on Discord, https://www.sodax.com/discord, giving the requestId from the tool result and any transaction hashes.",
+  "tool_names": [
+    "sodax_resolve_token",
+    "sodax_get_balance",
+    "sodax_bridge_tokens",
+    "sodax_bridge_preview",
+    "sodax_bridge_prepare",
+    "sodax_bridge_submit_and_track"
+  ],
+  "prepare_output_schema": {
+    "type": "object",
+    "properties": {
+      "status": {
+        "type": "string"
+      },
+      "nextAction": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "additionalProperties": true
+      },
+      "terminal": {
+        "type": "boolean"
+      },
+      "outcome": {
+        "type": "string",
+        "enum": [
+          "succeeded",
+          "cancelled",
+          "refunding",
+          "failed",
+          "held",
+          "unknown"
+        ]
+      },
+      "nextStep": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "status",
+      "nextAction",
+      "terminal",
+      "nextStep"
+    ],
+    "additionalProperties": true,
+    "$schema": "http://json-schema.org/draft-07/schema#"
+  },
+  "calls": [
+    {
+      "call": 1,
+      "tool": "sodax_bridge_tokens",
+      "arguments": {
+        "fromChain": "Arbitrum",
+        "toChain": "Base"
+      },
+      "elapsed_ms": 7,
+      "response_characters": 8448,
+      "is_error": false,
+      "status": "ok",
+      "nextStep": "From Arbitrum to Base, these bridge: ETH to ETH, bnUSD to bnUSD, wstETH to wstETH, weETH to weETH, USDC to USDC, USDT to USDT, SODA to SODA, sUSDS to sUSDS, USDS to USDS. Ask the user to choose a pair and the amount to send, then call sodax_bridge_preview with the pair's addresses and that amount in token units.",
+      "terminal": false,
+      "choice_count": 9,
+      "choices_sampled": true,
+      "nextAction": {
+        "type": "choose",
+        "field": "pair",
+        "options": [
+          {
+            "label": "USDC to USDC",
+            "args": {
+              "fromChain": "0xa4b1.arbitrum",
+              "fromToken": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+              "toChain": "0x2105.base",
+              "toToken": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
+            }
+          }
+        ],
+        "next": {
+          "type": "provide",
+          "fields": [
+            {
+              "name": "amount"
+            }
+          ],
+          "next": {
+            "type": "call_tool",
+            "tool": "sodax_bridge_preview",
+            "sameArgs": true,
+            "afterSec": 0
+          }
+        }
+      },
+      "pair_count": 9
+    },
+    {
+      "call": 2,
+      "tool": "sodax_bridge_tokens",
+      "arguments": {
+        "fromChain": "bitcoin",
+        "toChain": "Base"
+      },
+      "elapsed_ms": 1,
+      "response_characters": 5399,
+      "is_error": true,
+      "status": "error",
+      "error": {
+        "field": "fromChain",
+        "sourceChains": {
+          "count": 19
+        },
+        "code": "UNSUPPORTED_SOURCE",
+        "message": "Bridges from Bitcoin aren't supported here."
+      },
+      "nextStep": "A bridge can start only from Sonic, Redbelly, Solana, Avalanche, Arbitrum, Base, Optimism, BNB Chain, Polygon, HyperEVM, LightLink, Injective, Stellar, Sui, NEAR, Ethereum, Kaia, Hedera, Robinhood Chain: ask the user to bridge from one of them.",
+      "terminal": false,
+      "choice_count": 19,
+      "choices_sampled": true,
+      "nextAction": {
+        "type": "choose",
+        "field": "fromChain",
+        "options": [],
+        "next": {
+          "type": "call_tool",
+          "tool": "sodax_bridge_tokens",
+          "sameArgs": true,
+          "afterSec": 0,
+          "maxAttempts": 3,
+          "retryKey": "sodax_bridge_tokens:ask:UNSUPPORTED_SOURCE",
+          "onExhausted": {
+            "nextAction": {
+              "type": "none"
+            },
+            "terminal": true
+          }
+        }
+      }
+    },
+    {
+      "call": 3,
+      "tool": "sodax_bridge_tokens",
+      "arguments": {
+        "fromChain": "Ethereum mainnet",
+        "toChain": "Base"
+      },
+      "elapsed_ms": 1,
+      "response_characters": 11430,
+      "is_error": false,
+      "status": "ok",
+      "nextStep": "From Ethereum to Base, these bridge: ETH to ETH, bnUSD to bnUSD, SODA to SODA, USDC to USDC, USDS to USDS, weETH to weETH, wstETH to wstETH, USDT to USDT, sUSDS to sUSDS, cirBTC to cbBTC, kBTC to cbBTC, SOL to SOL, tBTC to cbBTC. Ask the user to choose a pair and the amount to send, then call sodax_bridge_preview with the pair's addresses and that amount in token units.",
+      "terminal": false,
+      "choice_count": 13,
+      "choices_sampled": true,
+      "nextAction": {
+        "type": "choose",
+        "field": "pair",
+        "options": [
+          {
+            "label": "USDC to USDC",
+            "args": {
+              "fromChain": "ethereum",
+              "fromToken": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+              "toChain": "0x2105.base",
+              "toToken": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
+            }
+          }
+        ],
+        "next": {
+          "type": "provide",
+          "fields": [
+            {
+              "name": "amount"
+            }
+          ],
+          "next": {
+            "type": "call_tool",
+            "tool": "sodax_bridge_preview",
+            "sameArgs": true,
+            "afterSec": 0
+          }
+        }
+      },
+      "pair_count": 13
+    },
+    {
+      "call": 4,
+      "tool": "sodax_bridge_preview",
+      "arguments": {
+        "fromChain": "Arbitrum",
+        "fromToken": "ETH",
+        "toChain": "Base",
+        "toToken": "USDC",
+        "amount": "0.01"
+      },
+      "elapsed_ms": 1,
+      "response_characters": 1625,
+      "is_error": true,
+      "status": "error",
+      "error": {
+        "reason": "not_bridgeable",
+        "field": "toToken",
+        "code": "BRIDGE_REJECTED",
+        "message": "ETH on Arbitrum can't be bridged to USDC on Base."
+      },
+      "nextStep": "ETH on Arbitrum bridges only to ETH on Base: ask the user which, or which other chain to bridge to.",
+      "terminal": false,
+      "choice_count": 1,
+      "choices_sampled": true,
+      "nextAction": {
+        "type": "choose",
+        "field": "toToken",
+        "options": [
+          {
+            "label": "ETH on Base",
+            "args": {
+              "toChain": "0x2105.base",
+              "toToken": "0x0000000000000000000000000000000000000000"
+            }
+          }
+        ],
+        "next": {
+          "type": "call_tool",
+          "tool": "sodax_bridge_preview",
+          "sameArgs": true,
+          "afterSec": 0,
+          "maxAttempts": 3,
+          "retryKey": "sodax_bridge_preview:ask:BRIDGE_REJECTED",
+          "onExhausted": {
+            "nextAction": {
+              "type": "none"
+            },
+            "terminal": true
+          }
+        }
+      }
+    },
+    {
+      "call": 5,
+      "tool": "sodax_bridge_prepare",
+      "arguments": {
+        "fromChain": "Arbitrum",
+        "fromToken": "USDC",
+        "toChain": "Base",
+        "toToken": "USDC",
+        "amount": "5"
+      },
+      "elapsed_ms": 1,
+      "response_characters": 1391,
+      "is_error": true,
+      "status": "error",
+      "error": {
+        "field": "fromAddress",
+        "missing": [
+          "fromAddress"
+        ],
+        "code": "INVALID_ADDRESS",
+        "message": "Preparing a bridge needs fromAddress."
+      },
+      "nextStep": "Ask the user for fromAddress (their wallet on Arbitrum), then call sodax_bridge_prepare again with them.",
+      "terminal": false,
+      "nextAction": {
+        "type": "provide",
+        "fields": [
+          {
+            "name": "fromAddress"
+          }
+        ],
+        "next": {
+          "type": "call_tool",
+          "tool": "sodax_bridge_prepare",
+          "sameArgs": true,
+          "afterSec": 0,
+          "maxAttempts": 3,
+          "retryKey": "sodax_bridge_prepare:ask:INVALID_ADDRESS",
+          "onExhausted": {
+            "nextAction": {
+              "type": "none"
+            },
+            "terminal": true
+          }
+        }
+      }
+    },
+    {
+      "call": 6,
+      "tool": "sodax_bridge_submit_and_track",
+      "arguments": {
+        "txHash": "batch-123",
+        "chain": "Arbitrum"
+      },
+      "elapsed_ms": 1,
+      "response_characters": 214,
+      "is_error": true,
+      "status": "protocol_error",
+      "content": [
+        {
+          "type": "text",
+          "text": "MCP error -32602: Input validation error: Invalid arguments for tool sodax_bridge_submit_and_track: Must be a transaction hash as the wallet shows it. at txHash"
+        }
+      ]
+    },
+    {
+      "call": 7,
+      "tool": "sodax_bridge_preview",
+      "arguments": {
+        "fromChain": "Arbitrum",
+        "fromToken": "USDC",
+        "toChain": "Base",
+        "toToken": "USDC",
+        "amount": "5"
+      },
+      "elapsed_ms": 2506,
+      "response_characters": 1864,
+      "is_error": false,
+      "status": "preview",
+      "maxAmount": "6992.182834",
+      "prepareNeeds": [
+        "fromAddress"
+      ],
+      "nextStep": "Show the user they would send 5 USDC on Arbitrum and receive 5 USDC on Base; at most 6992.182834 USDC can be bridged on this route now. Once the user is ready to sign, call sodax_bridge_prepare with the same arguments plus fromAddress (their wallet on Arbitrum).",
+      "terminal": false,
+      "nextAction": {
+        "type": "provide",
+        "fields": [
+          {
+            "name": "fromAddress"
+          }
+        ],
+        "next": {
+          "type": "call_tool",
+          "tool": "sodax_bridge_prepare",
+          "sameArgs": true,
+          "afterSec": 0
+        }
+      }
+    },
+    {
+      "call": 8,
+      "tool": "sodax_get_balance",
+      "arguments": {
+        "chain": "Arbitrum",
+        "address": "0x1111111111111111111111111111111111111111",
+        "token": "USDC",
+        "for": "bridge"
+      },
+      "elapsed_ms": 352,
+      "response_characters": 1348,
+      "is_error": false,
+      "status": "ok",
+      "nextStep": "The wallet's balance on Arbitrum: 0.00431007410129084 ETH and 113.176718 USDC.",
+      "terminal": true,
+      "nextAction": {
+        "type": "none"
+      }
+    },
+    {
+      "call": 9,
+      "tool": "sodax_bridge_prepare",
+      "arguments": {
+        "fromChain": "Arbitrum",
+        "fromToken": "USDC",
+        "toChain": "Base",
+        "toToken": "USDC",
+        "amount": "5",
+        "fromAddress": "0x1111111111111111111111111111111111111111"
+      },
+      "elapsed_ms": 2229,
+      "response_characters": 12872,
+      "is_error": false,
+      "status": "ready",
+      "nextStep": "Show the user they send 5 USDC on Arbitrum and receive 5 USDC on Base at 0x1111111111111111111111111111111111111111 (the sender's own address: make sure they control it on Base); the steps expire at 2026-11-26T07:29:56.849Z. Balances aren't checked here; sodax_get_balance with for: bridge reads them. Their wallet must be on Arbitrum (chain id 42161) to send the steps; switch it there first if it isn't. Tell them the approve lets 0x348BE44F63A458be9C1b13D6fD8e99048F297Bc3, the SODAX bridge's spender, spend 5 USDC of theirs. Once they confirm, have their wallet send the steps in order before they expire, each mined before the next (a bridge sent before its approve is mined fails) (or, if the wallet batches, wallet_sendCalls with the batch's params plus calls: the {to, value, data} of each step it replaces, in order, once any step it doesn't replace is mined). Then call sodax_bridge_submit_and_track with the bridgeId and the bridge transaction's hash, even if the steps have expired by then: that call is what submits the bridge.",
+      "terminal": false,
+      "nextAction": {
+        "type": "confirm",
+        "summary": {
+          "kind": "bridge",
+          "bridgeId": "5e45312e-acf9-48b2-a790-a8d204e82394",
+          "expiresAt": "2026-11-26T07:29:56.849Z",
+          "send": {
+            "amount": "5",
+            "symbol": "USDC",
+            "chain": "0xa4b1.arbitrum"
+          },
+          "receive": {
+            "amount": "5",
+            "symbol": "USDC",
+            "chain": "0x2105.base"
+          },
+          "recipient": "0x1111111111111111111111111111111111111111",
+          "approve": {
+            "spender": "0x348BE44F63A458be9C1b13D6fD8e99048F297Bc3",
+            "amount": "5",
+            "symbol": "USDC"
+          }
+        },
+        "next": {
+          "type": "execute",
+          "chain": "0xa4b1.arbitrum",
+          "stepsAt": "steps",
+          "batchAt": "batch",
+          "waitFor": "receipt_success",
+          "expiresAt": "2026-11-26T07:29:56.849Z",
+          "afterSend": {
+            "type": "call_tool",
+            "tool": "sodax_bridge_submit_and_track",
+            "args": {
+              "bridgeId": "5e45312e-acf9-48b2-a790-a8d204e82394",
+              "chain": "0xa4b1.arbitrum"
+            },
+            "afterSec": 0,
+            "on": "broadcast",
+            "needs": [
+              "txHash"
+            ]
+          }
+        }
+      },
+      "steps": [
+        {
+          "kind": "approve",
+          "chainId": 42161,
+          "transaction_fields": [
+            "from",
+            "to",
+            "value",
+            "data",
+            "chainId"
+          ],
+          "calldata_hex_characters": 138
+        },
+        {
+          "kind": "bridge",
+          "chainId": 42161,
+          "transaction_fields": [
+            "from",
+            "to",
+            "value",
+            "data",
+            "chainId"
+          ],
+          "calldata_hex_characters": 2954
+        }
+      ],
+      "batch": {
+        "replaces": [
+          "approve",
+          "bridge"
+        ],
+        "method": "wallet_sendCalls",
+        "params": [
+          {
+            "version": "2.0.0",
+            "chainId": "0xa4b1",
+            "from": "0x1111111111111111111111111111111111111111",
+            "atomicRequired": true
+          }
+        ]
+      }
+    },
+    {
+      "call": 10,
+      "tool": "sodax_bridge_preview",
+      "arguments": {
+        "fromChain": "solana",
+        "fromToken": "SOL",
+        "toChain": "sonic",
+        "toToken": "SOL",
+        "amount": "0.01"
+      },
+      "elapsed_ms": 264,
+      "response_characters": 2014,
+      "is_error": false,
+      "status": "preview",
+      "maxAmount": "999999999763.391705226",
+      "prepareNeeds": [
+        "fromAddress",
+        "toAddress"
+      ],
+      "nextStep": "Show the user they would send 0.01 SOL on Solana and receive 0.01 SOL on Sonic; at most 999999999763.391705226 SOL can be bridged on this route now. Once the user is ready to sign, call sodax_bridge_prepare with the same arguments plus fromAddress (their wallet on Solana) and toAddress (their address on Sonic).",
+      "terminal": false,
+      "nextAction": {
+        "type": "provide",
+        "fields": [
+          {
+            "name": "fromAddress"
+          },
+          {
+            "name": "toAddress"
+          }
+        ],
+        "next": {
+          "type": "call_tool",
+          "tool": "sodax_bridge_prepare",
+          "sameArgs": true,
+          "afterSec": 0
+        }
+      }
+    },
+    {
+      "call": 11,
+      "tool": "sodax_bridge_preview",
+      "arguments": {
+        "fromChain": "Arbitrum",
+        "fromToken": "USDC",
+        "toChain": "Base",
+        "toToken": "USDC",
+        "amount": "1,000"
+      },
+      "elapsed_ms": 7,
+      "response_characters": 1365,
+      "is_error": true,
+      "status": "error",
+      "error": {
+        "field": "amount",
+        "code": "INVALID_AMOUNT",
+        "message": "Give the amount as a plain decimal, with no commas or units and at most 6 digits after the point."
+      },
+      "nextStep": "Ask the user for the amount as a plain number in token units, e.g. 0.5.",
+      "terminal": false,
+      "nextAction": {
+        "type": "provide",
+        "fields": [
+          {
+            "name": "amount"
+          }
+        ],
+        "next": {
+          "type": "call_tool",
+          "tool": "sodax_bridge_preview",
+          "sameArgs": true,
+          "afterSec": 0,
+          "maxAttempts": 3,
+          "retryKey": "sodax_bridge_preview:ask:INVALID_AMOUNT",
+          "onExhausted": {
+            "nextAction": {
+              "type": "none"
+            },
+            "terminal": true
+          }
+        }
+      }
+    },
+    {
+      "call": 12,
+      "tool": "sodax_bridge_tokens",
+      "arguments": {
+        "fromChain": "Arbitrum",
+        "toChain": "Arbitrum"
+      },
+      "elapsed_ms": 0,
+      "response_characters": 1295,
+      "is_error": true,
+      "status": "error",
+      "error": {
+        "reason": "same_chain",
+        "field": "toChain",
+        "code": "BRIDGE_REJECTED",
+        "message": "A bridge moves a token to another chain, and both are Arbitrum."
+      },
+      "nextStep": "Ask the user which other chain to bridge to.",
+      "terminal": false,
+      "nextAction": {
+        "type": "provide",
+        "fields": [
+          {
+            "name": "toChain"
+          }
+        ],
+        "next": {
+          "type": "call_tool",
+          "tool": "sodax_bridge_tokens",
+          "sameArgs": true,
+          "afterSec": 0,
+          "maxAttempts": 3,
+          "retryKey": "sodax_bridge_tokens:ask:BRIDGE_REJECTED",
+          "onExhausted": {
+            "nextAction": {
+              "type": "none"
+            },
+            "terminal": true
+          }
+        }
+      }
+    },
+    {
+      "call": 13,
+      "tool": "sodax_bridge_submit_and_track",
+      "arguments": {
+        "txHash": "0x7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e"
+      },
+      "elapsed_ms": 1,
+      "response_characters": 1479,
+      "is_error": true,
+      "status": "error",
+      "error": {
+        "field": "chain",
+        "code": "QUOTE_NOT_FOUND",
+        "message": "That bridgeId isn't known here."
+      },
+      "nextStep": "Call again with chain set to the bridge's source chain key, or with the bridgeId from sodax_bridge_prepare. The user must not send the bridge again.",
+      "terminal": false,
+      "nextAction": {
+        "type": "provide",
+        "fields": [
+          {
+            "name": "chain"
+          }
+        ],
+        "next": {
+          "type": "call_tool",
+          "tool": "sodax_bridge_submit_and_track",
+          "sameArgs": true,
+          "afterSec": 0,
+          "maxAttempts": 3,
+          "retryKey": "sodax_bridge_submit_and_track:ask:QUOTE_NOT_FOUND",
+          "onExhausted": {
+            "nextAction": {
+              "type": "external",
+              "reason": "help_desk"
+            },
+            "terminal": false
+          }
+        }
+      }
+    },
+    {
+      "call": 14,
+      "tool": "sodax_bridge_submit_and_track",
+      "arguments": {
+        "txHash": "0x7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e",
+        "chain": "Arbitrum"
+      },
+      "elapsed_ms": 1653,
+      "response_characters": 1570,
+      "is_error": false,
+      "status": "awaiting_source",
+      "seenOnChain": false,
+      "nextStep": "The bridge transaction isn't mined on Arbitrum yet. Call again in 15 seconds; the user must not send it again meanwhile.",
+      "terminal": false,
+      "nextAction": {
+        "type": "call_tool",
+        "tool": "sodax_bridge_submit_and_track",
+        "sameArgs": true,
+        "afterSec": 15,
+        "maxAttempts": 30,
+        "retryKey": "sodax_bridge_submit_and_track:0xa4b1.arbitrum:0x7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e:source",
+        "onExhausted": {
+          "nextAction": {
+            "type": "external",
+            "reason": "check_wallet"
+          },
+          "terminal": false
+        }
+      }
+    }
+  ]
+}
