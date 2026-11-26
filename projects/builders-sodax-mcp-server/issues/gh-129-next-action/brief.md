@@ -2,8 +2,8 @@
 type: brief
 repo: builders-sodax-mcp-server
 github: 129
-status: In review — PR #138; R0bi7's 2026-11-25 review fixed in 01b6187, pushed 2026-11-26; 2255 tests green
-next: await R0bi7 on #138 (body updated, replied 2026-11-26); #145 must turn in_transit into a poll
+status: In review — PR #138; R0bi7's 2026-11-26 review + an independent full review fixed in 7096517, pushed, body (Breaking) updated, replied 2026-11-26; 2904 tests green
+next: await R0bi7 on #138; #145 must turn in_transit into a poll
 updated: 2026-11-26
 related_issues: [119, 125, 126, 127, 130, 132]
 ---
@@ -90,6 +90,26 @@ related_issues: [119, 125, 126, 127, 130, 132]
 - Poll sentence names its 15 s wait (30 polls ≈ 17 min); Sui/non-EVM CHAIN_UNAVAILABLE text tells, not asks;
   UNSUPPORTED_CHAIN options = close matches first, then every chain.
 - `not_this_swap` / `not_sent` from `checkSwapTx` carry `cancelTxHash`, and the ask for the right hash keeps it.
+
+## R0bi7 review on 01b6187 (2026-11-26) + independent full review: fixed in 7096517
+
+- Why the rounds kept coming: fixes covered the reported case only. The hand-off test ran only with `field: "amount"`,
+  mocks used shapes the SDK never returns, one test couldn't fail. This round fixes by class and mutation-checks tests.
+- Engine: a hand-off (`stuck()`) whose failure still carries its code's default advice always gets the hand-off
+  sentence (`wontPass`); before, every field-less path said "ask the user" under an external action. Test matrix
+  widened (no field, each SWAP_REJECTED reason) and tightened (no retry/try again, help desk named).
+- Track `not_submitted` / `unverified` now asks for the swap's own hash (bounded), declined → `unknown`, help desk only
+  when not alerted (was terminal help desk while the sentence asked for a hash). Behavior change: say so in the reply.
+- Cancel QUOTE_MISMATCH (quote's deposit is another tx): `field: "txHash"`, `choose` offers `depositTxHash`; the
+  "chain instead of quoteId" remedy removed (sameArgs can't drop a key). After a send, every `provide` declines to
+  HELP_DESK. Retry sentences state their bounds (cancel_awaiting_confirmation, not_sent, cancel_relayed, stopAfter).
+  Non-EVM prepare failure sentence matches its 10-retry bound. `retryAfterSec` docs now point at `afterSec`.
+- Runtime: a cancel start with `cancelTxHash` goes before a saved swap; an SDK refusal (no structuredContent) stops at
+  `no_contract` and restores what `keepSent` saved; a cancel sent as a batch is pending by batch id until its hash;
+  a bound without `onExhausted` hands off. Tests use the real SDK refusal via `callTool`.
+- `(await cacheQuote())` on the two lines #137 would break, whichever PR lands second.
+- Left on purpose: resolve_token's sentence vs `none`; 64-hex secret vs tx hash; source.ts chain/quoteId mismatch
+  asks quoteId only; `choose` has no `onDecline`.
 
 ## Known, left for the PR thread
 

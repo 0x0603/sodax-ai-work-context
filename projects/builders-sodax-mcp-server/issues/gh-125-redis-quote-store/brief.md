@@ -2,8 +2,8 @@
 type: brief
 repo: builders-sodax-mcp-server
 github: 125
-status: In review — PR #137; R0bi7's 2026-11-25 review fixed in 71dce25, pushed 2026-11-26
-next: await R0bi7 on #137 (replied 2026-11-26); Redis per environment must exist before REDIS_URL is set
+status: In review — PR #137; R0bi7's 2026-11-26 review + an independent full review fixed in fe5af04, pushed, body updated, replied 2026-11-26
+next: await R0bi7 on #137; Redis per environment must exist before REDIS_URL is set
 updated: 2026-11-26
 related_issues: [119, 124]
 ---
@@ -59,6 +59,21 @@ with local Redis.
 - CI: Redis service `redis:8.2.10-alpine@sha256:cead8b06…` + `REDIS_TEST_URL`; the suite throws in CI without it.
 - Local: `redis-server --port 6391`, `REDIS_TEST_URL=redis://127.0.0.1:6391 pnpm test` → 1340 green; without it
   1323 + 3 skipped (now 1344 with Redis).
+
+## R0bi7 review on 71dce25 (2026-11-26) + independent full review: fixed in fe5af04
+
+- `releaseRelay(quoteId, until)` compare-and-deletes in Lua (RELEASE_RELAY), memory the same: a release Redis runs
+  late (its call timed out) can't drop a newer claim. The claim's `until` is the token: claims of one quote only grow.
+- A claim call that fails is released right after it (fire and forget): Redis runs one connection's calls in order,
+  so a timed-out claim that still landed doesn't hold the refund for 2 min.
+- A connection Redis refuses (wrong password, missing db: `ErrorReply`, not transient) is `INTERNAL` (alerted) for
+  every call until `ready`, and `/health` shows `refused: true`; it was `UPSTREAM_UNAVAILABLE` with no alert.
+- README: out of memory refuses only writes, so `/health`'s read doesn't show it (logs + alerts do).
+- Tests that couldn't fail or were missing: write-ordering test uses relayed_for_refund → cancelled (not settled by
+  `outranked`); late release; claim take-back; SET_IF_PRESENT read back; `trackedSince` keeps the first time; late
+  reserve reply logs unused; refused connection (db 99). Each fails with its fix reverted. 1394 green with Redis.
+- Nits: discord.ts double JSDoc, `openNow` docs, "N swap quote(s) with updates" wording. Kept the one-line
+  `server.json`: release-please's multi-line version on development fails biome.
 
 ## Review skips (deliberate)
 
