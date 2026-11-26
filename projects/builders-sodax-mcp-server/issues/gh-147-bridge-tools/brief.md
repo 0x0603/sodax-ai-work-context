@@ -3,7 +3,7 @@ type: brief
 repo: builders-sodax-mcp-server
 github: 147
 status: Active
-next: merge feat/129-next-action (57f1996) in on the user's word; docs page; kill switch off until a real bridge is tracked end to end; resolve the bundled-deposit batch review finding
+next: merge feat/129-next-action (57f1996) in on the user's word; docs page; kill switch off until a real bridge is tracked end to end
 updated: 2026-11-26
 ---
 
@@ -33,6 +33,12 @@ updated: 2026-11-26
   UPSTREAM_UNAVAILABLE (a new key can't track the bridgeId; swap parity). Token tools default `for` to the module and reword bridge
   failures. README `bridge` profile. Rejected: claimed-build TTL (settled 10'+30', agent polls end inside it); 409 on
   build routes (only `submitTx` throws ConflictError, bridge.service.ts:300).
+- Pushed as `7077dba` (signed): bridge `batch` (EIP-5792 approve+bridge, EVM spokes only: from Sonic track checks
+  the deposit as the tx itself, which a 7702/4337 batch tx isn't), `batchAt`, shared `SEND_BATCH` wording; README
+  says steps carry no nonce/gas/fees and the server neither signs nor broadcasts. Wallet MCPs checked 2026-11-26:
+  Coinbase `send_calls` takes chain name + `{to,value,data}` (no Sonic; hash return undocumented), Phantom `evm_send`
+  takes `{chainId,to,value,data}` (no Arbitrum/BSC, no batch). Signer-only broadcast: gosodax/sodax-mcp#151 (Feature,
+  sub-issue of #119, Backlog; per-step fill, own broadcast tool, shared swap+bridge), not in #150.
 - #138 and #145 still open. GitHub redirects the repository to `gosodax/sodax-mcp`; local paths are unchanged.
 
 ## Blocked on
@@ -63,10 +69,19 @@ The base `feat/129-next-action` moved to `57f1996` after `9ef5d54`: merge it in 
   selects the first packet without filtering its sender or type. Count every competing relay Message or select
   the expected bridge packet; see the follow-up process entry. Focused tests: 914 passed, typecheck/lint passed.
 
-- Uncommitted batch review (2026-11-26): **P2, unresolved** at `build.ts:84-87`. A `wallet_sendCalls`
-  operation can share an ERC-4337 transaction with another deposit. Bridge track accepts any matching Message,
-  but backend bridge storage is keyed by `(srcChainKey, txHash)` and relay polling selects the first packet.
-  Resolve the ambiguity before treating generic wallet batching as supported; see the process entry below.
+- Batch review P2s (2026-11-26): **resolved in `7077dba`.** Bridge `checkSource` refuses a matched spoke deposit whose
+  tx carries any other connection Message (`sourceTx.messages.length > 1`: another deposit, a cancel, a direct
+  message): `not_submitted` / `multiple_messages`, alert `bridge_multiple_messages`, no claim, no submit. Verified:
+  the relay's EVM verifier signs a packet per connection log with the chain's NID, no sender filter
+  (`intent-relay` `verifiers/evm/src/index.ts:141`), and bridge-api `pollBridgePacket` takes the first packet by tx
+  hash + chain. Not batch-specific (any 4337 deposit rides a bundler). Real txs from sodax-sdks PR #504, decoded:
+  Ethereum `0x6130…f3ae` (MetaMask 7702, from = to = EOA `0xb924…`), Base `0xa289…1775` (relayer EOA `0xc066…` →
+  contract `0xdb9b…`, user EOA delegated `0xef0100…63c0…`): the user appears only as the message's `transfer.from`,
+  one Message each. Swap had the same gap (swaps-api `relay-poll.ts` also takes the first packet by tx hash):
+  fixed in the same change, user's call: `checkQuoteDeposit` counts every message, reason stays `multiple_deposits`
+  (released API), wording says "another deposit or a cancel". The 5 real non-EVM mainnet deposits in
+  `non-evm-txs.json` each carry exactly one connection Message (now asserted), so a lone deposit never trips it. Residual, as swap: without a build a
+  backend row is followed with no message count.
 
 - **Bug in `9ef5d54`:** the deployed hub asset manager emits `HookFailed(address,string)` (topic `0xfc062a14…`;
   7 logs, 0 of the bytes topic, blocks 79.1M–83.1M, checked 2026-11-25). `src/services/swap/sourceTx.ts:27` and
