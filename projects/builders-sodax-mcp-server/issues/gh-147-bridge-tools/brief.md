@@ -3,7 +3,7 @@ type: brief
 repo: builders-sodax-mcp-server
 github: 147
 status: Active
-next: merge feat/129-next-action (57f1996) in on the user's word; docs page; kill switch off until a real bridge is tracked end to end
+next: merge feat/129-next-action (57f1996) in on the user's word; docs page; kill switch off until a real bridge is tracked end to end; resolve the bundled-deposit batch review finding
 updated: 2026-11-26
 ---
 
@@ -56,6 +56,11 @@ The base `feat/129-next-action` moved to `57f1996` after `9ef5d54`: merge it in 
   tool; record 10' + 30' grace, resume from the source tx is a main path (`plan.md`).
 
 ## Open
+
+- Uncommitted batch review (2026-11-26): **P2, unresolved** at `build.ts:84-87`. A `wallet_sendCalls`
+  operation can share an ERC-4337 transaction with another deposit. Bridge track accepts any matching Message,
+  but backend bridge storage is keyed by `(srcChainKey, txHash)` and relay polling selects the first packet.
+  Resolve the ambiguity before treating generic wallet batching as supported; see the process entry below.
 
 - **Bug in `9ef5d54`:** the deployed hub asset manager emits `HookFailed(address,string)` (topic `0xfc062a14…`;
   7 logs, 0 of the bytes topic, blocks 79.1M–83.1M, checked 2026-11-25). `src/services/swap/sourceTx.ts:27` and

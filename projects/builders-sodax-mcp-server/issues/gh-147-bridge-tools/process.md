@@ -4,7 +4,7 @@ repo: builders-sodax-mcp-server
 github: 147
 status: Active
 tags: [bridge, action-tools, builders-mcp, review, recovery]
-updated: 2026-11-24
+updated: 2026-11-26
 related_issues: [79, 119, 127, 129, 125]
 ---
 
@@ -114,3 +114,40 @@ decide it in release coordination before changing a public profile name.
 
 Validation in this session was read-only source/API inspection. No tests or canary bridge were run;
 there is no bridge implementation to exercise yet. Code worktrees and GitHub issue/PR contents unchanged.
+
+
+## 2026-11-26 uncommitted batch delta review
+
+Scope: the eight uncommitted files on top of `47a885c`, adding EIP-5792 approve+bridge batches and
+sharing swap batch guidance. Review only; no production code fixes or GitHub comments were made.
+
+### P2: generic wallet batches can contain ambiguous source deposits
+
+`src/services/bridge/build.ts:84-87` offers a batch on every EVM spoke needing an approval. An ERC-4337
+bundler can put unrelated user operations in the same source transaction; EIP-5792 explicitly distinguishes
+the wallet's filtered operation logs from the full transaction receipt. Bridge tracking fetches the full
+receipt and accepts any matching Message (`track.ts:206-213`), without the swap path's
+`swapsIn(...) > 1` / `multiple_deposits` check (`swap/track.ts:349-358`).
+
+The backend bridge API keeps one row per `(srcChainKey, txHash)`
+(`submit-bridge-tx-db.service.ts:findOrUpsertSubmitBridgeTx`) and `relay-poll.ts:pollBridgePacket` selects
+the first packet for that hash. If another deposit's packet is first, the stored hub hash is that other
+deposit's, and the user's bridge is followed against the wrong hub receipt. A valid batch can therefore
+remain in transit even after its own packet has delivered.
+
+Reproduced through the real MCP tool harness with a prepared approval+bridge batch and a receipt containing
+another sender's Message before the expected one. A temporary regression assertion that an ambiguous
+source must not be submitted failed: tracking returned `relaying` and submitted the shared transaction hash.
+The temporary test was removed after the run. Supporting specification:
+https://eips.ethereum.org/EIPS/eip-5792#wallet_getcallsstatus .
+
+Minimum follow-up: reject and hand off multiple-deposit receipts consistently with swaps. Full support
+requires identifying the intended message/packet throughout backend storage, relay polling and MCP tracking;
+limiting the offered batch capability is an alternative until that exists.
+
+### Validation
+
+- Focused bridge/build/track, source receipt and swap-decision tests: 5 files, 899 tests passed.
+- `pnpm checkTs`, `pnpm lint`, and `git diff --check` passed.
+- The temporary bundled-deposit regression failed as described above (one test; remaining copied harness
+  cases skipped). No live bridge, signing, broadcast or mainnet transaction was performed.
