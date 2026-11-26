@@ -272,3 +272,13 @@ User requested assessment of the uncommitted policy. `expiry-review.md` records 
 findings: invalid track requests create long-lived pins; global swap eviction ignores a tracking pin
 past the intent deadline. Existing focused checks: 55 passed. Two temporary regressions failed and
 were removed. No product fix, commit/push, signing/broadcast, production load or public issue/comment.
+
+
+## 2026-11-26 shared swap/bridge architecture discussion
+
+Proposed a neutral shared action lifecycle/store with typed payloads, common admission quotas and
+concurrency reservations, ownership, leases/claims, eviction invariants and tests; domain policies supply
+retention and safe-handoff conditions. Existing chain adapters, approvals and nextAction already share
+code. Keep swap solver/on-chain deadline/cancel/refund and bridge vault/delivery/recovery semantics in
+separate services. Shared implementation need not merge stores or erase per-module quotas; a global
+active-work budget can cover both. Proposal only; no product changes or refactor performed.

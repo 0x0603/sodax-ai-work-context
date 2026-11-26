@@ -75,6 +75,11 @@ The base `feat/129-next-action` moved to `57f1996` after `9ef5d54`: merge it in 
 
 ## Open
 
+- Architecture discussion (2026-11-26, proposal only): share an action-store/lifecycle engine, admission
+  quotas/concurrency and invariant tests, with typed swap/bridge payloads and separate retention/domain policies.
+  Keep swap solver/deadline/cancel/refund logic and bridge vault/delivery logic separate. No refactor authorized
+  or implemented; first extraction should address the two pinning/eviction findings consistently.
+
 - Five-minute expiry/pinning follow-up review (2026-11-26): **two P2 findings unresolved** in the
   uncommitted delta. Invalid/nonexistent track hashes can pin records beyond five minutes; global swap
   eviction can remove a tracked, unclaimed quote after its on-chain deadline while retention is still live.
