@@ -2,9 +2,9 @@
 type: brief
 repo: builders-sodax-mcp-server
 github: 129
-status: Active — draft PR #138 (feat/129-next-action, 33e9e24) against development; 2128 tests green
-next: mark #138 ready (and request review) once #127 is in development and `delivered` is mapped
-updated: 2026-11-20
+status: In review — PR #138; R0bi7's 2026-11-25 review fixed in 01b6187, pushed 2026-11-26; 2255 tests green
+next: await R0bi7 on #138 (body updated, replied 2026-11-26); #145 must turn in_transit into a poll
+updated: 2026-11-26
 related_issues: [119, 125, 126, 127, 130, 132]
 ---
 
@@ -79,10 +79,21 @@ related_issues: [119, 125, 126, 127, 130, 132]
 - Tests: a check that every call after a person's answer is bounded (price → prepare excepted, a step forward), and a
   harness guard of 200 calls so a runaway fails instead of hanging.
 
+## R0bi7 review on 57f1996 (2026-11-25): all findings verified and fixed
+
+- A non-retryable failure with its code's default advice gets its own hand-off sentence (`wontPass`); evm.ts's
+  hub cancel build is non-retryable too (pure encoding, no read). Fixture builds `retryable: false`; every hand-off
+  is checked never to say retry.
+- In transit stays final at the fill (57f1996's call); the check is `!== "in_transit"`, so a later `delivered`
+  reads as complete. PR body's "merge after #127" note is stale: #145 must turn `in_transit` into a poll.
+- README cancel line fixed (not_submitted does hand to track, which submits nothing there).
+- Poll sentence names its 15 s wait (30 polls ≈ 17 min); Sui/non-EVM CHAIN_UNAVAILABLE text tells, not asks;
+  UNSUPPORTED_CHAIN options = close matches first, then every chain.
+- `not_this_swap` / `not_sent` from `checkSwapTx` carry `cancelTxHash`, and the ask for the right hash keeps it.
+
 ## Known, left for the PR thread
 
 - Payload: nested continuations repeat the swap's args (~180 tokens per poll); `confirm.summary` repeats quote fields.
-- `solved` + in-transit polls to its bound until #127 maps `delivered` (merge gate).
 - A relayed cancel can be offered again by track: only the runtime's pending-cancel rule stops it.
 
 ## Map

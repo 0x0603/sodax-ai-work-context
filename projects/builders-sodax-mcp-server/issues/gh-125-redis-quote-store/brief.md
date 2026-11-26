@@ -2,9 +2,9 @@
 type: brief
 repo: builders-sodax-mcp-server
 github: 125
-status: In review 2026-11-20 — PR #137 open against development
-next: watch CI and review on PR #137; Redis per environment must exist before REDIS_URL is set (README rollout)
-updated: 2026-11-20
+status: In review — PR #137; R0bi7's 2026-11-25 review fixed in 71dce25, pushed 2026-11-26
+next: await R0bi7 on #137 (replied 2026-11-26); Redis per environment must exist before REDIS_URL is set
+updated: 2026-11-26
 related_issues: [119, 124]
 ---
 
@@ -67,3 +67,16 @@ with local Redis.
 - A failed progress write is lost if the process restarts before the replay: then a refund relay may repeat.
 - `REDIS_URL` kept as the issue names it (not namespaced); stdio opens it only with the swap toolset.
 - Heartbeat/shutdown `swap_quotes.open` is store-wide in Redis (= this server's with one replica).
+
+## R0bi7 review on e184624 (2026-11-25): 5 findings, all verified and fixed
+
+- Close flushes the unwritten writes, bounded 2 s (`flushQuoteWrites`); SIGTERM flushes before the stop alert, so
+  it counts only what's lost.
+- Relay claim 30 s → 2 min: past the relay call (15 s) and the minute sweep that rewrites a missed record, so another
+  server sharing Redis waits instead of relaying again. A restart before the rewrite can still repeat it (README).
+- HAND_OVER keeps the later hub outcome: `left_to_refund` < `closed` < `cancelled` (`outranked`, memory too).
+- Clocks: README + store header say servers sharing a Redis need NTP. No owner check on `releaseRelay`: the claim
+  always outlives its relay call, so a release can't hit another call's claim.
+- A sweep/reserve reply after the 2 s timeout still logs its unused quotes (`logUnused` moved to `quoteStore.ts`).
+- Tests (1384 green with Redis): hub cancel vs a late refund record (swapHub, Redis), second server waits on the claim
+  (swapTrack, Redis), flush on close, late sweep reply. Each fails with its fix reverted.
