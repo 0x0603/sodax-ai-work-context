@@ -57,6 +57,12 @@ The base `feat/129-next-action` moved to `57f1996` after `9ef5d54`: merge it in 
 
 ## Open
 
+- Follow-up batch review (2026-11-26): **P2, unresolved** at `bridge/track.ts:222`. The new guard fixes
+  two deposits, but `swapsIn` ignores non-deposit connection Messages. A transaction containing an unrelated
+  cancel/direct Message before the bridge still submits and returns `relaying`, although backend polling
+  selects the first packet without filtering its sender or type. Count every competing relay Message or select
+  the expected bridge packet; see the follow-up process entry. Focused tests: 914 passed, typecheck/lint passed.
+
 - Uncommitted batch review (2026-11-26): **P2, unresolved** at `build.ts:84-87`. A `wallet_sendCalls`
   operation can share an ERC-4337 transaction with another deposit. Bridge track accepts any matching Message,
   but backend bridge storage is keyed by `(srcChainKey, txHash)` and relay polling selects the first packet.

@@ -151,3 +151,33 @@ limiting the offered batch capability is an alternative until that exists.
 - `pnpm checkTs`, `pnpm lint`, and `git diff --check` passed.
 - The temporary bundled-deposit regression failed as described above (one test; remaining copied harness
   cases skipped). No live bridge, signing, broadcast or mainnet transaction was performed.
+
+
+## 2026-11-26 batch guard follow-up review
+
+Scope: the updated eleven-file uncommitted delta on `47a885c`. The original two-deposit case is now
+rejected with `multiple_deposits`, an operator alert, no build claim and no backend submit. That fix and
+its regression test are correct for two asset-manager deposits.
+
+### P2: a non-deposit connection Message still bypasses the guard
+
+`bridge/track.ts:222` calls `swapsIn(source, sourceTx) > 1`. For spokes, that helper counts only
+Messages whose `srcAddress` is the asset manager (`swap/source.ts:142-144`, `sourceTx.ts:48-49`).
+A bundled transaction can contain another user's cancel or direct `connection.sendMessage` call before
+the valid bridge deposit. The receipt then has two relay Messages but only one deposit, so tracking
+claims and submits the shared transaction hash. Backend `relay-poll.ts:pollBridgePacket` selects the
+first packet by source chain and transaction hash, with no sender, payload or message-type filter.
+The original wrong-hub-transaction failure therefore remains for that variant.
+
+A temporary test appended to a copy of the bridge tool harness prepared a normal bridge and supplied
+a receipt containing a non-asset-manager Message before its expected deposit. The assertion that this
+ambiguous receipt must return `not_submitted` failed: actual status was `relaying`. The temporary file
+was removed. This finding concerns a known build, not the accepted no-build resume limitation.
+
+Follow-up: count every relay Message that competes in backend packet selection, or select and persist
+the expected message identity throughout the bridge pipeline. Preserve the one-deposit happy path and
+add a deposit-plus-cancel/direct-Message regression test. No production code was changed by this review.
+
+Validation: six focused test files, 914 tests passed; `pnpm checkTs`, `pnpm lint`, and `git diff --check`
+passed. One temporary regression failed as described (36 copied harness cases skipped). No live bridge,
+signing, broadcast or mainnet transaction was performed.
