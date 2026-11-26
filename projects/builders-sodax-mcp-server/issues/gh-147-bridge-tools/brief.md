@@ -20,10 +20,19 @@ updated: 2026-11-26
   checks, `resolveSide`, `addressesNeeded`, `depositTerms`). Swap wording is reworded once at the tool boundary
   (`actionTool` `reword`). Track proves each step past the source on the hub or the relay: from Sonic, the user's
   own tx's packet; to Sonic, the delivery Transfer/Withdrawal in the hub receipt. A reverted hub tx is not a success.
-  HookFailed counts only for this bridge's wallet. `failed || abandonedAt` is relay_failed (the SDK's rule), and
-  alerts without a build spend the public budget. SDK `VALIDATION_FAILED` maps to AMOUNT_TOO_LOW / BRIDGE_REJECTED.
+  HookFailed counts only for this bridge's wallet. Alerts without a build spend the public budget. SDK `VALIDATION_FAILED` maps to AMOUNT_TOO_LOW / BRIDGE_REJECTED.
   Relay packets are zod-validated. The store checks room before upstream calls; `/health` has `openBridges`.
   Gates: lint, checkTs, 2321 tests, live contract 55 green; each fix mutation-checked.
+- PR #150 review (2026-11-26, at `997f768`): fixes pushed as `47a885c` (signed), gates green (lint, checkTs, 2333
+  tests, each fix mutation-checked). A `failed`/abandoned row is stale, not a verdict (SDK `getDetailedStatus`,
+  backend `getSubmitTxStatus`): track asks the relay for the source tx's packet and follows its hub tx; only one the
+  relay hasn't carried is `relay_failed` (from Sonic: the hub's outgoing packet). A non-retryable submit-tx refusal
+  alerts `bridge_submit_rejected` and returns `not_submitted`/`submit_refused` (swap parity; key refusals excluded).
+  `dst_tx_hash` passed verbatim (relay writes base58 / bare txids) and regex-checked. Sonic receipt-before-tx waits.
+  Store `retryAfterSec` = oldest holding build's expiry. Past the claim a 401/403 is rewritten to a retryable
+  UPSTREAM_UNAVAILABLE (a new key can't track the bridgeId; swap parity). Token tools default `for` to the module and reword bridge
+  failures. README `bridge` profile. Rejected: claimed-build TTL (settled 10'+30', agent polls end inside it); 409 on
+  build routes (only `submitTx` throws ConflictError, bridge.service.ts:300).
 - #138 and #145 still open. GitHub redirects the repository to `gosodax/sodax-mcp`; local paths are unchanged.
 
 ## Blocked on
