@@ -4,7 +4,7 @@ repo: builders-sodax-mcp-server
 github: 79
 status: Active, fixing — R0bi7 (2026-11-07) listed fixes on #104, #93, #95, #96, #97; plan re-scoped 2026-11-09
 next: stack live on the test server (swap: 5) but env unset (production API until R0bi7 sets SODAX_ENV=canary, RPC, webhook); #110 observability task opened (R0bi7's ask, sub-issue of #79, Backlog): plan it after the env + canary tests; user funds the wallet; admin creates `canary-e2e`; then E2E dry run → 5 USDC → agent scenarios; #76 ships everything
-updated: 2026-11-16
+updated: 2026-11-20
 ---
 
 # GH-79 Agent-executable swaps (Builders MCP) · brief
@@ -12,6 +12,33 @@ updated: 2026-11-16
 **The entry point. Read this, then open the one file the map points at.**
 
 ## State
+
+- Release #76 (2026-11-20): R0bi7's release review (comment 7020593858, HOLD, 2 blocking). Version: user chose
+  2.0.0 (release-please cuts it from #134's `!`, no `release-as`); #76 body rewritten: 25 PRs grouped, #128's
+  caller-visible changes, swap post-release checks. Still open: blocker 2 (live swap contract tests red since
+  11-13; the 11-19 scheduled run fails a different set, mostly `SDK call failed` / `CHAIN_UNAVAILABLE` /
+  `UPSTREAM_UNAVAILABLE`, so disposition per test + canary `dry_run` on `e5c2450`), owner decisions (SDK
+  `2.3.0-rc.3` in prod, swap tools on by default), should-fix (`checkDrift.ts` exits 0 on a fetch failure, prod
+  `RPC_CONFIG`, README canary "every day", `SODAX_SWAP_TOOLS_ENABLED` value).
+  Triage 2026-11-20 (verified, local runs at `e5c2450` + curl): the contract step was green on the 11-13..11-18
+  schedules and red on every run since 11-19 (the always-red step is API drift). 4 swapTrack tests fail every
+  time: fixtures aged ~3 weeks, not code. arb1.arbitrum.io fails 2 in 3 reads of the 10-28 canary deposit
+  (`failed to decode receipt at block 519011702`; 1- and 7-day-old receipts 8/8 ok, ~20-day 4/8); prod
+  `GET /v1/swaps/intents/0x561e…` (hub tx 10-26) is 404 after ~11 s, 4/4, while canary is 200 and prod is 200 for
+  the 10-28 hub tx. Hedera/Injective/NEAR/Sui failures are intermittent (pass locally 2/2). Canary dry run
+  44713821085 failed at setup: `canary-e2e` has no secrets (E2E stopped for cost). Local dry run instead, 2026-11-20,
+  `e5c2450` built and served with `SODAX_ENV=production` (no RPC_CONFIG), user's prod key: `/health` 6 swap tools,
+  quote 5 USDC Arbitrum -> Base, min 4.944812, 2 steps, exit 0; only server warning the known API drift. Key was
+  pasted in chat: user to rotate it. R0bi7 added `E2E_SODAX_API_KEY` to `canary-e2e` (no wallet key; branch policy
+  still none); Actions dry run 44727345325 on `e5c2450` (canary) passed: 5 USDC Arbitrum -> Base, min 4.944824.
+  SDK 2.3.0-rc.4 (adds ANT): issue #141, PR #142 (CI green); backend still rc.3, so ANT isn't listed yet. Branch
+  `fix/drift-check-fails-closed` in worktree `-wt-rel76` (simplify + code-review done, all green):
+  drift CLI exits 1 when the spec can't be read or has no paths; the 4 swapTrack tests pick recent txs from chain
+  logs (Arbitrum deposits >~17 min old, Sonic intents filled in full); `pnpm test:contract` defaults to production
+  (user's call); README canary "on demand only". Issue #139 (Task, sub of #79, Sodax board In
+  progress, filed 2026-11-20 at the user's ask); PR #140 into `development` (`Closes #139`, 2 signed commits
+  `0a94c65` + `a5f3ca4`, pushed 2026-11-20, issue moved to In review; no reviewer requested). Not fixed (pre-existing): drift never reports a tool endpoint gone from the spec; cancel calls
+  `getHubIntent`, so a >3-week-old stuck intent may not cancel if prod keeps 404ing old hub txs (unverified).
 
 - Canary E2E (#88): draft PR #113 removes the daily schedule on `development` and keeps manual dispatch, including dry run. The schedule remains active until merge. See `process.md` for verification.
 

@@ -2,7 +2,7 @@
 type: plan
 repo: builders-sodax-mcp-server
 github:
-updated: 2026-11-25
+updated: 2026-11-26
 tags: [mpc-relay, swap, bridge, tron, xrp, ton, cardano, zcash, monad]
 related_issues: [gh-147, gh-118]
 related_decisions: [0001-mpc-settlement-ownership-and-launch-gate]
@@ -14,7 +14,8 @@ related_decisions: [0001-mpc-settlement-ownership-and-launch-gate]
 supersedes the provisional rollout order and MCP-side notify/sender-rule fallbacks below.
 SDK owns chain rules/shared proof; backend owns durable MPC settlement. Source deposits stay
 disabled until those contracts and supported recovery are ready. See [process.md](process.md)
-for the checked backend routing, real hub receipt and deployed ABI mismatch.
+for the checked backend routing, real hub receipt and deployed ABI mismatch, and [cases.md](cases.md)
+for swap vs bridge and MPC source vs destination, case by case.
 
 Tags: **[V]** verified in code (cited), **[N]** from an earlier context note, **[J]** judgement.
 Sources read 2026-11-25: SDK tag `@sdks@2.4.0-rc.1` (paths under `packages/sdk/src/`), sodax-backend
@@ -97,7 +98,7 @@ release record's `txs.release` is the payout tx (`swap/SwapService.ts:2252-2260`
    - [N] D is dropped unless the owner paid directly: a payment from another account mints to W without
      running D, which reads as held on the hub, not delivered.
    - Follow-up verified: underlying mint and vault-share transfers are separate; T1 has no swap intent.
-     SDK/MCP `HookFailed` ABI differs from deployment. See `process.md` for evidence and limits.
+     SDK `HookFailed` ABI differs from deployment (MCP fixed in gh-147 `997f768`). See `process.md` for evidence and limits.
 5. **The deposit address can't be pinned (step 3).** [N] The relay doc says the reserve "is not a constant…
    always pay the address from this response", and the SDK only warns on an unknown one. Monad's
    per-payload address comes from MPC derivation the MCP can't redo. The backend's build and the SDK's both

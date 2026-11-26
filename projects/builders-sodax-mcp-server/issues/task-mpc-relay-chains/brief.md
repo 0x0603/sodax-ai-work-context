@@ -4,7 +4,7 @@ repo: builders-sodax-mcp-server
 github:
 status: Active
 next: agree backend MPC ownership and SDK validation/recovery prerequisites; keep source execution disabled
-updated: 2026-11-25
+updated: 2026-11-26
 related_decisions: [0001-mpc-settlement-ownership-and-launch-gate]
 ---
 
@@ -30,8 +30,8 @@ related_decisions: [0001-mpc-settlement-ownership-and-launch-gate]
 ## Next action
 
 Agree prerequisites from ADR 0001 before a deposit rollout. T1's real receipt is inspected: raw
-mint and vault shares are distinct. SDK/MCP failure ABI differs from deployed
-`HookFailed(address,string)`. T1 is a bridge mint, not proof of a successful USDT swap.
+mint and vault shares are distinct. The SDK's failure ABI differs from deployed
+`HookFailed(address,string)` (MCP fixed in gh-147 `997f768`). T1 is a bridge mint, not proof of a successful USDT swap.
 
 ## Settled — do not re-litigate
 
@@ -47,6 +47,7 @@ mint and vault shares are distinct. SDK/MCP failure ABI differs from deployed
 | -------- | ---- | ---: |
 | The mechanism, flow, difficulty and provisional order (final policy supersedes it) | `plan.md` | 2.6k |
 | The question as asked | `issue.md` | 0.1k |
+| Swap vs bridge, MPC source vs destination: legs, checks, difficulty per case | `cases.md` | 2.4k |
 | Final decision and launch gate | `../../decisions/0001-mpc-settlement-ownership-and-launch-gate.md` | 1.7k |
 | Backend routing, real T1 receipt, ABI mismatch and limits | `process.md` | 1.6k |
 | Relay code facts (verifier, ids, fees, hub executor) | `../../../sodax-sdks/issues/task-pr-372-tron-review-fixes/chain-evidence-2026-11-02.md` | 2.3k |
@@ -55,3 +56,7 @@ mint and vault shares are distinct. SDK/MCP failure ABI differs from deployed
 
 - A wrongly spelled relay id (a `0x` or uppercase Tron tx) reads `pending` forever, never 404.
 - The relay verifier doesn't check the deposit amount; D is dropped unless the owner paid directly.
+- Deployed `HookFailed` is `(address,string)`, confirmed on chain (7 logs, 0 of the bytes topic, blocks
+  79.1M–83.1M). gh-147's bridge track used the bytes topic until `997f768`; the SDK ABI still declares
+  bytes (checked on `2.3.0-rc.4` only) (`cases.md` item 3).
+- A swap to an MPC chain is not paid at `solved`: the release must be read (`cases.md` S1).
