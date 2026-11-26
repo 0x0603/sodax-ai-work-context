@@ -71,7 +71,11 @@ The base `feat/129-next-action` moved to `57f1996` after `9ef5d54`: merge it in 
 - Backend builds, MCP rebuilds with `sodax.bridge.createBridgeIntent` raw and compares byte for byte (ADR 0001
   D3/D5; bridge-api simulates every build on the hub). "MCP builds itself" was tried and dropped 2026-11-25.
 - Own `bridge` profile + `SODAX_BRIDGE_TOOLS_ENABLED` (ADR D4); the connection's partner fee applies; no recovery
-  tool; record 10' + 30' grace, resume from the source tx is a main path (`plan.md`).
+  tool; record 5' sign-by + 30' grace (user, 2026-11-26; was 10'), resume from the source tx is a main path
+  (`plan.md`). A build or swap quote with no deposit, past its 5' sign-by and not held, gives way when a new one
+  needs room (per key, per client IP, or server-wide, swap's deadline ranks too); a track or cancel call with a
+  well-formed hash holds it 5' from that call (polls renew it), a claimed deposit keeps it for good. Swap's on-chain
+  deadline is unchanged: its 5' sign-by is a separate `expiresAt` the agent sees.
 
 ## Open
 
@@ -80,10 +84,35 @@ The base `feat/129-next-action` moved to `57f1996` after `9ef5d54`: merge it in 
   Keep swap solver/deadline/cancel/refund logic and bridge vault/delivery logic separate. No refactor authorized
   or implemented; first extraction should address the two pinning/eviction findings consistently.
 
-- Five-minute expiry/pinning follow-up review (2026-11-26): **two P2 findings unresolved** in the
-  uncommitted delta. Invalid/nonexistent track hashes can pin records beyond five minutes; global swap
-  eviction can remove a tracked, unclaimed quote after its on-chain deadline while retention is still live.
-  Both reproduced with temporary regression tests; 55 existing tests passed. See `expiry-review.md`.
+- /simplify + /code-review round (2026-11-26), in `3a06fb4`, 3391 tests, each fix mutation-checked: shared
+  `src/services/signWindow.ts` (sign window, hold, releasable, open counts) for both stores; `resolveSentTx` holds a
+  quote once its hash checks; batch-id hint only on EVM; schema fails to compile on a missing variant, runtime tests
+  parse every action; prepare descriptions state the 5' window + wallet; shared signing rules said once. Code review:
+  claimed builds kept 24h apart from unsent ones, `handedOver` counted in `/health` and stop/crash alerts; submit-tx
+  404 retryable (route never answers 404, checked in bridge-api); stale-row relay read error retried, not `held`;
+  `bridge_used` / `bridge_submitted_differently` alert from the checked budget; token tools offer `for: bridge` only
+  with bridge tools on, and fail in a bridge's words for one; non-EVM bridge CHAIN_UNAVAILABLE bounded; ADR refs
+  dropped from public code. Skipped by design: eviction of an unsent build past 5' (user's call).
+- Claimed-build retention (2026-11-26): kept 24h (Sonic delivery proof and resubmit need the build; hand relays take
+  hours), now capped at 10k: past it the oldest handed-over build gives way, one not handed over is never dropped.
+  Note: swap keeps 24h only for quotes with no backend row; a submitted swap quote lives deadline + 30' (<= 90').
+- Pushed `3a06fb4` to `feat/147-bridge-tools` (PR 150), 3392 tests. Next: PR review.
+- Five-minute expiry/pinning review (2026-11-26): both P2s fixed, in `3a06fb4`. The pin became a 5' hold set only
+  after the hash is checked; swap's past-deadline eviction skips a held quote. Regression tests added and
+  mutation-checked. See `expiry-review.md`.
+
+- **Committed in `3a06fb4` on top of `a78690e` (2026-11-26), gates green (lint, checkTs, build, 3302 tests, mutation-checked):**
+  agent feedback round + MCP-side abuse limits. (1) Swap and bridge instructions and price/preview `nextStep` say a
+  wallet tool must sign, send and report receipts before preparing. (2) `src/public/next-action.md` is the contract
+  (README links it), served as `sodax://next-action`; the full zod `nextActionSchema` (typed as `NextAction`, every
+  decision tested against it) is served as `sodax://next-action/schema`; `tools/list` keeps a light `type` enum
+  (~4 KB for the bridge profile vs ~87 KB inlined). (3) Bridge preview/prepare carry `networkFee {paidIn, estimated:
+  false}`; bridge-api has no fee of its own (`getFee` 0 without a partner fee). (4) `seenOnChain` is tri-state; a tx
+  its node definitely doesn't know is polled 8× then the hash asked again (bounded). (5) `txHash` is checked in the
+  handler: INVALID_TX_HASH with a nextAction, and the batch-id hint. Abuse: open builds/quotes capped per client IP
+  (100); at any cap the oldest build/quote unsent and unheld past its 5' sign-by gives way, else a refusal with
+  its own nextStep and retryAfterSec ≤ 5'. 3304 tests. Key enforcement is the backend's
+  (bridge-api read routes and swaps-api not enforcing, probed 2026-11-26).
 
 - Read-only auth/resource assessment (2026-11-26): bridge profile requires a key-shaped header, but MCP
   validates format only. A synthetic nonexistent key passed the local profile gate. Preview performs hub RPC
@@ -130,7 +159,7 @@ The base `feat/129-next-action` moved to `57f1996` after `9ef5d54`: merge it in 
 | -------- | ---- | ---: |
 | What the backend/SDK give, with file:line | `issue.md` | 0.6k |
 | Review findings and decisions needed before planning | `process.md` | 2.0k |
-| Five-minute eviction and tracking-pin review | `expiry-review.md` | 0.9k |
+| Five-minute eviction and tracking-hold review, and its fix | `expiry-review.md` | 1.1k |
 | First-time agent feedback and sampled MCP evidence | `agent-feedback.md` | 1.9k |
 | Design decisions with code refs, route/failure tables, build order | `plan.md` | 3.3k |
 

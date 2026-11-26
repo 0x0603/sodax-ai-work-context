@@ -2,7 +2,7 @@
 type: process
 repo: builders-sodax-mcp-server
 github: 147
-status: Review, two findings unresolved
+status: Both findings fixed (uncommitted)
 updated: 2026-11-26
 tags: [bridge, swap, expiry, cache, abuse, review]
 source_commit: a78690e plus uncommitted changes
@@ -59,3 +59,16 @@ work concurrency limits remain separate concerns. Shared-egress/NAT users still 
 - Two temporary regression tests failed with the exact behaviors above; 50 copied harness cases skipped.
 - Temporary tests were removed after the run; `git diff --check` passed.
 - No load test, production relay submit, signing, broadcast, product fix or public security issue/comment.
+
+## Resolution (2026-11-26, uncommitted on `a78690e`)
+
+- The permanent pin became a 5' hold (`heldUntil`, `holdForTrack`), set only after `sourceTxHash` accepts the
+  hash: in bridge `follow`, swap `trackSwap` and `cancelSwap` (no longer in `resolveSource`). Each poll renews it;
+  only a claimed deposit keeps a record for good. A call buys no more hold than a prepare does.
+- `evictionRank` ranks an unclaimed quote 0 only when `releasable` (unheld, past sign-by), so the global branch
+  follows the same rule as the per-key/per-client ones.
+- Tests: malformed hash holds nothing (bridge and swap track), a hold ends after 5', a held past-deadline quote
+  survives a full cache until its hold ends. Mutations caught: hold before the hash check (bridge 1, swap 2
+  failures), global eviction ignoring the hold (1), holds never ending (4). 3304 tests green.
+- Not changed: RPC cost per IP is bounded by the existing `/mcp` limiter (60 messages/min/IP); there is no global
+  cap on concurrent upstream work.
