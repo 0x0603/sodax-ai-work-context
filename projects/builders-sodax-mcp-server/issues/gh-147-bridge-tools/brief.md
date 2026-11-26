@@ -75,6 +75,13 @@ The base `feat/129-next-action` moved to `57f1996` after `9ef5d54`: merge it in 
 
 ## Open
 
+- Read-only auth/resource assessment (2026-11-26): bridge profile requires a key-shaped header, but MCP
+  validates format only. A synthetic nonexistent key passed the local profile gate. Preview performs hub RPC
+  work without backend key verification. Existing per-IP limits and store/SSE caps do not supply authenticated
+  per-org quotas or a global bridge-work concurrency budget. Backend scopes exist but enforcement is deployment
+  dependent. Production `/api` did not list bridge; keyless Bridge API tokens GET returned 200. See the process
+  entry; no load testing, public issue, or implementation change. Formal security triage belongs in AuditMap.
+
 - Bridge nextAction gaps (found 2026-11-26 at `7077dba`): **fixed in `83f411c`** (pushed by another agent; verified:
   lint, checkTs, build, 2967 tests; reverting each of the bounded hash ask, the pairs `choose` and the kept
   `bridgeId` fails 6-7 tests). `askTxHash` is shared with swap (bounded by `MAX_ASKS` 3), bridge decisions have the

@@ -232,3 +232,35 @@ non-EVM address requirements, invalid hash input and an unseen hash. No signing/
 initialization instructions were inspected as well as tool schemas/results. This was not a separate blind
 model evaluation, hosted transport/API-key onboarding test, or completed funded bridge. No implementation
 changes were made. Temporary worktree removed after preserving the evidence.
+
+
+## 2026-11-26 API-key and resource-abuse assessment
+
+User asked whether callers can spam MCP and whether bridge requires an API key. Read-only assessment
+of feature head `a78690e` and backend auth source; no production flood, fake-key probe, signing or relay submit.
+
+At the HTTP/stdio profile gate, missing/malformed keys are rejected for bridge; `all` hides bridge tools
+without a key-shaped value. Local pure-function check: a synthetic nonexistent but correctly shaped key
+produces `apiKeyStatus: valid` and enables bridge. This is format validation, not a principal lookup.
+Preview then performs hub RPC reads directly; prepare also performs local SDK/RPC work in addition to
+key-forwarded backend calls. No additional edge authentication configuration was inspected.
+
+Backend bridge routes declare `bridge:read` / `bridge:write`; ApiKeyGuard rejects failed checks only in
+enforce mode with its keyset enabled. Configuration defaults mode to off; monitor also allows failures.
+Three single unauthenticated GET probes (no credentials, 12-second timeout) observed production MCP
+`/api` and `/health` at 200, version 2.0.0, with no bridge profile listed; Bridge API `/tokens` also returned
+200. These observations do not prove the mode/configuration of all write routes. The earlier in-process
+walkthrough deliberately bypassed MCP HTTP profile selection and did not test hosted authentication.
+
+Protections in app code: 100 HTTP requests/minute/IP, 60 MCP messages/minute/IP, maximum 10-message
+batches counted per message, 100 KB request bodies, SSE caps 10/IP and 200/process with 1-hour idle TTL,
+and bridge store caps 1,000 open/key and 10,000 total with 10+30 minute retention. Store checks precede
+upstream preparation work. Rate counters are in process memory; no verified-principal/tool-cost quota or
+global active bridge-call semaphore was found. nextAction retry budgets are client behavior, not an
+adversarial server-side limit.
+
+Recommended order: verify real key/scopes before expensive RPC work, authenticated per-org/per-tool
+budgets, bounded per-principal/global concurrency with short queues, shared counters if scaling replicas,
+and ingress/proxy protections. Cache/coalesce safe read calls where useful. Do not declare the service
+DoS-proof from these app limits. Any formal security finding should be triaged privately through AuditMap;
+no public issue/PR comment was posted from this assessment.
