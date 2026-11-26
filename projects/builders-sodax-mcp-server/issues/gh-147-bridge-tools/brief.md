@@ -79,6 +79,11 @@ The base `feat/129-next-action` moved to `57f1996` after `9ef5d54`: merge it in 
 
 ## Open
 
+- Code quality review (2026-11-26, at `3a06fb4` + working tree): 7 findings and an agent-docs gap, none
+  implemented; see `code-quality-review.md`. One fix left uncommitted in the worktree: `swapHub.test.ts` imported
+  `trackWait` from its old module after the `trackWait.ts` extraction (30 tests failed; tests are not typechecked).
+  Gates after: lint, checkTs, 3393 tests.
+
 - Architecture discussion (2026-11-26, proposal only): share an action-store/lifecycle engine, admission
   quotas/concurrency and invariant tests, with typed swap/bridge payloads and separate retention/domain policies.
   Keep swap solver/deadline/cancel/refund logic and bridge vault/delivery logic separate. No refactor authorized
@@ -161,6 +166,7 @@ The base `feat/129-next-action` moved to `57f1996` after `9ef5d54`: merge it in 
 | Review findings and decisions needed before planning | `process.md` | 2.0k |
 | Five-minute eviction and tracking-hold review, and its fix | `expiry-review.md` | 1.1k |
 | First-time agent feedback and sampled MCP evidence | `agent-feedback.md` | 1.9k |
+| Code quality, maintainability/scale and agent-docs review, with a suggested order | `code-quality-review.md` | 1.4k |
 | Design decisions with code refs, route/failure tables, build order | `plan.md` | 3.3k |
 
 ## Landmines
