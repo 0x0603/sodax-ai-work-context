@@ -2,7 +2,7 @@
 type: plan
 repo: builders-sodax-mcp-server
 github: 147
-updated: 2026-11-25
+updated: 2026-11-26
 related_issues: [119, 125, 127, 129, 142]
 ---
 
@@ -205,6 +205,22 @@ Alerts: new `bridge_*` kinds in `alerts.ts` (kinds + per-budget caps already the
   bridge scope", not the swap's retry-as-`UPSTREAM_UNAVAILABLE`.
 - `submit-tx`: `OrgLimitAwareThrottlerGuard`, 10/60 s. It steps aside for a key whose org has
   `rateLimitPerMinute` (edge enforces it); otherwise per IP, which all MCP users share.
+
+### D7. Complete the bridge agent workflow in #150 (user, 2026-11-26)
+
+Do all four agent-flow improvements in this PR, rather than leaving the new bridge tools behind swaps:
+
+- Hash correction uses the shared swap decision helper: three retries per workflow, keyed independently of
+  each corrected hash or chain, then an external help-desk handoff. Keep the canonical chain and bridge id.
+- Token discovery offers canonical pair choices, asks for the source amount, then calls preview. Empty
+  pair lists stay terminal. Preview asks for the wallet addresses before prepare; prepare confirms before execute.
+- Permanent contract tests cover the track status/reason variants, preview/prepare, token choices and every
+  error code from each bridge tool. Only forward transitions and the terminal balance read may be unbounded.
+- The shared nextAction runtime follows bridge workflows without reading nextStep, persists corrected
+  hashes and batch ids before the next call, resumes without sending twice, and retains retry budgets across
+  sessions. Test user declines, pending batches, poll/error exhaustion, held/failed outcomes and non-EVM sends.
+
+Implemented in `83f411c`; no wallet signing or broadcasting capability is added to the MCP.
 
 ## Build order (one branch)
 

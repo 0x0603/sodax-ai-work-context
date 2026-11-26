@@ -181,3 +181,40 @@ add a deposit-plus-cancel/direct-Message regression test. No production code was
 Validation: six focused test files, 914 tests passed; `pnpm checkTs`, `pnpm lint`, and `git diff --check`
 passed. One temporary regression failed as described (36 copied harness cases skipped). No live bridge,
 signing, broadcast or mainnet transaction was performed.
+
+
+## 2026-11-26 complete bridge agent decisions and runtime
+
+User direction: complete all four identified agent-flow gaps in the existing new bridge PR (#150).
+Implemented, committed and pushed as signed `83f411c` on `feat/147-bridge-tools`. The PR remains draft,
+with its existing base `feat/129-next-action`; the base was not merged or rebased during this work.
+
+The swap hash correction helper now takes canonical continuation arguments and also serves bridge track.
+A wrong bridge hash asks for a replacement with the resolved chain and bridge id, bounded by the same
+three-retry workflow budget regardless of corrected hash/chain. Exhaustion hands off to the help desk.
+`bridge_tokens` now gives canonical pair choices, then requests the amount, then calls preview. Repeated
+symbol pairs are distinguished by their addresses. The tool output-schema test exercises the new action.
+
+Added permanent `bridgeDecisions.test.ts`: discovery/preview/prepare variants, all source track statuses
+and refusal reasons on spoke and hub, every error code for each bridge tool, and special bridge error
+branches all run the shared contract and loop checks. Forward preview/prepare transitions and terminal
+balance reads retain their intentional one-way behavior.
+
+Extracted the scripted nextAction host for swap and bridge tests. It throws if a runtime reads nextStep.
+`bridgeNextActionRuntime.test.ts` follows pair selection through a completed bridge; tests declines,
+post-broadcast interruptions, batches awaiting hashes, corrected hashes saved before failed calls,
+retry budgets across sessions, each poll stage, upstream failure bounds, terminal held/failed outcomes,
+and non-EVM sends. The reference runtime now also recognizes bridge track calls when saving corrected
+hashes, while preserving its existing saved-state format. Its README code snippet stays synchronized.
+
+Validation:
+- Focused decisions/runtime/tool tests: 5 files, 1,479 tests passed.
+- Full suite (including the commit hook): 66 files, 2,967 tests passed.
+- `pnpm checkTs`, `pnpm lint`, `pnpm build`, `git diff --check` passed.
+- Direct strict TypeScript checking of the new tests and shared host passed.
+- Reintroducing unbounded bridge hash correction failed the regression's runaway guard; removing bridge
+  hash persistence failed its corrected-hash resume assertion. Both mutations were restored.
+- PR #150 description updated to the final behavior and validation. No real bridge, signing or broadcast.
+
+The previous bundled-message review findings are resolved by `7077dba`; removed the stale unresolved
+follow-up from the brief. Remaining release gates are the real-bridge canary and SDK documentation page.

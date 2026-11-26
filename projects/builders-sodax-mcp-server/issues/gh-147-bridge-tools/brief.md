@@ -39,6 +39,13 @@ updated: 2026-11-26
   Coinbase `send_calls` takes chain name + `{to,value,data}` (no Sonic; hash return undocumented), Phantom `evm_send`
   takes `{chainId,to,value,data}` (no Arbitrum/BSC, no batch). Signer-only broadcast: gosodax/sodax-mcp#151 (Feature,
   sub-issue of #119, Backlog; per-step fill, own broadcast tool, shared swap+bridge), not in #150.
+- User asked to complete all four bridge agent-flow gaps in PR #150 (2026-11-26). Implemented and pushed as
+  `83f411c` (signed): shared three-retry hash correction and help-desk handoff; `bridge_tokens` now offers
+  `choose` pair -> `provide` amount -> preview; permanent decision-contract tests; a shared runtime host plus
+  full bridge workflow, interruption, pending batch, corrected-hash persistence, poll and error-bound tests.
+  README runtime snippet and PR description updated. Gates: lint, checkTs, build, 66 files / 2,967 tests passed;
+  new tests also typechecked directly. Both the unbounded retry and missing bridge hash persistence were
+  reintroduced temporarily and caught by regression tests, then restored. No live bridge was signed or broadcast.
 - #138 and #145 still open. GitHub redirects the repository to `gosodax/sodax-mcp`; local paths are unchanged.
 
 ## Blocked on
@@ -62,12 +69,6 @@ The base `feat/129-next-action` moved to `57f1996` after `9ef5d54`: merge it in 
   tool; record 10' + 30' grace, resume from the source tx is a main path (`plan.md`).
 
 ## Open
-
-- Follow-up batch review (2026-11-26): **P2, unresolved** at `bridge/track.ts:222`. The new guard fixes
-  two deposits, but `swapsIn` ignores non-deposit connection Messages. A transaction containing an unrelated
-  cancel/direct Message before the bridge still submits and returns `relaying`, although backend polling
-  selects the first packet without filtering its sender or type. Count every competing relay Message or select
-  the expected bridge packet; see the follow-up process entry. Focused tests: 914 passed, typecheck/lint passed.
 
 - Batch review P2s (2026-11-26): **resolved in `7077dba`.** Bridge `checkSource` refuses a matched spoke deposit whose
   tx carries any other connection Message (`sourceTx.messages.length > 1`: another deposit, a cancel, a direct
