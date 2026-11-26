@@ -3,7 +3,7 @@ type: brief
 repo: builders-sodax-mcp-server
 github: 147
 status: Active
-next: merge feat/129-next-action (57f1996) in on the user's word; docs page; kill switch off until a real bridge is tracked end to end
+next: merge feat/129-next-action (01b6187) in on the user's word, resolving swapDecisions.ts; docs page; kill switch off until a real bridge is tracked end to end
 updated: 2026-11-26
 ---
 
@@ -69,6 +69,13 @@ The base `feat/129-next-action` moved to `57f1996` after `9ef5d54`: merge it in 
   tool; record 10' + 30' grace, resume from the source tx is a main path (`plan.md`).
 
 ## Open
+
+- Bridge nextAction gaps (found 2026-11-26 at `7077dba`): **fixed in `83f411c`** (pushed by another agent; verified:
+  lint, checkTs, build, 2967 tests; reverting each of the bounded hash ask, the pairs `choose` and the kept
+  `bridgeId` fails 6-7 tests). `askTxHash` is shared with swap (bounded by `MAX_ASKS` 3), bridge decisions have the
+  contract and loop tests, a bridge reference-runtime test drives tokens → preview → prepare → send → delivered.
+- PR #150 is `CONFLICTING`: base `feat/129-next-action` moved to `01b6187` (2 commits); a merge conflicts in
+  `src/tools/swapDecisions.ts` only. Merge in (never rebase) on the user's word.
 
 - Batch review P2s (2026-11-26): **resolved in `7077dba`.** Bridge `checkSource` refuses a matched spoke deposit whose
   tx carries any other connection Message (`sourceTx.messages.length > 1`: another deposit, a cancel, a direct
