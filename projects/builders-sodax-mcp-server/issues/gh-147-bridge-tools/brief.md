@@ -75,6 +75,11 @@ The base `feat/129-next-action` moved to `57f1996` after `9ef5d54`: merge it in 
 
 ## Open
 
+- Five-minute expiry/pinning follow-up review (2026-11-26): **two P2 findings unresolved** in the
+  uncommitted delta. Invalid/nonexistent track hashes can pin records beyond five minutes; global swap
+  eviction can remove a tracked, unclaimed quote after its on-chain deadline while retention is still live.
+  Both reproduced with temporary regression tests; 55 existing tests passed. See `expiry-review.md`.
+
 - Read-only auth/resource assessment (2026-11-26): bridge profile requires a key-shaped header, but MCP
   validates format only. A synthetic nonexistent key passed the local profile gate. Preview performs hub RPC
   work without backend key verification. Existing per-IP limits and store/SSE caps do not supply authenticated
@@ -120,6 +125,7 @@ The base `feat/129-next-action` moved to `57f1996` after `9ef5d54`: merge it in 
 | -------- | ---- | ---: |
 | What the backend/SDK give, with file:line | `issue.md` | 0.6k |
 | Review findings and decisions needed before planning | `process.md` | 2.0k |
+| Five-minute eviction and tracking-pin review | `expiry-review.md` | 0.9k |
 | First-time agent feedback and sampled MCP evidence | `agent-feedback.md` | 1.9k |
 | Design decisions with code refs, route/failure tables, build order | `plan.md` | 3.3k |
 

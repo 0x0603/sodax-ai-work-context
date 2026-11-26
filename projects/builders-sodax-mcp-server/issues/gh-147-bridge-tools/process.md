@@ -264,3 +264,11 @@ budgets, bounded per-principal/global concurrency with short queues, shared coun
 and ingress/proxy protections. Cache/coalesce safe read calls where useful. Do not declare the service
 DoS-proof from these app limits. Any formal security finding should be triaged privately through AuditMap;
 no public issue/PR comment was posted from this assessment.
+
+
+## 2026-11-26 five-minute expiry and tracking-pin review
+
+User requested assessment of the uncommitted policy. `expiry-review.md` records two reproduced P2
+findings: invalid track requests create long-lived pins; global swap eviction ignores a tracking pin
+past the intent deadline. Existing focused checks: 55 passed. Two temporary regressions failed and
+were removed. No product fix, commit/push, signing/broadcast, production load or public issue/comment.
