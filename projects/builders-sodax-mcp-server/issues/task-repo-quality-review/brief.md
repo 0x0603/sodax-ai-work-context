@@ -17,7 +17,8 @@ updated: 2026-11-26
 - Findings are in `review.md` (A cross-cutting, B infra, C data tools, D swap and tests), each re-opened in code.
 - Bridge-specific findings are in `../gh-147-bridge-tools/code-quality-review.md`.
 - Nothing implemented, no GitHub issue. One stale test import was fixed in the 147 worktree, uncommitted.
-- `plan.md` holds a proposed order; the user has not agreed to it.
+- `plan.md` holds a proposed order, the `nextAction` agent-friendliness steps (review section E), and what fits
+  the bridge branch now; the user has not agreed to an order.
 
 ## Next action
 
@@ -28,8 +29,8 @@ Agree a first step with the user (proposal: plan.md step 1, guard rails), open i
 | Question | File | ~tok |
 | -------- | ---- | ---: |
 | What the user asked | `issue.md` | 0.2k |
-| Every finding, with file:line evidence | `review.md` | 2.6k |
-| Proposed order of work | `plan.md` | 0.6k |
+| Every finding, with file:line evidence (A-D code, E nextAction for agents) | `review.md` | 3.2k |
+| Proposed order, nextAction improvements, bridge-branch quick starts | `plan.md` | 1.6k |
 | Bridge-branch findings | `../gh-147-bridge-tools/code-quality-review.md` | 1.4k |
 
 ## Landmines

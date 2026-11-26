@@ -156,6 +156,38 @@ D6. **Very large test files** (`swapQuote.test.ts` 1450 lines, `swapTrack.test.t
 
 D7. **`as never` casts into the SDK** (`sodax.ts:593-637`) hide drift on an SDK bump until run time.
 
+## E. Agent-friendliness of `nextAction`
+
+For an LLM agent following `nextStep`, nothing has to be guessed: every result, errors included, carries the
+sentence, `nextAction`, `terminal` and `outcome`, both built by one decision (`nextAction.ts` `ongoing` / `final`);
+`choose` options carry complete `args`. For an automated runtime, these still need knowledge or memory on the
+caller's side:
+
+E1. **`sameArgs: true` makes the caller remember its own arguments.** The server does not echo them (by design: it
+    never writes back a value it refused). An agent that lost context cannot rebuild the call.
+
+E2. **Retry bounds are enforced by the caller.** `maxAttempts`, `retryKey`, `consecutive` are rules for the runtime.
+    Bridge track is the exception: it uses `until` from the server's clock (`stageSince`, `bridge/track.ts`) and
+    stops returning `pollUntil` once past it.
+
+E3. **The full shape is not in `tools/list`.** Tool output schemas state only `nextAction: { type: enum }`
+    (`nextActionSchema.ts` `nextActionField`); the fields and rules are the resources `sodax://next-action/schema`
+    and `sodax://next-action` (`server.ts` `registerNextActionContract`). A client that reads no MCP resources has
+    only `nextStep`. Server instructions only point at the resource.
+
+E4. **`execute` is prose for the wallet.** `stepsAt: "steps"`, `afterSend.needs: ["txHash"]`; how each chain family
+    signs is a sentence (`SIGN_NON_EVM_TX`), not a field.
+
+E5. **Nested continuations** (`choose` → `provide` → `call_tool`, `confirm` → `execute` → `afterSend`) must be walked
+    within one result.
+
+E6. **No `nextAction` when the MCP SDK refuses the arguments before the tool runs** (wrong type, missing field). The
+    contract names this case ("No contract"); the agent has only the SDK's message. `txHash` already avoids it by
+    being checked in the handler.
+
+E7. **The reference runtime lives under test fixtures** (`src/tools/__fixtures__/nextActionRuntime.ts`); the README
+    quotes its loop but it is not shipped as an example.
+
 ## Checked and found fine
 
 Request context via AsyncLocalStorage; API key forwarded only to allow-listed base URLs; shared log redaction;
