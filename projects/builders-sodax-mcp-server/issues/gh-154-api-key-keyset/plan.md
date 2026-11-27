@@ -127,6 +127,8 @@ Port the debug MCP's verifier.
   to `-32000`.
 - `SelectOptions` (`:74-77`) gains `keyCheck?: { mode, outcome }`. `selectToolsets` (`:87-117`) applies
   the Behaviour table when the mode is `enforce` and the outcome is not `ok`.
+- Order: the existing refusals come first: `UNKNOWN_PROFILE`, `SWAP_PROFILE_OFF`, `API_KEY_REQUIRED`,
+  `API_KEY_MALFORMED`. The keyset outcome is applied after them, and only to a `valid` key.
 - `keyHintFor` (`:120-126`) names the failed check in `all`.
 - `off` and `monitor` leave the toolsets as they are today.
 
@@ -171,11 +173,15 @@ Never use attribute names under `api_key.*`: the log gateway masks those values.
   already drops them.
 - `logToolCall` (`analytics.ts:144-178`): `caller.key_check` and `caller.org_id`. `trackToolCall`
   (`:69-85`): `key_check` on the PostHog event.
-- `/health` (`:353-399`): `apiKeyVerification: { mode, hasSnapshot, version, keyCount, snapshotAgeMs, consecutivePollFailures }`.
+- `/health` (`:353-399`): `apiKeyVerification: { mode, hasSnapshot, snapshotAgeMs, consecutivePollFailures }`.
   It is read from memory and never fails the check.
+  - `keyCount` and `version` stay out of it: `/health` is public, and the key count says how many active
+    API keys SODAX has. They go to the logs instead.
 - `bootConfig` (`:597-607`): `key_check.mode`. `serverGauges` (`:612-630`): `keyset.age_s` and
   `keyset.poll_failures`.
 - Each failed poll logs a warn with `keyset.poll_failures`, `keyset.age_ms` and the message.
+- A 200 whose version differs logs an info record `Keyset updated` with `keyset.version` and
+  `keyset.key_count`, as the backend client does.
 
 ### 7. Docs and CI
 
@@ -221,7 +227,9 @@ vitest, with an injected `fetch` and `vi.useFakeTimers`.
     and its record says `unknown_key`. A session opened before the first snapshot records `ok` once one
     arrives;
   - the last revoked key, emptying the keyset, fails on an open swap SSE session in `enforce`;
-  - the `/health` block.
+  - the `/health` block, without `keyCount` or `version`.
+- `selectToolsets`: an existing refusal wins over a keyset outcome. For example, `swap` with the switch
+  off and an unknown key gets `SWAP_PROFILE_OFF`.
 - `startKeyCheck`, with a failing first poll:
   - the server starts in both modes;
   - in `enforce`, `swap` gets 503 and `all` gets builder tools;
@@ -253,7 +261,7 @@ Rollback: set `API_KEY_ENFORCEMENT=off` and redeploy.
 ### Post-release check
 
 ```bash
-# 1. Polling works: mode "enforce", hasSnapshot true, keyCount > 0, snapshotAgeMs < ~15000, consecutivePollFailures 0
+# 1. Polling works: mode "enforce", hasSnapshot true, snapshotAgeMs < ~15000, consecutivePollFailures 0
 curl -s https://mcp.sodax.com/health | jq .apiKeyVerification
 
 # 2. A made-up key is refused: 401, API_KEY_UNKNOWN
