@@ -32,13 +32,16 @@ sodax-backend `dcb1796b`: `apps/api-auth/src/keyset/`, `packages/api-auth-client
 
   | Outcome | `swap` profile | `all` profile |
   |---|---|---|
-  | `unknown_key` | 401 `API_KEY_UNKNOWN` | builder tools only, hint says why |
+  | `unknown_key` | 403 `API_KEY_UNKNOWN` | builder tools only, hint says why |
   | `suspended` | 403 `ORG_SUSPENDED` | same |
   | `insufficient_scope` | 403 `API_KEY_SCOPE` | same |
   | `snapshot_unavailable` | 503 `KEY_CHECK_UNAVAILABLE` | same |
 
   Each refusal is JSON-RPC `-32000`. Messages name the case, never echo the key, and end with
-  `GET_A_KEY`. The 503 message says to retry.
+  `GET_A_KEY`. The 503 message says to reconnect in a minute. Never 401: the MCP SDK client answers a 401 by
+  starting OAuth (`streamableHttp.js:328`, `sse.js:189`, when an auth provider is set, as Claude Code does), so the
+  agent would never see the message. An SSE session that has swap tools gets every message refused once its key
+  fails, until it reconnects.
 - **Boot:**
   - A failed first poll never stops the server, in any mode. It starts, and the interval keeps polling.
   - Until a poll succeeds, the outcome is `snapshot_unavailable`. In `enforce`, `swap` gets 503 and `all`
@@ -114,16 +117,18 @@ Port the debug MCP's verifier.
 - `parseApiKeyEnforcement` goes next to `parseSwapToolsEnabled` (`src/services/profiles.ts:63`), in the
   same style: trim, lowercase, unset or empty means `enforce`, anything else throws.
 - `parseKeyCheckConfig(env)` lives in `apiKeyVerification.ts`. Unless the mode is `off`:
-  - `API_AUTH_URL` is required and must be `https:`; `http:` is allowed only on a loopback host.
+  - `API_AUTH_URL` is required and must be `https:`; `http:` is allowed only on a loopback host. No
+    credentials, query or fragment: fetch refuses credentials, and the poll appends its path.
   - `API_AUTH_TOKEN` is required.
-  - `API_AUTH_POLL_INTERVAL_MS` (15000) and `API_AUTH_POLL_TIMEOUT_MS` (5000) must be positive integers.
+  - `API_AUTH_POLL_INTERVAL_MS` (15000) and `API_AUTH_POLL_TIMEOUT_MS` (5000) must be whole numbers from 1 to
+    2147483647. Above that, Node's timers fire at once.
 - Errors throw into `fatalExit("Server failed to start")` (`src/index.ts:720`). The message names the fix:
   "set API_AUTH_URL and API_AUTH_TOKEN, or API_KEY_ENFORCEMENT=off".
 - HTTP path only.
 
 ### 3. Decision: `src/services/profiles.ts`
 
-- `ConnectionError` (`:48-60`): `httpStatus` becomes `400 | 401 | 403 | 503`. Everything except 400 maps
+- `ConnectionError` (`:48-60`): `httpStatus` becomes `400 | 403 | 503`. Everything except 400 maps
   to `-32000`.
 - `SelectOptions` (`:74-77`) gains `keyCheck?: { mode, outcome }`. `selectToolsets` (`:87-117`) applies
   the Behaviour table when the mode is `enforce` and the outcome is not `ok`.
@@ -136,7 +141,7 @@ Port the debug MCP's verifier.
 
 - `resolveConnection` (`:37-58`): with a `valid` key and a mode other than `off`, it runs
   `checkApiKey(verifier, key, SWAP_SCOPES)`.
-  1. `noteKeyCheck(res, outcome, orgId)` comes first, before `selectToolsets` can throw, so a 401/403/503
+  1. `noteKeyCheck(res, outcome, orgId)` comes first, before `selectToolsets` can throw, so a 403/503
      record keeps its outcome and org. It uses the same pattern as `noteRefusal`
      (`httpGuards.ts:50-56`).
   2. The result goes into `selectToolsets`.
@@ -160,9 +165,9 @@ Port the debug MCP's verifier.
   when the mode is not `off`, and pass the verifier into `createHttpApp`.
 - `runStdio` (`:124`): if `API_KEY_ENFORCEMENT` is set and not `off`, log one warn line that stdio
   ignores it.
-- `createHttpApp(swapToolsEnabled, keyCheck?)` (`:278`): the new parameter is optional and threads into
+- `createHttpApp(swapToolsEnabled, keyChecker?)` (`:278`): the new parameter is optional and threads into
   `resolveConnection` (`:407`, `:437`) and `messageContext` (`:510`).
-- `gracefulShutdown` (`:693-707`) and `fatalExit` call `stop()`.
+- Shutdown needs no `stop()`: the poll timer is `unref()`'d.
 
 ### 6. Observability
 
@@ -221,7 +226,7 @@ vitest, with an injected `fetch` and `vi.useFakeTimers`.
 - Connection: the matrix of mode × profile × outcome, checking status, code, toolsets and hint. The
   existing tests pin `off`.
 - `createHttpApp` with a fake lookup:
-  - `/mcp` 401, 403 and 503, each record carrying `caller.key_check`. `caller.org_id` appears only when
+  - `/mcp` 403 and 503, each record carrying `caller.key_check`. `caller.org_id` appears only when
     the key matched (the 403s), and is absent for `unknown_key` and `snapshot_unavailable`;
   - SSE, key revoked between two messages: in `enforce`, the next message fails; in `monitor`, it passes
     and its record says `unknown_key`. A session opened before the first snapshot records `ok` once one
@@ -264,7 +269,7 @@ Rollback: set `API_KEY_ENFORCEMENT=off` and redeploy.
 # 1. Polling works: mode "enforce", hasSnapshot true, snapshotAgeMs < ~15000, consecutivePollFailures 0
 curl -s https://mcp.sodax.com/health | jq .apiKeyVerification
 
-# 2. A made-up key is refused: 401, API_KEY_UNKNOWN
+# 2. A made-up key is refused: 403, API_KEY_UNKNOWN
 curl -s -X POST 'https://mcp.sodax.com/mcp?profile=swap' \
   -H 'x-api-key: sodax_thisIsNotARealKey000000' \
   -H 'content-type: application/json' -H 'accept: application/json, text/event-stream' \
@@ -273,7 +278,7 @@ curl -s -X POST 'https://mcp.sodax.com/mcp?profile=swap' \
 # 3. A real key passes: same request with the team's prod key → 200, swap tools listed
 ```
 
-Optional: mint a temporary key on the portal, connect, revoke it, and check that it gets 401 after the
+Optional: mint a temporary key on the portal, connect, revoke it, and check that it gets 403 after the
 next poll (about 15s).
 
 On the first day, watch the refusals (`error.type` `API_KEY_UNKNOWN` / `ORG_SUSPENDED` / `API_KEY_SCOPE`).

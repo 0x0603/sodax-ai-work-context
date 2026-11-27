@@ -3,7 +3,7 @@ type: brief
 repo: builders-sodax-mcp-server
 github: 154
 status: Active
-next: on the user's word, branch feat/154-api-key-keyset off origin/development and build plan.md steps 1-9
+next: branch feat/154-api-key-keyset pushed at 1dff915, no PR yet; the hand test against the gh-1372 api-auth stack is still to do
 updated: 2026-11-27
 ---
 
@@ -13,7 +13,15 @@ updated: 2026-11-27
 
 ## State
 
-- The plan is final (2026-11-27). No code and no branch yet.
+- Code written (2026-11-27), uncommitted, in worktree `sodax-command-center/repos/client/builders-sodax-mcp-server-wt-154`
+  on `feat/154-api-key-keyset` (from `origin/development` a36489d). Gates: checkTs, build, 1438 tests green.
+  `/simplify` and `/code-review` fixes applied:
+  - `API_KEY_UNKNOWN` is now 403, because a 401 starts OAuth in MCP SDK clients;
+  - the URL and poll values are bounded;
+  - the interval survives a throwing `onPoll`;
+  - a failed poll cancels its body;
+  - stdio no longer parses the mode. Lint fails only on `server.json`, which is pre-existing: development CI is red at a36489d.
+  The repo has no `docs/kb`.
 - A plan review (`process.md`) is folded into `plan.md`:
   - a valid empty keyset is accepted;
   - SSE messages are re-checked in `monitor` too;
@@ -26,17 +34,19 @@ updated: 2026-11-27
   `caller.org_id` appears only when the key matched.
 - The issue body and the plan comment (issuecomment-7185920687) were synced to this plan on 2026-11-27:
   default `enforce`, the boot criterion, revocation after the next successful poll, an empty keyset
-  accepted.
+  accepted. Synced again after the code review: 403 for `API_KEY_UNKNOWN`, the URL and poll bounds,
+  `/health` without `keyCount`/`version`, no `stop()` on shutdown.
 
 ## Waiting on
 
-- Robi (R0bi7): the verifier token, which blocks the release. Also ask him whether prod sets
+- Robi (R0bi7): the verifier token, which blocks the release. Also ask whether prod sets
   `DISCORD_WEBHOOK_URL`, and whether Coolify keeps the old container when a new one fails.
 
 ## Next action
 
-1. On the user's word, branch, then build steps 1-9.
-2. Commit only on the user's word.
+1. Hand test against the gh-1372 local api-auth (plan step 9). Migrate that stack to 0006 first.
+2. On the user's word: open the PR against `development`. Its lint job fails on the pre-existing `server.json`
+   format drift (red on `development` at a36489d too).
 
 ## Watch
 
