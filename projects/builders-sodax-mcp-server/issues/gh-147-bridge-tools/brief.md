@@ -4,7 +4,7 @@ repo: builders-sodax-mcp-server
 github: 147
 status: Active
 next: merge feat/129-next-action (01b6187) in on the user's word, resolving swapDecisions.ts; docs page; kill switch off until a real bridge is tracked end to end
-updated: 2026-11-26
+updated: 2026-11-27
 ---
 
 # GH-147 Bridge tools · brief
@@ -172,3 +172,8 @@ The base `feat/129-next-action` moved to `57f1996` after `9ef5d54`: merge it in 
 ## Landmines
 
 - `HookFailed` rests on the hub asset manager ABI only (`sodax-contracts` unreadable); 0 events on chain in ~56 days.
+- **#154 key check (keyset verify):** if #154 merges first, this PR must add the bridge check when it merges
+  `development` in. That means `checkApiKey(key, BRIDGE_SCOPES)` (`bridge:read`, `bridge:write`) for the
+  bridge toolset in `resolveConnection` / `selectToolsets`, plus the SSE re-check and tests. Without it, the
+  bridge tools get only the shape check. If this PR merges first, #154 adds it instead. See
+  `../gh-154-api-key-keyset/plan.md` → Open.
